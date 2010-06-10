@@ -7,4 +7,9 @@ public class SchemaUtil {
     return null;
   }
 
+  public static String toLowerCase(String name) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }
