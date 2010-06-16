@@ -23,9 +23,9 @@ import java.util.Collections;
 import java.util.Comparator;
 
 /**
- * Class which represents a schema in OwlBase.
+ * Class which represents a howlSchema in OwlBase.
  */
-public class Schema implements Serializable {
+public class HowlSchema implements Serializable {
 
   public enum ColumnType implements Serializable {
     ANY("any"),
@@ -74,7 +74,7 @@ public class Schema implements Serializable {
 }
 
   /**
-   * Class which represents a ColumnSchema in the Schema.
+   * Class which represents a ColumnSchema in the HowlSchema.
    */
   public class ColumnSchema implements Serializable {
 
@@ -88,7 +88,7 @@ public class Schema implements Serializable {
       private ColumnType type;
 
       /** The subschema for the column. */
-      private Schema schema;
+      private HowlSchema howlSchema;
 
       /** The description. */
       private String description;
@@ -113,18 +113,18 @@ public class Schema implements Serializable {
        * Initialize an ColumnSchema.
        * @param name column name
        * @param type the column type
-       * @param schema column schema
+       * @param howlSchema column howlSchema
        * @throws Exception
        * @throws OwlException the owl exception
        */
-      public ColumnSchema(String name, ColumnType type, Schema schema ) throws Exception {
+      public ColumnSchema(String name, ColumnType type, HowlSchema howlSchema ) throws Exception {
 
-          if ((schema != null) && !(ColumnType.isSchemaType(type))) {
+          if ((howlSchema != null) && !(ColumnType.isSchemaType(type))) {
               throw new Exception("Only a COLLECTION or RECORD or MAP can have schemas.");
           }
 
           this.name = SchemaUtil.toLowerCase( name );
-          this.schema = schema;
+          this.howlSchema = howlSchema;
           this.type = type;
       }
 
@@ -132,17 +132,17 @@ public class Schema implements Serializable {
        * Initialize an ColumnSchema.
        * @param name column name
        * @param type the column type
-       * @param schema column schema
+       * @param howlSchema column howlSchema
        * @throws Exception
        * @throws OwlException the owl exception
        */
-      public ColumnSchema(ColumnType type, Schema schema ) throws Exception  {
+      public ColumnSchema(ColumnType type, HowlSchema howlSchema ) throws Exception  {
 
           if (type != ColumnType.RECORD){
-              throw new Exception ("Missing columnname for schema ["+ schema.getSchemaString() +"]");
+              throw new Exception ("Missing columnname for howlSchema ["+ howlSchema.getSchemaString() +"]");
           }
           this.name = null;
-          this.schema = schema;
+          this.howlSchema = howlSchema;
           this.type = type;
       }
 
@@ -179,19 +179,19 @@ public class Schema implements Serializable {
       }
 
       /**
-       * Gets the schema.
-       * @return the schema
+       * Gets the howlSchema.
+       * @return the howlSchema
        */
-      public Schema getSchema() {
-          return schema;
+      public HowlSchema getSchema() {
+          return howlSchema;
       }
 
       /**
-       * Sets the schema.
-       * @param schema the new schema
+       * Sets the howlSchema.
+       * @param howlSchema the new howlSchema
        */
-      public void setSchema(Schema schema) {
-          this.schema = schema;
+      public void setSchema(HowlSchema howlSchema) {
+          this.howlSchema = howlSchema;
       }
 
       /**
@@ -236,7 +236,7 @@ public class Schema implements Serializable {
           result = prime * result
           + ((columnNumber == null) ? 0 : columnNumber.hashCode());
           result = prime * result + ((name == null) ? 0 : name.hashCode());
-          result = prime * result + ((schema == null) ? 0 : schema.hashCode());
+          result = prime * result + ((howlSchema == null) ? 0 : howlSchema.hashCode());
           result = prime * result + ((type == null) ? 0 : type.hashCode());
           return result;
       }
@@ -266,11 +266,11 @@ public class Schema implements Serializable {
           } else if (!name.equals(other.name)) {
             return false;
           }
-          if (schema == null) {
-              if (other.schema != null) {
+          if (howlSchema == null) {
+              if (other.howlSchema != null) {
                 return false;
               }
-          } else if (!schema.equals(other.schema)) {
+          } else if (!howlSchema.equals(other.howlSchema)) {
             return false;
           }
           if (type == null) {
@@ -288,36 +288,36 @@ public class Schema implements Serializable {
     /** The serialization version */
     private static final long serialVersionUID = 1L;
 
-    /** The identifier for the Schema */
+    /** The identifier for the HowlSchema */
     private Integer schemaId;
 
     /** The list of ColumnSchema. */
     private ArrayList<ColumnSchema> columnSchema;
 
     /**
-     * Instantiates a new owl schema.
+     * Instantiates a new owl howlSchema.
      */
-    public Schema() {
+    public HowlSchema() {
     }
 
     /**
-     * Instantiates a new owl schema.
+     * Instantiates a new owl howlSchema.
      */
-    public Schema(ArrayList<ColumnSchema> columnSchema) {
+    public HowlSchema(ArrayList<ColumnSchema> columnSchema) {
         this.columnSchema = columnSchema;
     }
 
     /**
-     * Instantiates a new owl schema.
+     * Instantiates a new owl howlSchema.
      */
-    public Schema(Integer schemaId, ArrayList<ColumnSchema> columnSchema) {
+    public HowlSchema(Integer schemaId, ArrayList<ColumnSchema> columnSchema) {
         this.schemaId = schemaId;
         this.columnSchema = columnSchema;
     }
 
     /**
-     * Adds the given column schema to the current schema's list of columns
-     * @param column the column schema to add
+     * Adds the given column howlSchema to the current howlSchema's list of columns
+     * @param column the column howlSchema to add
      */
     public void addColumnSchema(ColumnSchema column) {
         if( columnSchema == null ) {
@@ -344,14 +344,14 @@ public class Schema implements Serializable {
     }
 
     /**
-     * Gets the schema for the column at given index.
+     * Gets the howlSchema for the column at given index.
      * @param index the index
-     * @return the column schema
+     * @return the column howlSchema
      * @throws Exception
      */
     public ColumnSchema columnAt(int index) throws Exception  {
         if( columnSchema == null ) {
-            throw new Exception("Column schema not initialized");
+            throw new Exception("Column howlSchema not initialized");
         }else if( index < 0 || index >= columnSchema.size() ) {
             throw new Exception( "Invalid column index " + index);
         } else {
@@ -383,7 +383,7 @@ public class Schema implements Serializable {
             if ( column.getColumnNumber() != null){
                 if (column.getSchema() !=  null) {
                     // if has subschema
-                    Schema s = column.getSchema();
+                    HowlSchema s = column.getSchema();
                     s.sortColumnSchemaList(s.getColumnSchema());
                 }
             }else {
@@ -424,7 +424,7 @@ public class Schema implements Serializable {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        Schema other = (Schema) obj;
+        HowlSchema other = (HowlSchema) obj;
         if (columnSchema == null) {
             if (other.columnSchema != null) {
                 return false;
@@ -443,8 +443,8 @@ public class Schema implements Serializable {
     }
 
     /**
-     * Gets the internal string representation of the schema. String format is subject to change.
-     * @return the schema string
+     * Gets the internal string representation of the howlSchema. String format is subject to change.
+     * @return the howlSchema string
      * @throws OwlException the owl exception
      */
     public String getSchemaString()  {

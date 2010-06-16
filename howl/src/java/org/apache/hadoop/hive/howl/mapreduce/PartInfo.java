@@ -27,7 +27,7 @@ public class PartInfo implements Serializable {
   private static final long serialVersionUID = 1L;
 
   /** The partition schema. */
-  private final Schema partitionSchema;
+  private final HowlSchema partitionSchema;
 
   /** The information about the to use. */
   private final LoaderInfo loaderInfo;
@@ -44,7 +44,7 @@ public class PartInfo implements Serializable {
    * @param loaderInfo the loader info
    * @param location the location
    */
-  public PartInfo(Schema partitionSchema,
+  public PartInfo(HowlSchema partitionSchema,
       LoaderInfo loaderInfo, String location) {
     this.partitionSchema = partitionSchema;
     this.loaderInfo = loaderInfo;
@@ -55,7 +55,7 @@ public class PartInfo implements Serializable {
    * Gets the value of partitionSchema.
    * @return the partitionSchema
    */
-  public Schema getPartitionSchema() {
+  public HowlSchema getPartitionSchema() {
     return partitionSchema;
   }
 

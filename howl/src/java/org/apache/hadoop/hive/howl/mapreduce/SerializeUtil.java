@@ -1,13 +1,13 @@
 package org.apache.hadoop.hive.howl.mapreduce;
 
-public class SchemaUtil {
+public class SerializeUtil {
 
-  public static String getSchemaString(HowlSchema howlSchema) {
+  public static Object deserialize(String serializedRepresentation) {
     // TODO Auto-generated method stub
     return null;
   }
 
-  public static String toLowerCase(String name) {
+  public static String serialize(Object o) {
     // TODO Auto-generated method stub
     return null;
   }

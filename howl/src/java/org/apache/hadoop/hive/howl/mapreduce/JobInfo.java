@@ -33,7 +33,7 @@ public class JobInfo implements Serializable{
     private final TableName tableName;
 
     /** The table schema. */
-    private final Schema tableSchema;
+    private final HowlSchema tableSchema;
 
     /** The list of partitions matching the filter. */
     private final List<PartInfo> partitions;
@@ -47,7 +47,7 @@ public class JobInfo implements Serializable{
      * @param tableSchema the table schema
      * @param partitions the partitions
      */
-    public JobInfo(TableName tableName, Schema tableSchema,
+    public JobInfo(TableName tableName, HowlSchema tableSchema,
             List<PartInfo> partitions) {
         this.tableName = tableName;
         this.tableSchema = tableSchema;
@@ -66,7 +66,7 @@ public class JobInfo implements Serializable{
      * Gets the value of tableSchema
      * @return the tableSchema
      */
-    public Schema getTableSchema() {
+    public HowlSchema getTableSchema() {
         return tableSchema;
     }
 
