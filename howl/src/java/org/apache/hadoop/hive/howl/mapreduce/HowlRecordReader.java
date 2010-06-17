@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
 
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -31,7 +32,7 @@ import org.apache.pig.data.Tuple;
 class HowlRecordReader extends RecordReader<WritableComparable, Tuple> {
 
     /** The underlying record reader to delegate to. */
-    private final RecordReader<WritableComparable, Tuple> baseRecordReader;
+    private final RecordReader<? extends WritableComparable, ? extends Writable> baseRecordReader;
 
     /** The storage driver used */
     private final HowlInputStorageDriver storageDriver;
@@ -40,7 +41,7 @@ class HowlRecordReader extends RecordReader<WritableComparable, Tuple> {
      * Instantiates a new owl record reader.
      * @param baseRecordReader the base record reader
      */
-    public HowlRecordReader(HowlInputStorageDriver storageDriver, RecordReader baseRecordReader) {
+    public HowlRecordReader(HowlInputStorageDriver storageDriver, RecordReader<? extends WritableComparable, ? extends Writable> baseRecordReader) {
         this.baseRecordReader = baseRecordReader;
         this.storageDriver = storageDriver;
     }
@@ -65,7 +66,7 @@ class HowlRecordReader extends RecordReader<WritableComparable, Tuple> {
      */
     @Override
     public WritableComparable getCurrentKey() throws IOException, InterruptedException {
-        return storageDriver.convertKeyToWritableComparable(baseRecordReader.getCurrentKey());
+        return baseRecordReader.getCurrentKey();
     }
 
     /* (non-Javadoc)
