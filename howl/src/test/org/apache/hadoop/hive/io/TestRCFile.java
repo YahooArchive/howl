@@ -400,28 +400,28 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
     }
 
     private void splitBeforeSync() throws IOException,InterruptedException {
-      writeThenReadByRecordReader(600, 1000, 1, 1, null);
+      writeThenReadByRecordReader(600, 1000, 2, 17684, null);
     }
 
     private void splitRightBeforeSync() throws IOException ,InterruptedException{
-      writeThenReadByRecordReader(500, 1000, 1, 17750, null);
+      writeThenReadByRecordReader(500, 1000, 2, 17750, null);
     }
 
     private void splitInMiddleOfSync() throws IOException,InterruptedException {
-      writeThenReadByRecordReader(500, 1000, 1, 17760, null);
+      writeThenReadByRecordReader(500, 1000, 2, 17760, null);
 
     }
 
     private void splitRightAfterSync() throws IOException, InterruptedException {
-      writeThenReadByRecordReader(500, 1000, 1, 17770, null);
+      writeThenReadByRecordReader(500, 1000, 2, 17770, null);
     }
 
     private void splitAfterSync() throws IOException ,InterruptedException{
-      writeThenReadByRecordReader(500, 1000, 1, 19950, null);
+      writeThenReadByRecordReader(500, 1000, 2, 19950, null);
     }
 
     private void writeThenReadByRecordReader(int intervalRecordCount,
-        int writeCount, int splitNumber, long minSplitSize, CompressionCodec codec)
+        int writeCount, int splitNumber, long maxSplitSize, CompressionCodec codec)
         throws IOException, InterruptedException {
       Path testDir = new Path(System.getProperty("test.data.dir", ".")
           + "/mapred/testsmallfirstsplit");
@@ -451,7 +451,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
       Configuration jonconf = new Configuration(cloneConf);
       jonconf.set("mapred.input.dir", testDir.toString());
       JobContext context = new Job(jonconf);
-
+      context.getConfiguration().setLong("mapred.max.split.size",maxSplitSize);
       List<InputSplit> splits = inputFormat.getSplits(context);
       assertEquals("splits length should be " + splitNumber, splits.size(), splitNumber);
       int readCount = 0;

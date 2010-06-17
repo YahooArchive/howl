@@ -20,7 +20,8 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
+import org.apache.hadoop.hive.howl.mapreduce.HowlSchema;
+import org.apache.hadoop.hive.howl.mapreduce.LoaderInfo;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobContext;
