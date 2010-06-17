@@ -20,7 +20,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.Serializable;
 import java.util.Map;
 
-/** The Class used to serialize the partition information read from the Owl server */
+/** The Class used to serialize the partition information read from the metadata server that maps to a partition */
 public class PartInfo implements Serializable {
 
   /** The serialization version */
