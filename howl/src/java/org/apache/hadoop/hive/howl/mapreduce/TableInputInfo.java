@@ -25,8 +25,9 @@ public class TableInputInfo {
   /** The Metadata server uri */
   private final String serverUri;
 
-  /** The table name */
-  private final TableName tableName;
+  /** The db and table names */
+  private final String dbName;
+  private final String tableName;
 
   /** The partition predicates to filter on, an arbitrary AND/OR filter */
   private final String partitionPredicates;
@@ -40,9 +41,10 @@ public class TableInputInfo {
    * @param tableName the table name
    * @param partitionPredicates the partition predicates to filter on, an arbitrary AND/OR filter.
    */
-  public TableInputInfo(String serverUri, TableName tableName,
+  public TableInputInfo(String serverUri, String dbName, String tableName,
       String partitionPredicates) {
     this.serverUri = serverUri;
+    this.dbName = dbName;
     this.tableName = tableName;
     this.partitionPredicates = partitionPredicates;
   }
@@ -62,7 +64,8 @@ public class TableInputInfo {
 
     String[] params = uri.split(",",4);
     this.serverUri = params[0];
-    this.tableName = new TableName(params[1],params[2]);
+    this.dbName = params[1];
+    this.tableName = params[2];
     this.partitionPredicates = params[3];
   }
 
@@ -75,10 +78,18 @@ public class TableInputInfo {
   }
 
   /**
+   * Gets the value of dbName
+   * @return the dbName
+   */
+  public String getDatabaseName() {
+    return dbName;
+  }
+
+  /**
    * Gets the value of tableName
    * @return the tableName
    */
-  public TableName getTableName() {
+  public String getTableName() {
     return tableName;
   }
 
