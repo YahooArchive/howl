@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.data.Tuple;
@@ -47,7 +48,7 @@ public abstract class HowlInputStorageDriver {
    * @param loaderInfo the loader info object containing parameters required for initialization of InputFormat
    * @return the InputFormat instance
    */
-  public abstract InputFormat<?, ?> getInputFormat(LoaderInfo loaderInfo, State instantiationState);
+  public abstract InputFormat<? extends WritableComparable, ? extends Writable> getInputFormat(LoaderInfo loaderInfo, State instantiationState);
 
   /**
    * Converts value to Tuple format usable by HowlInputFormat to convert to required valuetype.
