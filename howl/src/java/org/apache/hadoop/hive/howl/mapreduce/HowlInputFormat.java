@@ -292,6 +292,8 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
     if( predicate != null ) {
       storageDriver.setPredicate(context, predicate);
     }
+
+    storageDriver.initialize(context, partitionInfo.getLoaderInfo(), instantiationState);
   }
 
   /**
