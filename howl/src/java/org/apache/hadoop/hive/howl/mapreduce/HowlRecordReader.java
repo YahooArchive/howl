@@ -19,7 +19,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
 
-import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -28,10 +28,10 @@ import org.apache.pig.data.Tuple;
 /** The Howl wrapper for the underlying RecordReader, this ensures that the initialize on
  * the underlying record reader is done with the underlying split, not with HowlSplit.
  */
-class HowlRecordReader extends RecordReader<BytesWritable, Tuple> {
+class HowlRecordReader extends RecordReader<WritableComparable, Tuple> {
 
     /** The underlying record reader to delegate to. */
-    private final RecordReader<BytesWritable, Tuple> baseRecordReader;
+    private final RecordReader<WritableComparable, Tuple> baseRecordReader;
 
     /** The storage driver used */
     private final HowlInputStorageDriver storageDriver;
@@ -64,8 +64,8 @@ class HowlRecordReader extends RecordReader<BytesWritable, Tuple> {
      * @see org.apache.hadoop.mapreduce.RecordReader#getCurrentKey()
      */
     @Override
-    public BytesWritable getCurrentKey() throws IOException, InterruptedException {
-        return storageDriver.convertKeyToBytesWritable(baseRecordReader.getCurrentKey());
+    public WritableComparable getCurrentKey() throws IOException, InterruptedException {
+        return storageDriver.convertKeyToWritableComparable(baseRecordReader.getCurrentKey());
     }
 
     /* (non-Javadoc)
