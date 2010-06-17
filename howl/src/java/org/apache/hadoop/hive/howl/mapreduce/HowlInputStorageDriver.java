@@ -39,7 +39,7 @@ public abstract class HowlInputStorageDriver {
     INSTANTIATED_FROM_GET_INPUT_SPLITS
   };
 
-  public void initialize(LoaderInfo loaderInfo, State instantiationState){
+  public void initialize(JobContext context, LoaderInfo loaderInfo, State instantiationState) throws IOException{
     // trivial do nothing
   }
 
