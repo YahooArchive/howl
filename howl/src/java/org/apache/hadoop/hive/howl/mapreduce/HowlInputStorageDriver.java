@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
-import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.data.Tuple;
@@ -33,23 +33,21 @@ import org.apache.pig.data.Tuple;
  */
 public abstract class HowlInputStorageDriver {
 
+  public enum State {
+    INSTANTIATED_FROM_CREATE_RECORD_READER,
+    INSTANTIATED_FROM_GET_INPUT_SPLITS
+  };
+
+  public void initialize(LoaderInfo loaderInfo, State instantiationState){
+    // trivial do nothing
+  }
+
   /**
    * Returns the InputFormat to use with this Storage Driver.
    * @param loaderInfo the loader info object containing parameters required for initialization of InputFormat
    * @return the InputFormat instance
    */
-  public abstract InputFormat<?, ?> getInputFormat(LoaderInfo loaderInfo);
-
-  /**
-   * Converts key to WritableComparable format usable by HowlInputFormat to convert to required keytype.
-   * Implementers of StorageDriver should look to overwriting this function so as to convert their
-   * key type to WritableComparable. Default implementation is provided for StorageDriver implementations
-   * on top of an underlying InputFormat that already uses WritableComparable as a key
-   * @param key the underlying key to convert to WritableComparable
-   */
-  public WritableComparable<?> convertKeyToWritableComparable(Object key) throws IOException {
-    return (WritableComparable<?>) key;
-  }
+  public abstract InputFormat<?, ?> getInputFormat(LoaderInfo loaderInfo, State instantiationState);
 
   /**
    * Converts value to Tuple format usable by HowlInputFormat to convert to required valuetype.
@@ -58,7 +56,7 @@ public abstract class HowlInputStorageDriver {
    * on top of an underlying InputFormat that already uses Tuple as a tuple
    * @param value the underlying value to convert to Tuple
    */
-  public Tuple convertValueToTuple(Object value) throws IOException {
+  public Tuple convertValueToTuple(Writable value) throws IOException {
     return (Tuple) value;
   }
 
@@ -79,7 +77,7 @@ public abstract class HowlInputStorageDriver {
    * @param location the data location
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setInputPath(JobContext jobContext, String location) throws IOException;
+  public abstract void setInputPath(JobContext jobContext, String location, State instantiationState) throws IOException;
 
   /**
    * Set the predicate filter to be pushed down to the storage driver.
@@ -98,9 +96,10 @@ public abstract class HowlInputStorageDriver {
    * the schema it has (like Zebra) or it will use this to create a Tuple matching the output schema.
    * @param jobContext the job context object
    * @param howlSchema the schema published in Owl for this data
+   * @param instantiationState
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setOriginalSchema(JobContext jobContext, HowlSchema howlSchema) throws IOException;
+  public abstract void setOriginalSchema(JobContext jobContext, HowlSchema howlSchema, State instantiationState) throws IOException;
 
   /**
    * Set the consolidated schema for the Tuple data returned by the storage driver. All tuples returned by the RecordReader should
@@ -109,15 +108,16 @@ public abstract class HowlInputStorageDriver {
    * @param howlSchema the schema to use as the consolidated schema
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setOutputSchema(JobContext jobContext, HowlSchema howlSchema) throws IOException;
+  public abstract void setOutputSchema(JobContext jobContext, HowlSchema howlSchema, State instantiationState) throws IOException;
 
   /**
    * Sets the partition key values for the current partition. The storage driver is passed this so that the storage
    * driver can add the partition key values to the output Tuple if the partition key values are not present on disk.
    * @param jobContext the job context object
    * @param partitionValues the partition values having a map with partition key name as key and the OwlKeyValue as value
+   * @param instantiationState
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setPartitionValues(JobContext jobContext, Map<String,String> partitionValues) throws IOException;
+  public abstract void setPartitionValues(JobContext jobContext, Map<String,String> partitionValues, State instantiationState) throws IOException;
 
 }
