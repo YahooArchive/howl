@@ -29,8 +29,9 @@ public class JobInfo implements Serializable{
     /** The serialization version */
     private static final long serialVersionUID = 1L;
 
-    /** The table name. */
-    private final TableName tableName;
+    /** The db and table names. */
+    private final String dbName;
+    private final String tableName;
 
     /** The table schema. */
     private final HowlSchema tableSchema;
@@ -47,18 +48,27 @@ public class JobInfo implements Serializable{
      * @param tableSchema the table schema
      * @param partitions the partitions
      */
-    public JobInfo(TableName tableName, HowlSchema tableSchema,
+    public JobInfo(TableInputInfo tableInputInfo, HowlSchema tableSchema,
             List<PartInfo> partitions) {
-        this.tableName = tableName;
+        this.tableName = tableInputInfo.getTableName();
+        this.dbName = tableInputInfo.getDatabaseName();
         this.tableSchema = tableSchema;
         this.partitions = partitions;
+    }
+
+    /**
+     * Gets the value of dbName
+     * @return the dbName
+     */
+    public String getDatabaseName() {
+        return tableName;
     }
 
     /**
      * Gets the value of tableName
      * @return the tableName
      */
-    public TableName getTableName() {
+    public String getTableName() {
         return tableName;
     }
 

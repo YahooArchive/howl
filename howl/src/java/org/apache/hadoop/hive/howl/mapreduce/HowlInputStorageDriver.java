@@ -20,8 +20,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.hadoop.hive.howl.mapreduce.HowlSchema;
-import org.apache.hadoop.hive.howl.mapreduce.LoaderInfo;
+import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -42,14 +41,14 @@ public abstract class HowlInputStorageDriver {
   public abstract InputFormat<?, ?> getInputFormat(LoaderInfo loaderInfo);
 
   /**
-   * Converts key to BytesWritable format usable by HowlInputFormat to convert to required keytype.
+   * Converts key to WritableComparable format usable by HowlInputFormat to convert to required keytype.
    * Implementers of StorageDriver should look to overwriting this function so as to convert their
-   * key type to BytesWritable. Default implementation is provided for StorageDriver implementations
-   * on top of an underlying InputFormat that already uses BytesWritable as a key
-   * @param key the underlying key to convert to BytesWritable
+   * key type to WritableComparable. Default implementation is provided for StorageDriver implementations
+   * on top of an underlying InputFormat that already uses WritableComparable as a key
+   * @param key the underlying key to convert to WritableComparable
    */
-  public BytesWritable convertKeyToBytesWritable(Object key) throws IOException {
-    return (BytesWritable) key;
+  public WritableComparable<?> convertKeyToWritableComparable(Object key) throws IOException {
+    return (WritableComparable<?>) key;
   }
 
   /**

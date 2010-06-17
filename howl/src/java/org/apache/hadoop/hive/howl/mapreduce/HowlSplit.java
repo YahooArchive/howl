@@ -25,6 +25,7 @@ import java.lang.reflect.Constructor;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.pig.impl.util.ObjectSerializer;
 
 /** The HowlSplit wrapper around the InputSplit returned by the underlying InputFormat */
 class HowlSplit extends InputSplit implements Writable {
@@ -111,7 +112,7 @@ class HowlSplit extends InputSplit implements Writable {
     @Override
     public void readFields(DataInput input) throws IOException {
         String partitionInfoString = WritableUtils.readString(input);
-        partitionInfo = (PartInfo) SerializeUtil.deserialize(partitionInfoString);
+        partitionInfo = (PartInfo) ObjectSerializer.deserialize(partitionInfoString);
 
         String baseSplitClassName = WritableUtils.readString(input);
         InputSplit split;
@@ -134,7 +135,7 @@ class HowlSplit extends InputSplit implements Writable {
         }
 
         String tableSchemaString = WritableUtils.readString(input);
-        tableSchema = (HowlSchema) SerializeUtil.deserialize(tableSchemaString);
+        tableSchema = (HowlSchema) ObjectSerializer.deserialize(tableSchemaString);
     }
 
     /* (non-Javadoc)
@@ -142,7 +143,7 @@ class HowlSplit extends InputSplit implements Writable {
      */
     @Override
     public void write(DataOutput output) throws IOException {
-        String partitionInfoString = SerializeUtil.serialize(partitionInfo);
+        String partitionInfoString = ObjectSerializer.serialize(partitionInfo);
 
         // write partitionInfo into output
         WritableUtils.writeString(output, partitionInfoString);
@@ -153,7 +154,7 @@ class HowlSplit extends InputSplit implements Writable {
         baseSplitWritable.write(output);
 
         //write the table schema into output
-        String tableSchemaString = SerializeUtil.serialize(tableSchema);
+        String tableSchemaString = ObjectSerializer.serialize(tableSchema);
         WritableUtils.writeString(output, tableSchemaString);
     }
 }
