@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
+import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
@@ -486,5 +487,10 @@ public class HowlSchema implements Serializable {
       int i2 = c2.getColumnNumber().intValue();
       return (i1 < i2 ? -1 : ((i1 == i2) ? 0 : 1));
     }
+  }
+
+  public Schema toHiveSchema() {
+    // TODO Auto-generated method stub
+    return null;
   }
 }
