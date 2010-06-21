@@ -45,7 +45,8 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
    * Enumeration of possible Howl Operations
    */
   public enum HowlOperation {
-    PREDICATE_PUSHDOWN
+    PREDICATE_PUSHDOWN,
+    PROJECTION_PUSHDOWN
   }
 
   /**
@@ -69,7 +70,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
   /**
    * Gets the list of features supported for the given partitions. If any one
    * of the underlying InputFormat's does not support the feature and it cannot
-   * be implemented by Owl, then the feature is not returned.
+   * be implemented by Howl, then the feature is not returned.
    * @param inputInfo  the owl table input info
    * @return the storage features supported for the partitions selected
    *         by the setInput call
@@ -83,7 +84,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
   /**
    * Checks if the specified operation is supported for the given partitions.
    * If any one of the underlying InputFormat's does not support the operation
-   * and it cannot be implemented by Owl, then returns false. Else returns true.
+   * and it cannot be implemented by Howl, then returns false. Else returns true.
    * @param inputInfo the owl table input info
    * @param operation the operation to check for
    * @return true, if the feature is supported for selected partitions
@@ -270,7 +271,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
     storageDriver.setInputPath(context, partitionInfo.getLocation(),instantiationState);
 
     if( partitionInfo.getPartitionSchema() != null ) {
-      storageDriver.setOriginalSchema(context, partitionInfo.getPartitionSchema(),instantiationState);
+      storageDriver.setOriginalSchema(context, partitionInfo.getPartitionSchema().toHiveSchema(),instantiationState);
     }
 
     storageDriver.setPartitionValues(context, partitionInfo.getPartitionValues(),instantiationState);
@@ -285,7 +286,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
       outputSchema = tableSchema;
     }
 
-    storageDriver.setOutputSchema(context, outputSchema,instantiationState);
+    storageDriver.setOutputSchema(context, outputSchema.toHiveSchema(),instantiationState);
 
     //If predicate is set in jobConf, pass it to storage driver
     String predicate = context.getConfiguration().get(HOWL_KEY_PREDICATE);
