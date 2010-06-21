@@ -84,6 +84,21 @@ Trunk -  Unreleased
     HIVE-1351. rcfilecat for debugging
     (Yongqiang He via namit)
 
+    HIVE-1332. Support for archiving partitions
+    (Paul Yang via namit)
+
+    HIVE-1397. histogram_numeric UDAF
+    (Mayank Lahiri via jvs)
+
+    HIVE-1179. Add UDF array_contains
+    (Arvind Prabhakar via namit)
+
+    HIVE-543. Add local mode execution in hive
+    (Joydeep Sen Sarma via namit)
+
+    HIVE-1255. Add mathematical UDFs PI, E, degrees, radians, tan,
+    sign, and atan.  (Edward Capriolo via jvs)
+
   IMPROVEMENTS
     HIVE-983. Function from_unixtime takes long.
     (Ning Zhang via zshao)
@@ -204,6 +219,12 @@ Trunk -  Unreleased
     (Mayank Lahiri via jvs)
 
     HIVE-1228. allow HBase key column to be anywhere in Hive table
+    (John Sichi via Ning Zhang)
+
+    HIVE-1410. Add TCP keepalive option for metastore server
+    (Paul Yang via Ning Zhang)
+ 
+    HIVE-1383. Allow HBase WAL to be disabled.
     (John Sichi via Ning Zhang)
 
   OPTIMIZATIONS
@@ -492,6 +513,18 @@ Trunk -  Unreleased
     HIVE-1388. combinehiveinputformat does not work if files are of different
     types
     (Namit Jain via Ning Zhang)
+
+    HIVE-1373. Missing connection pool plugin in Eclipse classpath.
+    (Vinithra via athusoo)
+
+    HIVE-1403. Report progress if many files to close
+    (Ning Zhang via namit)
+
+    HIVE-1407. Add hadoop-*-tools.jar to eclipse classpath
+    (Carl Steinbach via Ning Zhang)
+
+    HIVE-1409. Use the tableSpec if partitions is not present
+    (Paul Yang via namit)
 
 Release 0.5.0 -  Unreleased
 
