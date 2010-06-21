@@ -21,13 +21,12 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
+import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.data.Tuple;
-
-
 
 /** The abstract class to be implemented by underlying storage drivers to enable data access from Owl through
  *  OwlInputFormat.
@@ -93,23 +92,27 @@ public abstract class HowlInputStorageDriver {
   }
 
   /**
-   * Set the schema of the data as originally published in Owl. The storage driver might validated that this matches with
+   * Set the schema of the data as originally published in Howl. The storage driver might validate that this matches with
    * the schema it has (like Zebra) or it will use this to create a Tuple matching the output schema.
    * @param jobContext the job context object
    * @param howlSchema the schema published in Owl for this data
    * @param instantiationState
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setOriginalSchema(JobContext jobContext, HowlSchema howlSchema, State instantiationState) throws IOException;
+  public abstract void setOriginalSchema(JobContext jobContext, Schema howlSchema, State instantiationState) throws IOException;
 
   /**
    * Set the consolidated schema for the Tuple data returned by the storage driver. All tuples returned by the RecordReader should
    * have this schema. Nulls should be inserted for columns not present in the data.
    * @param jobContext the job context object
    * @param howlSchema the schema to use as the consolidated schema
+   * @return true, if projections are supported. Default implementation in
+   *               HowlInputStorageDriver  always returns false.
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setOutputSchema(JobContext jobContext, HowlSchema howlSchema, State instantiationState) throws IOException;
+  public boolean setOutputSchema(JobContext jobContext, Schema howlSchema, State instantiationState) throws IOException{
+    return false;
+  }
 
   /**
    * Sets the partition key values for the current partition. The storage driver is passed this so that the storage
