@@ -22,6 +22,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
+import org.apache.hadoop.hive.metastore.api.Schema;
 
 /** The class used to serialize and store the information read from the metadata server */
 public class JobInfo implements Serializable{
@@ -34,7 +35,7 @@ public class JobInfo implements Serializable{
     private final String tableName;
 
     /** The table schema. */
-    private final HowlSchema tableSchema;
+    private final Schema tableSchema;
 
     /** The list of partitions matching the filter. */
     private final List<PartInfo> partitions;
@@ -48,7 +49,7 @@ public class JobInfo implements Serializable{
      * @param tableSchema the table schema
      * @param partitions the partitions
      */
-    public JobInfo(TableInputInfo tableInputInfo, HowlSchema tableSchema,
+    public JobInfo(TableInputInfo tableInputInfo, Schema tableSchema,
             List<PartInfo> partitions) {
         this.tableName = tableInputInfo.getTableName();
         this.dbName = tableInputInfo.getDatabaseName();
@@ -76,7 +77,7 @@ public class JobInfo implements Serializable{
      * Gets the value of tableSchema
      * @return the tableSchema
      */
-    public HowlSchema getTableSchema() {
+    public Schema getTableSchema() {
         return tableSchema;
     }
 
