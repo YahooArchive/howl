@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -113,7 +114,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @param howlSchema the schema to use as the consolidated schema
    */
   public static void setOutputSchema(Job job,
-      HowlSchema howlSchema) throws IOException {
+      Schema howlSchema) throws IOException {
     job.getConfiguration().set(
         HOWL_KEY_OUTPUT_SCHEMA, ObjectSerializer.serialize(howlSchema));
   }
@@ -230,7 +231,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @return the table schema
    * @throws Exception if OwlInputFromat.setInput has not been called for the current context
    */
-  public static HowlSchema getTableSchema(JobContext context) throws Exception {
+  public static Schema getTableSchema(JobContext context) throws Exception {
     JobInfo jobInfo = getJobInfo(context);
     return jobInfo.getTableSchema();
   }
@@ -265,27 +266,27 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    */
   private void initStorageDriver(HowlInputStorageDriver storageDriver,
       JobContext context, PartInfo partitionInfo,
-      HowlSchema tableSchema) throws IOException {
+      Schema tableSchema) throws IOException {
 
     storageDriver.setInputPath(context, partitionInfo.getLocation());
 
     if( partitionInfo.getPartitionSchema() != null ) {
-      storageDriver.setOriginalSchema(context, partitionInfo.getPartitionSchema().toHiveSchema());
+      storageDriver.setOriginalSchema(context, partitionInfo.getPartitionSchema());
     }
 
     storageDriver.setPartitionValues(context, partitionInfo.getPartitionValues());
 
     //Set the output schema. Use the schema given by user if set, otherwise use the
     //table level schema
-    HowlSchema outputSchema = null;
+    Schema outputSchema = null;
     String outputSchemaString = context.getConfiguration().get(HOWL_KEY_OUTPUT_SCHEMA);
     if( outputSchemaString != null ) {
-      outputSchema = (HowlSchema) ObjectSerializer.deserialize(outputSchemaString);
+      outputSchema = (Schema) ObjectSerializer.deserialize(outputSchemaString);
     } else {
       outputSchema = tableSchema;
     }
 
-    storageDriver.setOutputSchema(context, outputSchema.toHiveSchema());
+    storageDriver.setOutputSchema(context, outputSchema);
 
     //If predicate is set in jobConf, pass it to storage driver
     String predicate = context.getConfiguration().get(HOWL_KEY_PREDICATE);

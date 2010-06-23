@@ -20,6 +20,8 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.Serializable;
 import java.util.Map;
 
+import org.apache.hadoop.hive.metastore.api.Schema;
+
 /** The Class used to serialize the partition information read from the metadata server that maps to a partition */
 public class PartInfo implements Serializable {
 
@@ -27,7 +29,7 @@ public class PartInfo implements Serializable {
   private static final long serialVersionUID = 1L;
 
   /** The partition schema. */
-  private final HowlSchema partitionSchema;
+  private final Schema partitionSchema;
 
   /** The information about the to use. */
   private final LoaderInfo loaderInfo;
@@ -44,7 +46,7 @@ public class PartInfo implements Serializable {
    * @param loaderInfo the loader info
    * @param location the location
    */
-  public PartInfo(HowlSchema partitionSchema,
+  public PartInfo(Schema partitionSchema,
       LoaderInfo loaderInfo, String location) {
     this.partitionSchema = partitionSchema;
     this.loaderInfo = loaderInfo;
@@ -55,7 +57,7 @@ public class PartInfo implements Serializable {
    * Gets the value of partitionSchema.
    * @return the partitionSchema
    */
-  public HowlSchema getPartitionSchema() {
+  public Schema getPartitionSchema() {
     return partitionSchema;
   }
 
