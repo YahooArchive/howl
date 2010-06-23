@@ -24,12 +24,11 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.data.Tuple;
 
 /** The Howl wrapper for the underlying RecordReader, this ensures that the initialize on
  * the underlying record reader is done with the underlying split, not with HowlSplit.
  */
-class HowlRecordReader extends RecordReader<WritableComparable, Tuple> {
+class HowlRecordReader extends RecordReader<WritableComparable, HowlRecord> {
 
     /** The underlying record reader to delegate to. */
     private final RecordReader<? extends WritableComparable, ? extends Writable> baseRecordReader;
@@ -73,8 +72,8 @@ class HowlRecordReader extends RecordReader<WritableComparable, Tuple> {
      * @see org.apache.hadoop.mapreduce.RecordReader#getCurrentValue()
      */
     @Override
-    public Tuple getCurrentValue() throws IOException, InterruptedException {
-        return storageDriver.convertValueToTuple(baseRecordReader.getCurrentValue());
+    public HowlRecord getCurrentValue() throws IOException, InterruptedException {
+        return storageDriver.convertValueToHowlRecord(baseRecordReader.getCurrentValue());
     }
 
     /* (non-Javadoc)
