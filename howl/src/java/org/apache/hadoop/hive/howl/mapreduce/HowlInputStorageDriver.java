@@ -26,19 +26,13 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.pig.data.Tuple;
 
 /** The abstract class to be implemented by underlying storage drivers to enable data access from Owl through
  *  OwlInputFormat.
  */
 public abstract class HowlInputStorageDriver {
 
-  public enum State {
-    INSTANTIATED_FROM_CREATE_RECORD_READER,
-    INSTANTIATED_FROM_GET_INPUT_SPLITS
-  };
-
-  public void initialize(JobContext context, LoaderInfo loaderInfo, State instantiationState) throws IOException{
+  public void initialize(JobContext context, LoaderInfo loaderInfo) throws IOException{
     // trivial do nothing
   }
 
@@ -47,17 +41,17 @@ public abstract class HowlInputStorageDriver {
    * @param loaderInfo the loader info object containing parameters required for initialization of InputFormat
    * @return the InputFormat instance
    */
-  public abstract InputFormat<? extends WritableComparable, ? extends Writable> getInputFormat(LoaderInfo loaderInfo, State instantiationState);
+  public abstract InputFormat<? extends WritableComparable, ? extends Writable> getInputFormat(LoaderInfo loaderInfo);
 
   /**
-   * Converts value to Tuple format usable by HowlInputFormat to convert to required valuetype.
+   * Converts value to HowlRecord format usable by HowlInputFormat to convert to required valuetype.
    * Implementers of StorageDriver should look to overwriting this function so as to convert their
-   * value type to Tuple. Default implementation is provided for StorageDriver implementations
-   * on top of an underlying InputFormat that already uses Tuple as a tuple
-   * @param value the underlying value to convert to Tuple
+   * value type to HowlRecord. Default implementation is provided for StorageDriver implementations
+   * on top of an underlying InputFormat that already uses HowlRecord as a tuple
+   * @param value the underlying value to convert to HowlRecord
    */
-  public Tuple convertValueToTuple(Writable value) throws IOException {
-    return (Tuple) value;
+  public HowlRecord convertValueToHowlRecord(Writable value) throws IOException {
+    return (HowlRecord) value;
   }
 
   /**
@@ -77,7 +71,7 @@ public abstract class HowlInputStorageDriver {
    * @param location the data location
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setInputPath(JobContext jobContext, String location, State instantiationState) throws IOException;
+  public abstract void setInputPath(JobContext jobContext, String location) throws IOException;
 
   /**
    * Set the predicate filter to be pushed down to the storage driver.
@@ -93,16 +87,16 @@ public abstract class HowlInputStorageDriver {
 
   /**
    * Set the schema of the data as originally published in Howl. The storage driver might validate that this matches with
-   * the schema it has (like Zebra) or it will use this to create a Tuple matching the output schema.
+   * the schema it has (like Zebra) or it will use this to create a HowlRecord matching the output schema.
    * @param jobContext the job context object
    * @param howlSchema the schema published in Owl for this data
    * @param instantiationState
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setOriginalSchema(JobContext jobContext, Schema howlSchema, State instantiationState) throws IOException;
+  public abstract void setOriginalSchema(JobContext jobContext, Schema howlSchema) throws IOException;
 
   /**
-   * Set the consolidated schema for the Tuple data returned by the storage driver. All tuples returned by the RecordReader should
+   * Set the consolidated schema for the HowlRecord data returned by the storage driver. All tuples returned by the RecordReader should
    * have this schema. Nulls should be inserted for columns not present in the data.
    * @param jobContext the job context object
    * @param howlSchema the schema to use as the consolidated schema
@@ -110,18 +104,18 @@ public abstract class HowlInputStorageDriver {
    *               HowlInputStorageDriver  always returns false.
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public boolean setOutputSchema(JobContext jobContext, Schema howlSchema, State instantiationState) throws IOException{
+  public boolean setOutputSchema(JobContext jobContext, Schema howlSchema) throws IOException{
     return false;
   }
 
   /**
    * Sets the partition key values for the current partition. The storage driver is passed this so that the storage
-   * driver can add the partition key values to the output Tuple if the partition key values are not present on disk.
+   * driver can add the partition key values to the output HowlRecord if the partition key values are not present on disk.
    * @param jobContext the job context object
    * @param partitionValues the partition values having a map with partition key name as key and the OwlKeyValue as value
    * @param instantiationState
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setPartitionValues(JobContext jobContext, Map<String,String> partitionValues, State instantiationState) throws IOException;
+  public abstract void setPartitionValues(JobContext jobContext, Map<String,String> partitionValues) throws IOException;
 
 }

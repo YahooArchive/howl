@@ -29,11 +29,10 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 /** The InputFormat to use to read data from Owl */
-public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
+public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord> {
 
   //The keys used to store info into the job Configuration
   static final String HOWL_KEY_BASE = "mapreduce.lib.howl";
@@ -109,7 +108,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
   }
 
   /**
-   * Set the schema for the Tuple data returned by OwlInputFormat.
+   * Set the schema for the HowlRecord data returned by OwlInputFormat.
    * @param job the job object
    * @param howlSchema the schema to use as the consolidated schema
    */
@@ -158,11 +157,11 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
       }
 
       //Pass all required information to the storage driver
-      initStorageDriver(storageDriver, localJob, partitionInfo, jobInfo.getTableSchema(),HowlInputStorageDriver.State.INSTANTIATED_FROM_GET_INPUT_SPLITS);
+      initStorageDriver(storageDriver, localJob, partitionInfo, jobInfo.getTableSchema());
 
       //Get the input format for the storage driver
       InputFormat inputFormat =
-        storageDriver.getInputFormat(partitionInfo.getLoaderInfo(),HowlInputStorageDriver.State.INSTANTIATED_FROM_GET_INPUT_SPLITS);
+        storageDriver.getInputFormat(partitionInfo.getLoaderInfo());
 
       //Call getSplit on the storage drivers InputFormat, create an
       //OwlSplit for each underlying split
@@ -191,7 +190,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
    * @throws IOException or InterruptedException
    */
   @Override
-  public RecordReader<WritableComparable, Tuple> createRecordReader(InputSplit split,
+  public RecordReader<WritableComparable, HowlRecord> createRecordReader(InputSplit split,
       TaskAttemptContext taskContext) throws IOException, InterruptedException {
 
     HowlSplit howlSplit = (HowlSplit) split;
@@ -210,11 +209,11 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
     }
 
     //Pass all required information to the storage driver
-    initStorageDriver(storageDriver, taskContext, partitionInfo, howlSplit.getTableSchema(),HowlInputStorageDriver.State.INSTANTIATED_FROM_CREATE_RECORD_READER);
+    initStorageDriver(storageDriver, taskContext, partitionInfo, howlSplit.getTableSchema());
 
     //Get the input format for the storage driver
     InputFormat inputFormat =
-      storageDriver.getInputFormat(partitionInfo.getLoaderInfo(), HowlInputStorageDriver.State.INSTANTIATED_FROM_CREATE_RECORD_READER);
+      storageDriver.getInputFormat(partitionInfo.getLoaderInfo());
 
     //Create the underlying input formats record record and an Owl wrapper
     RecordReader recordReader =
@@ -266,15 +265,15 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
    */
   private void initStorageDriver(HowlInputStorageDriver storageDriver,
       JobContext context, PartInfo partitionInfo,
-      HowlSchema tableSchema, HowlInputStorageDriver.State instantiationState) throws IOException {
+      HowlSchema tableSchema) throws IOException {
 
-    storageDriver.setInputPath(context, partitionInfo.getLocation(),instantiationState);
+    storageDriver.setInputPath(context, partitionInfo.getLocation());
 
     if( partitionInfo.getPartitionSchema() != null ) {
-      storageDriver.setOriginalSchema(context, partitionInfo.getPartitionSchema().toHiveSchema(),instantiationState);
+      storageDriver.setOriginalSchema(context, partitionInfo.getPartitionSchema().toHiveSchema());
     }
 
-    storageDriver.setPartitionValues(context, partitionInfo.getPartitionValues(),instantiationState);
+    storageDriver.setPartitionValues(context, partitionInfo.getPartitionValues());
 
     //Set the output schema. Use the schema given by user if set, otherwise use the
     //table level schema
@@ -286,7 +285,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
       outputSchema = tableSchema;
     }
 
-    storageDriver.setOutputSchema(context, outputSchema.toHiveSchema(),instantiationState);
+    storageDriver.setOutputSchema(context, outputSchema.toHiveSchema());
 
     //If predicate is set in jobConf, pass it to storage driver
     String predicate = context.getConfiguration().get(HOWL_KEY_PREDICATE);
@@ -294,7 +293,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, Tuple> {
       storageDriver.setPredicate(context, predicate);
     }
 
-    storageDriver.initialize(context, partitionInfo.getLoaderInfo(), instantiationState);
+    storageDriver.initialize(context, partitionInfo.getLoaderInfo());
   }
 
   /**
