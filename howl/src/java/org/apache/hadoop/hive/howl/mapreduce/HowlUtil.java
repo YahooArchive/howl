@@ -23,7 +23,10 @@ import org.apache.hadoop.mapreduce.JobContext;
 public class HowlUtil {
 
   public static boolean checkJobContextIfRunningFromBackend(JobContext j){
-    return false;
+    if (j.getConfiguration().get("mapred.task.id", "").equals("")){
+      return false;
+    }
+    return true;
   }
 
 }
