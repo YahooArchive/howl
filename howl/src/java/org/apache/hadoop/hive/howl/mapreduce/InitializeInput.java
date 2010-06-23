@@ -25,8 +25,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.mapreduce.HowlSchema.ColumnType;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.Job;
@@ -75,7 +75,7 @@ public class InitializeInput {
     createHiveMetaClient(job.getConfiguration());
 
     Table table = client.getTable(inputInfo.getDatabaseName(), inputInfo.getTableName());
-    HowlSchema tableSchema = extractHowlSchemaFromStorageDescriptor(table.getSd());
+    Schema tableSchema = extractSchemaFromStorageDescriptor(table.getSd());
 
     List<Partition> parts = client.listPartitions(inputInfo.getDatabaseName(), inputInfo.getTableName(), MAX_PARTS);
 
@@ -84,7 +84,7 @@ public class InitializeInput {
 
     for (Partition ptn : parts){
       PartInfo partInfo = new PartInfo(
-          extractHowlSchemaFromStorageDescriptor(ptn.getSd()),
+          extractSchemaFromStorageDescriptor(ptn.getSd()),
           extractLoaderInfoFromStorageDescriptor(ptn.getSd()),
           ptn.getSd().getLocation()
       );
@@ -114,12 +114,10 @@ public class InitializeInput {
     return new LoaderInfo();
   }
 
-  private static HowlSchema extractHowlSchemaFromStorageDescriptor(StorageDescriptor storageDescriptor) throws Exception {
-    HowlSchema schema = new HowlSchema();
+  private static Schema extractSchemaFromStorageDescriptor(StorageDescriptor storageDescriptor) throws Exception {
+    Schema schema = new Schema();
     if (storageDescriptor != null) {
-      for (FieldSchema fieldSchema : storageDescriptor.getCols()) {
-        schema.addColumnSchema(schema.new ColumnSchema(fieldSchema.getName(), toHowlColumnType(fieldSchema.getType())));
-      }
+      schema.setFieldSchemas(storageDescriptor.getCols());
     }
     return schema;
   }
