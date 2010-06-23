@@ -17,41 +17,22 @@
  */
 package org.apache.hadoop.hive.howl.mapreduce;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class HowlRecord {
+import org.apache.hadoop.io.WritableComparable;
 
-  List<Object> contents = null;
+public interface HowlRecord extends WritableComparable {
 
-  Object get(int fieldNum){
-    return contents.get(fieldNum);
-  }
+  Object get(int fieldNum);
 
-  List<Object> getAll(){
-    return contents;
-  }
+  List<Object> getAll();
 
-  boolean isNull() {
-    return (contents == null);
-  }
+  boolean isNull();
 
-  boolean isNull(int fieldNum){
-    return (get(fieldNum) == null);
-  }
+  boolean isNull(int fieldNum);
 
-  void set(int fieldNum, Object val){
-    if (isNull()){
-      contents = new ArrayList<Object>();
-    }
-    if (isNull(fieldNum)){
-    }
-    contents.set(fieldNum, val);
-  }
+  void set(int fieldNum, Object val);
 
-  int size() {
-    return contents.size();
-  }
-
+  int size();
 
 }
