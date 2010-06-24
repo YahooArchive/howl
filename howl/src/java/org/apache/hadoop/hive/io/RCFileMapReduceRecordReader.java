@@ -16,9 +16,9 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 public class RCFileMapReduceRecordReader<K extends LongWritable, V extends BytesRefArrayWritable>
   extends RecordReader<LongWritable,BytesRefArrayWritable>{
 
-  private final Reader in;
-  private final long start;
-  private final long end;
+  private Reader in;
+  private long start;
+  private long end;
   private boolean more = true;
   private LongWritable key;
   private BytesRefArrayWritable value;
@@ -46,33 +46,15 @@ public class RCFileMapReduceRecordReader<K extends LongWritable, V extends Bytes
       return Math.min(1.0f, (in.getPosition() - start) / (float) (end - start));
     }
   }
-   public RCFileMapReduceRecordReader(InputSplit split, TaskAttemptContext context)   throws IOException {
-
-     FileSplit fSplit = (FileSplit)split;
-     Path path = fSplit.getPath();
-     Configuration conf = context.getConfiguration();
-     this.in = new RCFile.Reader(path.getFileSystem(conf), path, conf);
-     this.end = fSplit.getStart() + fSplit.getLength();
-
-     if(fSplit.getStart() > in.getPosition()) {
-       in.sync(fSplit.getStart());
-     }
-
-     this.start = in.getPosition();
-     more = start < end;
-  }
 
   @Override
   public boolean nextKeyValue() throws IOException, InterruptedException {
 
-    key = new LongWritable();
-    value = new BytesRefArrayWritable();
-
     more = next(key);
-
     if (more) {
       in.getCurrentRow(value);
     }
+
     return more;
   }
 
@@ -97,5 +79,20 @@ public class RCFileMapReduceRecordReader<K extends LongWritable, V extends Bytes
   public void initialize(InputSplit split, TaskAttemptContext context) throws IOException,
       InterruptedException {
 
+    FileSplit fSplit = (FileSplit)split;
+    Path path = fSplit.getPath();
+    Configuration conf = context.getConfiguration();
+    this.in = new RCFile.Reader(path.getFileSystem(conf), path, conf);
+    this.end = fSplit.getStart() + fSplit.getLength();
+
+    if(fSplit.getStart() > in.getPosition()) {
+      in.sync(fSplit.getStart());
+    }
+
+    this.start = in.getPosition();
+    more = start < end;
+
+    key = new LongWritable();
+    value = new BytesRefArrayWritable();
   }
 }

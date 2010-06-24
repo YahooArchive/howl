@@ -463,10 +463,10 @@ public class TestRCFile extends TestCase {
     }
     assertEquals("readCount should be equal to writeCount", readCount, writeCount);
   }
-  
+
 
   // adopted Hadoop-5476 (calling new SequenceFile.Reader(...) leaves an
-  // InputStream open, if the given sequence file is broken) to RCFile 
+  // InputStream open, if the given sequence file is broken) to RCFile
   private static class TestFSDataInputStream extends FSDataInputStream {
     private boolean closed = false;
 
@@ -474,6 +474,7 @@ public class TestRCFile extends TestCase {
       super(in);
     }
 
+    @Override
     public void close() throws IOException {
       closed = true;
       super.close();
@@ -497,6 +498,7 @@ public class TestRCFile extends TestCase {
       new RCFile.Reader(fs, path, conf) {
         // this method is called by the RCFile.Reader constructor, overwritten,
         // so we can access the opened file
+        @Override
         protected FSDataInputStream openFile(FileSystem fs, Path file,
             int bufferSize, long length) throws IOException {
           final InputStream in = super.openFile(fs, file, bufferSize, length);

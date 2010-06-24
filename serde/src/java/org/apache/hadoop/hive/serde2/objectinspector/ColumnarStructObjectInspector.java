@@ -29,10 +29,10 @@ import org.apache.hadoop.io.Text;
 /**
  * ColumnarStructObjectInspector works on struct data that is stored in
  * ColumnarStruct.
- * 
+ *
  * The names of the struct fields and the internal structure of the struct
  * fields are specified in the ctor of the ColumnarStructObjectInspector.
- * 
+ *
  * Always use the ObjectInspectorFactory to create new ObjectInspector objects,
  * instead of directly creating an instance of this class.
  */
