@@ -60,7 +60,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @throws IOException the exception in communicating with the metadata server
    */
   public static void setInput(Job job,
-      TableInputInfo inputInfo) throws IOException {
+      HowlTableInfo inputInfo) throws IOException {
     try {
       InitializeInput.setInput(job, inputInfo);
     } catch (Exception e) {
@@ -78,7 +78,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @throws Exception
    */
   public static List<HowlOperation> getSupportedFeatures(
-      TableInputInfo inputInfo) throws Exception {
+      HowlTableInfo inputInfo) throws Exception {
     return HowlFeatureSupport.getSupportedFeatures(inputInfo.getJobInfo());
   }
 
@@ -91,7 +91,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @return true, if the feature is supported for selected partitions
    * @throws IOException
    */
-  public static boolean isFeatureSupported(TableInputInfo inputInfo,
+  public static boolean isFeatureSupported(HowlTableInfo inputInfo,
       HowlOperation operation) throws Exception {
     return HowlFeatureSupport.isFeatureSupported(inputInfo.getJobInfo(), operation);
   }

@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.howl.mapreduce.HowlSchema.ColumnType;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Schema;
@@ -63,7 +62,7 @@ public class InitializeInput {
    * @param inputInfo the owl table input info
    * @throws Exception
    */
-  public static void setInput(Job job, TableInputInfo inputInfo) throws Exception {
+  public static void setInput(Job job, HowlTableInfo inputInfo) throws Exception {
 
     //* Create a OwlDriver instance with specified uri
     //* Call OwlDriver.getOwlTable to get the table schema
@@ -121,18 +120,5 @@ public class InitializeInput {
     }
     return schema;
   }
-
-  private static ColumnType toHowlColumnType(String type) {
-    try {
-      return ColumnType.valueOf(type.toUpperCase());
-    }
-    catch (IllegalArgumentException e) {
-      if (type.equalsIgnoreCase("bigint")) {
-        return ColumnType.LONG;
-      }
-      throw e;
-    }
-  }
-
 
 }
