@@ -62,7 +62,7 @@ public class InitializeInput {
    * @param inputInfo the owl table input info
    * @throws Exception
    */
-  public static void setInput(Job job, TableInputInfo inputInfo) throws Exception {
+  public static void setInput(Job job, HowlTableInfo inputInfo) throws Exception {
 
     //* Create a OwlDriver instance with specified uri
     //* Call OwlDriver.getOwlTable to get the table schema

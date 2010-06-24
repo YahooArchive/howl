@@ -49,10 +49,10 @@ public class JobInfo implements Serializable{
      * @param tableSchema the table schema
      * @param partitions the partitions
      */
-    public JobInfo(TableInputInfo tableInputInfo, Schema tableSchema,
+    public JobInfo(HowlTableInfo howlTableInfo, Schema tableSchema,
             List<PartInfo> partitions) {
-        this.tableName = tableInputInfo.getTableName();
-        this.dbName = tableInputInfo.getDatabaseName();
+        this.tableName = howlTableInfo.getTableName();
+        this.dbName = howlTableInfo.getDatabaseName();
         this.tableSchema = tableSchema;
         this.partitions = partitions;
     }
