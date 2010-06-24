@@ -20,7 +20,8 @@ extends FileInputFormat<LongWritable, BytesRefArrayWritable>
   public RecordReader<LongWritable,BytesRefArrayWritable> createRecordReader(InputSplit split,
       TaskAttemptContext context) throws IOException, InterruptedException {
 
-    return new RCFileMapReduceRecordReader<LongWritable,BytesRefArrayWritable>(split,context);
+    context.setStatus(split.toString());
+    return new RCFileMapReduceRecordReader<LongWritable,BytesRefArrayWritable>();
   }
 
   @Override
