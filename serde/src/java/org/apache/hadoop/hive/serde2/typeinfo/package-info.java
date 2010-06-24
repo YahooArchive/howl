@@ -15,24 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.hbase;
-
-import org.apache.hadoop.hive.ql.QTestUtil;
 
 /**
- * HBaseQTestUtil initializes HBase-specific test fixtures.
+ * This package provides the implementation of the SerDe type system.
  */
-public class HBaseQTestUtil extends QTestUtil {
-  public HBaseQTestUtil(
-    String outDir, String logDir, boolean miniMr, HBaseTestSetup setup)
-    throws Exception {
-
-    super(outDir, logDir, miniMr, null);
-    setup.preTest(conf);
-    super.init();
-  }
-
-  public void init() throws Exception {
-    // defer
-  }
-}
+package org.apache.hadoop.hive.serde2.typeinfo;

@@ -18,9 +18,16 @@
 
 package org.apache.hadoop.hive.howl.mapreduce;
 
+import java.util.Map;
 
-public class TableInputInfo {
+public class HowlTableInfo {
 
+  public enum TableInfoType {
+    INPUT_INFO,
+    OUTPUT_INFO
+  };
+
+  private TableInfoType tableInfoType;
 
   /** The Metadata server uri */
   private final String serverUri;
@@ -29,35 +36,58 @@ public class TableInputInfo {
   private final String dbName;
   private final String tableName;
 
-  /** The partition predicates to filter on, an arbitrary AND/OR filter */
+  /** The partition predicates to filter on, an arbitrary AND/OR filter, if used to input from*/
   private final String partitionPredicates;
 
   /** The information about the partitions matching the specified query */
   private JobInfo jobInfo;
 
+  /** The partition values to publish to, if used for output*/
+  private Map<String, String> partitionValues;
+
   /**
-   * Initializes a new TableInputInfo instance.
+   * Initializes a new HowlTableInfo instance.
    * @param serverUri the Metadata server uri
+   * @param dbName the db name
    * @param tableName the table name
    * @param partitionPredicates the partition predicates to filter on, an arbitrary AND/OR filter.
    */
-  public TableInputInfo(String serverUri, String dbName, String tableName,
+  public HowlTableInfo(String serverUri, String dbName, String tableName,
       String partitionPredicates) {
     this.serverUri = serverUri;
     this.dbName = dbName;
     this.tableName = tableName;
     this.partitionPredicates = partitionPredicates;
+    this.partitionValues = null;
+    this.tableInfoType = TableInfoType.INPUT_INFO;
   }
 
   /**
-   * Creates a new TableInputInfo instance from a uri-representation of information required to instantiate an TableInputInfo
+   * Initializes a new HowlTableInfo instance.
+   * @param serverUri the Metadata server uri
+   * @param dbName the db name
+   * @param tableName the table name
+   * @param partitionValues The partition values to publish to
+   */
+
+  public HowlTableInfo(String serverUri, String dbName, String tableName, Map<String, String> partitionValues){
+    this.serverUri = serverUri;
+    this.dbName = dbName;
+    this.tableName = tableName;
+    this.partitionPredicates = null;
+    this.partitionValues = partitionValues;
+    this.tableInfoType = TableInfoType.OUTPUT_INFO;
+  }
+
+  /**
+   * Creates a new HowlTableInfo instance from a uri-representation of information required to instantiate an HowlTableInfo
    * @param uri : Uri representing the input information.
    * For eg: http://localhost:4080/howl/?table=dbname.tablename&seq=001
    * would represent that the serverUri is http://localhost:4080/howl ,
    * tableName is formed from database = dbname and table = tablename
    * and filter is "seq=001". The filter would be uri-encoded for spaces, equals, ampersands, etc
    */
-  public TableInputInfo(String uri) {
+  public HowlTableInfo(String uri) {
     // initially, trivial implementations which are comma separated.
     // for eg: http://localhost:4080/howl/,dbname,tablename,seq=001
     // FIXME: change to uri parsing
@@ -102,6 +132,14 @@ public class TableInputInfo {
   }
 
   /**
+   * Gets the value of partitionValues
+   * @return the partitionValues
+   */
+  public Map<String, String> getPartitionValues() {
+    return partitionValues;
+  }
+
+  /**
    * Gets the value of job info
    * @return the job info
    */
@@ -115,5 +153,9 @@ public class TableInputInfo {
    */
   public void setJobInfo(JobInfo jobInfo) {
     this.jobInfo = jobInfo;
+  }
+
+  public TableInfoType getTableType(){
+    return this.tableInfoType;
   }
 }
