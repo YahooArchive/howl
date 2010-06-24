@@ -15,24 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.hbase;
 
-import org.apache.hadoop.hive.ql.QTestUtil;
+package org.apache.hadoop.hive.contrib.udf;
+
+import org.apache.hadoop.hive.ql.exec.Description;
+import org.apache.hadoop.hive.ql.exec.UDF;
+import org.apache.hadoop.hive.ql.udf.UDFType;
+import org.apache.hadoop.io.LongWritable;
 
 /**
- * HBaseQTestUtil initializes HBase-specific test fixtures.
+ * UDFRowSequence.
  */
-public class HBaseQTestUtil extends QTestUtil {
-  public HBaseQTestUtil(
-    String outDir, String logDir, boolean miniMr, HBaseTestSetup setup)
-    throws Exception {
+@Description(name = "row_sequence",
+    value = "_FUNC_() - Returns a generated row sequence number starting from 1")
+@UDFType(deterministic = false)
+public class UDFRowSequence extends UDF
+{
+  private LongWritable result = new LongWritable();
 
-    super(outDir, logDir, miniMr, null);
-    setup.preTest(conf);
-    super.init();
+  public UDFRowSequence() {
+    result.set(0);
   }
 
-  public void init() throws Exception {
-    // defer
+  public LongWritable evaluate() {
+    result.set(result.get() + 1);
+    return result;
   }
 }
+
+// End UDFRowSequence.java
