@@ -39,8 +39,12 @@ import org.apache.pig.impl.util.ObjectSerializer;
  */
 public class InitializeInput {
 
-  private static final String HOWL_LOADER_INFO = "howlLoaderInfo";
+  static final String HOWL_LOADER_INFO = "howlLoaderInfo";
+
+  static final String HOWL_STORER_INFO = "howlStorerInfo";
+
   private static final short MAX_PARTS = Short.MAX_VALUE;
+
   static HiveMetaStoreClient client = null;
 
   private static HiveMetaStoreClient createHiveMetaClient(Configuration conf) throws Exception {
@@ -101,7 +105,7 @@ public class InitializeInput {
   }
 
 
-  private static LoaderInfo extractLoaderInfoFromStorageDescriptor(StorageDescriptor sd) {
+  static LoaderInfo extractLoaderInfoFromStorageDescriptor(StorageDescriptor sd) {
     if (sd != null && sd.getParameters().containsKey(HOWL_LOADER_INFO)) {
       String str = sd.getParameters().get(HOWL_LOADER_INFO) ;
       try {
@@ -113,7 +117,27 @@ public class InitializeInput {
     return new LoaderInfo();
   }
 
-  private static Schema extractSchemaFromStorageDescriptor(StorageDescriptor storageDescriptor) throws Exception {
+  static StorerInfo extractStorerInfo(StorageDescriptor sd) throws IOException {
+
+    StorerInfo storerInfo = null;
+
+    try {
+      if (sd != null && sd.getParameters().containsKey(HOWL_STORER_INFO)) {
+        String str = sd.getParameters().get(HOWL_STORER_INFO) ;
+        storerInfo = (StorerInfo) ObjectSerializer.deserialize(str);
+      }
+    }catch(IOException e) {
+      throw new IOException("Error reading StorerInfo for table", e);
+    }
+
+    if( storerInfo == null ) {
+      throw new IOException("StorerInfo not available for table");
+    }
+
+    return storerInfo;
+  }
+
+  static Schema extractSchemaFromStorageDescriptor(StorageDescriptor storageDescriptor) {
     Schema schema = new Schema();
     if (storageDescriptor != null) {
       schema.setFieldSchemas(storageDescriptor.getCols());

@@ -27,8 +27,10 @@ to call at top-level: ant deploy-contrib compile-core-test
   <property name="src.dir"  location="${basedir}/src/java"/>
   <import file="../build-common.xml"/>
 
+  <!--
   <target name="test">
     <echo message="Nothing to do!"/>
   </target>
+  -->
 
 </project>

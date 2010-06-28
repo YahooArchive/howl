@@ -18,9 +18,10 @@
 
 package org.apache.hadoop.hive.howl.mapreduce;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public class HowlTableInfo {
+public class HowlTableInfo implements Serializable {
 
   public enum TableInfoType {
     INPUT_INFO,
