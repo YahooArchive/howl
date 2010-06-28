@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
 
+import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.RecordWriter;
