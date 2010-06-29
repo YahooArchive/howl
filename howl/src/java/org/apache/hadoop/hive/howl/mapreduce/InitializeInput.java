@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -39,24 +40,33 @@ import org.apache.pig.impl.util.ObjectSerializer;
  */
 public class InitializeInput {
 
+  @Deprecated
   static final String HOWL_LOADER_INFO = "howlLoaderInfo";
 
   static final String HOWL_STORER_INFO = "howlStorerInfo";
+
+  private static final String HOWL_KEY_PREFIX = "howl.";
+  private static final String HOWL_ISD_CLASS = "howl.isd";
 
   private static final short MAX_PARTS = Short.MAX_VALUE;
 
   static HiveMetaStoreClient client = null;
 
-  private static HiveMetaStoreClient createHiveMetaClient(Configuration conf) throws Exception {
+  private static HiveMetaStoreClient createHiveMetaClient(Configuration conf, HowlTableInfo inputInfo) throws Exception {
     if (client != null){
       return client;
     }
-    HiveConf hiveConf = new HiveConf();
-    hiveConf.set("hive.metastore.uris", conf.get("hive.metastore.uris"));
-    hiveConf.set("hive.metastore.local", conf.get("hive.metastore.local"));
-    hiveConf.set("hive.metastore.warehosue.dir", conf.get("hive.metastore.warehouse.dir"));
+    HiveConf hiveConf = new HiveConf(HowlInputFormat.class);
 
-    return (client = new HiveMetaStoreClient(hiveConf));
+    if (inputInfo.getServerUri() != null){
+      hiveConf.set("hive.metastore.uris", inputInfo.getServerUri());
+    } else if (! conf.get("hive.metastore.uris", "").equals("")){
+      hiveConf.set("hive.metastore.uris", conf.get("hive.metastore.uris"));
+    }
+    hiveConf.set("hive.metastore.warehouse.dir", conf.get("hive.metastore.warehouse.dir","/tmp/"));
+    hiveConf.setBoolean("hive.metastore.local", conf.getBoolean("hive.metastore.local",true));
+
+    return (client = new HiveMetaStoreClient(hiveConf,null));
   }
   /**
    * Set the input to use for the Job. This queries the metadata server with the specified partition predicates,
@@ -75,7 +85,7 @@ public class InitializeInput {
     //* Save the OwlJobInfo object in the OwlTableInputInfo instance
     //* Serialize the OwlJobInfo and save in the Job's Configuration object
 
-    createHiveMetaClient(job.getConfiguration());
+    createHiveMetaClient(job.getConfiguration(),inputInfo);
 
     Table table = client.getTable(inputInfo.getDatabaseName(), inputInfo.getTableName());
     Schema tableSchema = extractSchemaFromStorageDescriptor(table.getSd());
@@ -86,11 +96,7 @@ public class InitializeInput {
     List<PartInfo> partInfoList = new ArrayList<PartInfo>();
 
     for (Partition ptn : parts){
-      PartInfo partInfo = new PartInfo(
-          extractSchemaFromStorageDescriptor(ptn.getSd()),
-          extractLoaderInfoFromStorageDescriptor(ptn.getSd()),
-          ptn.getSd().getLocation()
-      );
+      PartInfo partInfo = extractPartInfoFromStorageDescriptor(ptn.getSd());
       partInfo.setPartitionValues(ptn.getParameters());
       partInfoList.add(partInfo);
     }
@@ -104,18 +110,35 @@ public class InitializeInput {
     );
   }
 
-
-  static LoaderInfo extractLoaderInfoFromStorageDescriptor(StorageDescriptor sd) {
-    if (sd != null && sd.getParameters().containsKey(HOWL_LOADER_INFO)) {
-      String str = sd.getParameters().get(HOWL_LOADER_INFO) ;
-      try {
-        return (LoaderInfo) ObjectSerializer.deserialize(str);
-      } catch (IOException e) {
-        // do nothing, return blank LoaderInfo as per tail exit.
+  private static PartInfo extractPartInfoFromStorageDescriptor(StorageDescriptor sd) throws IOException{
+    if (sd == null){
+      throw new IOException("Cannot construct partition info from an empty storage descriptor.");
+    }
+    Schema schema = extractSchemaFromStorageDescriptor(sd);
+    String inputStorageDriverClass = null;
+    Properties howlProperties = new Properties();
+    if (sd.getParameters().containsKey(HOWL_ISD_CLASS)){
+      inputStorageDriverClass = sd.getParameters().get(HOWL_ISD_CLASS);
+    }else{
+      throw new IOException("No input storage driver classname found, cannot read partition");
+    }
+    for (String key : sd.getParameters().keySet()){
+      if (key.startsWith(HOWL_KEY_PREFIX)){
+        howlProperties.put(key, sd.getParameters().get(key));
       }
     }
-    return new LoaderInfo();
+    return new PartInfo(schema,inputStorageDriverClass,  sd.getLocation(), howlProperties);
   }
+
+  static Schema extractSchemaFromStorageDescriptor(StorageDescriptor sd) throws IOException {
+    if (sd == null){
+      throw new IOException("Cannot construct partition info from an empty storage descriptor.");
+    }
+    Schema schema = new Schema();
+    schema.setFieldSchemas(sd.getCols());
+    return schema;
+  }
+
 
   static StorerInfo extractStorerInfo(StorageDescriptor sd) throws IOException {
 
@@ -135,14 +158,6 @@ public class InitializeInput {
     }
 
     return storerInfo;
-  }
-
-  static Schema extractSchemaFromStorageDescriptor(StorageDescriptor storageDescriptor) {
-    Schema schema = new Schema();
-    if (storageDescriptor != null) {
-      schema.setFieldSchemas(storageDescriptor.getCols());
-    }
-    return schema;
   }
 
 }

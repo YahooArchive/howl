@@ -1,8 +1,27 @@
 <ivy-module version="2.0">
-    <info organisation="org.apache.hadoop.hive" module="howl"/>
+    <info organisation="org.apache.hadoop.hive" module="howl">
+        <license name="Apache 2.0"/>
+        <ivyauthor name="Apache Hadoop Team" url="http://hadoop.apache.org"/>
+        <description>
+            Apache Hadoop Howl
+        </description>
+    </info>
+    <configurations defaultconfmapping="default">
+    <!--these match the Maven configurations-->
+        <conf name="default" extends="master,runtime"/>
+        <conf name="master" description="contains the artifact but no dependencies"/>
+        <conf name="runtime" description="runtime but not the artifact" />
+
+        <conf name="common" visibility="private" 
+            extends="runtime"
+            description="artifacts needed to compile/test the application"/>
+        <conf name="test" visibility="private" extends="runtime"/>
+    </configurations>
+
     <dependencies>
         <dependency org="hadoop" name="core" rev="${hadoop.version.ant-internal}">
           <artifact name="hadoop" type="source" ext="tar.gz"/>
         </dependency> 
+        <dependency org="junit" name="junit" rev="${junit.version}" conf="common->default"/>
     </dependencies>
 </ivy-module>

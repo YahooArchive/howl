@@ -22,6 +22,7 @@ import java.io.Serializable;
 /**
  * Class which stores the loader information required for reading data stored using Howl metadata.
  */
+@Deprecated
 public class LoaderInfo implements Serializable {
 
   /** The serialization version */

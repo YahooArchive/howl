@@ -153,7 +153,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
       Job localJob = new Job(jobContext.getConfiguration());
       HowlInputStorageDriver storageDriver;
       try {
-        storageDriver = getInputDriverInstance(partitionInfo.getLoaderInfo());
+        storageDriver = getInputDriverInstance(partitionInfo.getInputStorageDriverClass());
       } catch (Exception e) {
         throw new IOException(e);
       }
@@ -163,7 +163,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
 
       //Get the input format for the storage driver
       InputFormat inputFormat =
-        storageDriver.getInputFormat(partitionInfo.getLoaderInfo());
+        storageDriver.getInputFormat(partitionInfo.getInputStorageDriverProperties());
 
       //Call getSplit on the storage drivers InputFormat, create an
       //OwlSplit for each underlying split
@@ -205,7 +205,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
 
     HowlInputStorageDriver storageDriver;
     try {
-      storageDriver = getInputDriverInstance(partitionInfo.getLoaderInfo());
+      storageDriver = getInputDriverInstance(partitionInfo.getInputStorageDriverClass());
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -215,7 +215,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
 
     //Get the input format for the storage driver
     InputFormat inputFormat =
-      storageDriver.getInputFormat(partitionInfo.getLoaderInfo());
+      storageDriver.getInputFormat(partitionInfo.getInputStorageDriverProperties());
 
     //Create the underlying input formats record record and an Owl wrapper
     RecordReader recordReader =
@@ -295,26 +295,28 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
       storageDriver.setPredicate(context, predicate);
     }
 
-    storageDriver.initialize(context, partitionInfo.getLoaderInfo());
+    storageDriver.initialize(context, partitionInfo.getInputStorageDriverProperties());
   }
 
   /**
    * Gets the input driver instance.
-   * @param loaderInfo the loader info
+   * @param inputStorageDriverClass the input storage driver classname
    * @return the input driver instance
    * @throws Exception
    */
   @SuppressWarnings("unchecked")
   private HowlInputStorageDriver getInputDriverInstance(
-      LoaderInfo loaderInfo) throws Exception {
+      String inputStorageDriverClass) throws Exception {
     try {
       Class<? extends HowlInputStorageDriver> driverClass =
         (Class<? extends HowlInputStorageDriver>)
-        Class.forName(loaderInfo.getInputDriverClass());
+        Class.forName(inputStorageDriverClass);
       return driverClass.newInstance();
     } catch(Exception e) {
       throw new Exception("error creating storage driver " +
-          loaderInfo.getInputDriverClass(), e);
+          inputStorageDriverClass, e);
     }
   }
+
+
 }
