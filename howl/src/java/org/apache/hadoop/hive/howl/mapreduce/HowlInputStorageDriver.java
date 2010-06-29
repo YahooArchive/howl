@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
@@ -33,7 +34,12 @@ import org.apache.hadoop.mapreduce.JobContext;
  */
 public abstract class HowlInputStorageDriver {
 
+  @Deprecated
   public void initialize(JobContext context, LoaderInfo loaderInfo) throws IOException{
+    // trivial do nothing
+  }
+
+  public void initialize(JobContext context, Properties storageDriverArgs) throws IOException {
     // trivial do nothing
   }
 
@@ -42,7 +48,16 @@ public abstract class HowlInputStorageDriver {
    * @param loaderInfo the loader info object containing parameters required for initialization of InputFormat
    * @return the InputFormat instance
    */
+  @Deprecated
   public abstract InputFormat<? extends WritableComparable, ? extends Writable> getInputFormat(LoaderInfo loaderInfo);
+
+  /**
+   * Returns the InputFormat to use with this Storage Driver.
+   * @param properties the properties containing parameters required for initialization of InputFormat
+   * @return the InputFormat instance
+   */
+  public abstract InputFormat<? extends WritableComparable, ? extends Writable> getInputFormat(Properties howlProperties);
+
 
   /**
    * Converts value to HowlRecord format usable by HowlInputFormat to convert to required valuetype.

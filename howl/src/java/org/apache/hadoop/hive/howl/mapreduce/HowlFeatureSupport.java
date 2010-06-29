@@ -99,7 +99,7 @@ class HowlFeatureSupport {
         = new ArrayList<Class<? extends HowlInputStorageDriver>>();
 
         for (PartInfo owlPartitionInfo:owlPartitionInfoList ){
-            String owlInputDriverClassName = owlPartitionInfo.getLoaderInfo().getInputDriverClass();
+            String owlInputDriverClassName = owlPartitionInfo.getInputStorageDriverClass();
             Class<? extends HowlInputStorageDriver> owlInputStorageDriverClass;
             try {
                 owlInputStorageDriverClass = (Class<? extends HowlInputStorageDriver>)Class.forName(owlInputDriverClassName);

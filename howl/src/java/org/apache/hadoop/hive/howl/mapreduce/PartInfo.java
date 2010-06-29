@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.hadoop.hive.metastore.api.Schema;
 
@@ -32,7 +33,14 @@ public class PartInfo implements Serializable {
   private final Schema partitionSchema;
 
   /** The information about the to use. */
+  @Deprecated
   private final LoaderInfo loaderInfo;
+
+  /** The information about which input storage driver to use */
+  private final String inputStorageDriverClass;
+
+  /** Howl-specific properties set at the partition */
+  private final Properties howlProperties;
 
   /** The data location. */
   private final String location;
@@ -46,11 +54,29 @@ public class PartInfo implements Serializable {
    * @param loaderInfo the loader info
    * @param location the location
    */
+  @Deprecated
   public PartInfo(Schema partitionSchema,
       LoaderInfo loaderInfo, String location) {
     this.partitionSchema = partitionSchema;
     this.loaderInfo = loaderInfo;
     this.location = location;
+    this.howlProperties = null;
+    this.inputStorageDriverClass = null;
+  }
+
+  /**
+   * Instantiates a new howl partition info.
+   * @param partitionSchema the partition schema
+   * @param loaderInfo the loader info
+   * @param location the location
+   * @param howlProperties howl-specific properties at the partition
+   */
+  public PartInfo(Schema partitionSchema, String inputStorageDriverClass, String location, Properties howlProperties){
+    this.partitionSchema = partitionSchema;
+    this.inputStorageDriverClass = inputStorageDriverClass;
+    this.location = location;
+    this.howlProperties = howlProperties;
+    this.loaderInfo = null;
   }
 
   /**
@@ -65,8 +91,26 @@ public class PartInfo implements Serializable {
    * Gets the value of loaderInfo.
    * @return the loaderInfo
    */
+  @Deprecated
   public LoaderInfo getLoaderInfo() {
     return loaderInfo;
+  }
+
+  /**
+   * Gets the value of loaderInfo.
+   * @return the loaderInfo
+   */
+  public String getInputStorageDriverClass() {
+    return inputStorageDriverClass;
+  }
+
+
+  /**
+   * Gets the value of howlProperties.
+   * @return the howlProperties
+   */
+  public Properties getInputStorageDriverProperties() {
+    return howlProperties;
   }
 
   /**
