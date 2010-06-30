@@ -79,7 +79,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    */
   public static List<HowlOperation> getSupportedFeatures(
       HowlTableInfo inputInfo) throws Exception {
-    return HowlFeatureSupport.getSupportedFeatures(inputInfo.getJobInfo());
+    return getSupportedFeatures(inputInfo.getJobInfo());
   }
 
   /**
@@ -93,7 +93,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    */
   public static boolean isFeatureSupported(HowlTableInfo inputInfo,
       HowlOperation operation) throws Exception {
-    return HowlFeatureSupport.isFeatureSupported(inputInfo.getJobInfo(), operation);
+    return isFeatureSupported(inputInfo.getJobInfo(), operation);
   }
 
   /**
@@ -104,9 +104,29 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    *         given partitions
    * @throws IOException the exception
    */
-  public static boolean setPredicate(Job job,
-      String predicate) throws Exception {
-    return HowlFeatureSupport.setPredicate(job, predicate);
+  public static boolean setPredicate(Job job, String predicate) throws Exception {
+
+    if (!isFeatureSupported(job, HowlOperation.PREDICATE_PUSHDOWN)){
+      return false;
+    }
+
+    // NOTE: currently commenting out codeblock below because it feels messy to have
+    // setPredicate examine whether or not it can do something by calling on it directly
+    // in addition to the isFeatureSupported portion.
+
+    // for each storage driver, check for setPredicate() if any of them is false, return false
+//    List<HowlInputStorageDriver> owlInputStorageDriverList = getUniqueStorageDriver(owlJobInfo);
+//    for (HowlInputStorageDriver owlInputStorageDriver : owlInputStorageDriverList){
+//      // for each storage driver, we need to create a copy of jobcontext to avoid overwriting of the jobcontext by storage driver.
+//      Job localJob = new Job(job.getConfiguration());
+//      if (! owlInputStorageDriver.setPredicate(localJob, predicate) ) {
+//        return false;
+//      }
+//    }
+
+    // after making sure every storage driver supports the predicate, finally set predicate into jobcontext
+    job.getConfiguration().set(HowlInputFormat.HOWL_KEY_PREDICATE, predicate);
+    return true;
   }
 
   /**
@@ -114,11 +134,15 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @param job the job object
    * @param howlSchema the schema to use as the consolidated schema
    */
-  public static void setOutputSchema(Job job,
-      Schema howlSchema) throws IOException {
-    job.getConfiguration().set(
-        HOWL_KEY_OUTPUT_SCHEMA, ObjectSerializer.serialize(howlSchema));
+  public static boolean setOutputSchema(Job job, Schema howlSchema) throws Exception {
+
+    if (isFeatureSupported(job,HowlOperation.PROJECTION_PUSHDOWN)){
+      return false;
+    }
+    job.getConfiguration().set(HOWL_KEY_OUTPUT_SCHEMA, ObjectSerializer.serialize(howlSchema));
+    return true;
   }
+
 
   /**
    * Logically split the set of input files for the job. Returns the
@@ -318,5 +342,121 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
     }
   }
 
+  /**
+   * Checks if the specified operation is supported for the given partitions. If any one of the underlying InputFormat's does
+   * not support the operation and it cannot be implemented by Howl, then returns false. Else returns true.
+   * @param job the job instantiated
+   * @param operation the operation to check for
+   * @return true, if the feature is supported for selected partitions
+   */
+
+  private static boolean isFeatureSupported(Job job, HowlOperation operation) throws Exception {
+    String jobString = job.getConfiguration().get(HowlInputFormat.HOWL_KEY_JOB_INFO);
+    if( jobString == null ) {
+      throw new Exception("job not initialized");
+    }
+
+    JobInfo owlJobInfo = (JobInfo) ObjectSerializer.deserialize(jobString);
+
+    // First check if storage driver supports projection pushdown, if not, throw Exception
+    if (!isFeatureSupported(owlJobInfo, operation)){
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Checks if the specified operation is supported for the given partitions. If any one of the underlying InputFormat's does
+   * not support the operation and it cannot be implemented by Howl, then returns false. Else returns true.
+   * @param inputInfo the owl table input info
+   * @param operation the operation to check for
+   * @return true, if the feature is supported for selected partitions
+   */
+  private static boolean isFeatureSupported(JobInfo owlJobInfo, HowlOperation operation) throws Exception {
+
+    List<HowlInputStorageDriver> owlInputStorageDriverList = getUniqueStorageDriver(owlJobInfo);
+
+    // For HowlOperation, check if the operation is supported for all of the HowlInputStorageDrivers in the above set.
+    for( HowlInputStorageDriver owlInputStorageDriver : owlInputStorageDriverList){
+      try {
+        if (! owlInputStorageDriver.isFeatureSupported(operation)) {
+          return false;
+        }
+      } catch (IOException e) {
+        throw new Exception("StorageDriver exception",e);
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Gets the list of features supported for the given partitions. If any one of the underlying InputFormat's does
+   * not support the feature and it cannot be implemented by Howl, then the feature is not returned.
+   * @param inputInfo  the owl table input info
+   * @return the storage features supported for the partitions selected by the setInput call
+   */
+  private static List<HowlOperation> getSupportedFeatures(JobInfo owlJobInfo) throws Exception {
+
+      List<HowlOperation> owlOperationList = new ArrayList<HowlOperation>();
+
+      List<HowlInputStorageDriver> owlInputStorageDriverList = getUniqueStorageDriver(owlJobInfo/*inputInfo*/);
+
+      // For each HowlOperation, check if the operation is supported for all of the HowlInputStorageDrivers in the above set.
+      boolean isSupported;
+      for (HowlOperation op: HowlOperation.values()){
+          isSupported = true;
+          for( HowlInputStorageDriver owlInputStorageDriver : owlInputStorageDriverList){
+              try {
+                  if (! owlInputStorageDriver.isFeatureSupported(op)) {
+                      isSupported = false;
+                      break;
+                  }
+              } catch (IOException e) {
+                  throw new Exception("StorageDriver exception",e);
+              }
+          }
+          if (isSupported == true) {
+            owlOperationList.add(op);
+          }
+      }
+      return owlOperationList;
+  }
+
+
+  @SuppressWarnings("unchecked")
+  private static List<HowlInputStorageDriver> getUniqueStorageDriver(JobInfo owlJobInfo)
+  throws Exception {
+      if (owlJobInfo == null){
+          throw new Exception("Input jobInfo not initialized");
+      }
+      List<PartInfo> owlPartitionInfoList = owlJobInfo.getPartitions();
+      List<Class<? extends HowlInputStorageDriver>> owlInputStorageDriverClassObjectList
+      = new ArrayList<Class<? extends HowlInputStorageDriver>>();
+
+      for (PartInfo owlPartitionInfo:owlPartitionInfoList ){
+          String owlInputDriverClassName = owlPartitionInfo.getInputStorageDriverClass();
+          Class<? extends HowlInputStorageDriver> owlInputStorageDriverClass;
+          try {
+              owlInputStorageDriverClass = (Class<? extends HowlInputStorageDriver>)Class.forName(owlInputDriverClassName);
+          } catch (ClassNotFoundException e) {
+              throw new Exception("Error creating input storage driver instance : " + owlInputDriverClassName, e);
+          }
+          // create an unique list of HowlInputDriver class objects
+          if (! owlInputStorageDriverClassObjectList.contains(owlInputStorageDriverClass)){
+              owlInputStorageDriverClassObjectList.add(owlInputStorageDriverClass);
+          }
+      }
+      // create a list instance out of owlInputStorageDriverObjectList
+      List<HowlInputStorageDriver> owlInputStorageDriverList = new ArrayList<HowlInputStorageDriver>();
+      for (Class<? extends HowlInputStorageDriver> owlInputStorageDriverClassObject : owlInputStorageDriverClassObjectList){
+          try {
+              HowlInputStorageDriver owlInputStorageDriver = owlInputStorageDriverClassObject.newInstance();
+              owlInputStorageDriverList.add(owlInputStorageDriver);
+          } catch (Exception e) {
+              throw new Exception ("Error creating input storage driver instance : " + owlInputStorageDriverClassObject.getName(), e);
+          }
+      }
+      return owlInputStorageDriverList;
+  }
 
 }
