@@ -34,22 +34,9 @@ import org.apache.hadoop.mapreduce.JobContext;
  */
 public abstract class HowlInputStorageDriver {
 
-  @Deprecated
-  public void initialize(JobContext context, LoaderInfo loaderInfo) throws IOException{
-    // trivial do nothing
-  }
-
   public void initialize(JobContext context, Properties storageDriverArgs) throws IOException {
     // trivial do nothing
   }
-
-  /**
-   * Returns the InputFormat to use with this Storage Driver.
-   * @param loaderInfo the loader info object containing parameters required for initialization of InputFormat
-   * @return the InputFormat instance
-   */
-  @Deprecated
-  public abstract InputFormat<? extends WritableComparable, ? extends Writable> getInputFormat(LoaderInfo loaderInfo);
 
   /**
    * Returns the InputFormat to use with this Storage Driver.
