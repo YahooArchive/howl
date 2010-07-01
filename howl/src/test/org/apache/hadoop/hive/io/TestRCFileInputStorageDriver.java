@@ -5,8 +5,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import junit.framework.Assert;
+import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -20,6 +22,7 @@ import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.ql.io.RCFile;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
 import org.apache.hadoop.hive.serde.Constants;
+import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.columnar.BytesRefArrayWritable;
 import org.apache.hadoop.hive.serde2.columnar.BytesRefWritable;
 import org.apache.hadoop.io.compress.DefaultCodec;
@@ -30,10 +33,8 @@ import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
-public class TestRCFileInputStorageDriver {
+public class TestRCFileInputStorageDriver extends TestCase{
 
   private static Configuration conf = new Configuration();
 
@@ -41,8 +42,7 @@ public class TestRCFileInputStorageDriver {
 
   private static FileSystem fs;
 
-  @BeforeClass
-  public static void setup(){
+   static {
 
     try {
       fs = FileSystem.getLocal(conf);
@@ -53,19 +53,17 @@ public class TestRCFileInputStorageDriver {
     }
   }
 
-
-  @Test
   public void testConvertValueToTuple() throws IOException,InterruptedException{
     fs.delete(file, true);
 
     byte[][] record_1 = {"123".getBytes("UTF-8"), "456".getBytes("UTF-8"),
         "789".getBytes("UTF-8"), "1000".getBytes("UTF-8"),
         "5.3".getBytes("UTF-8"), "howl and hadoop".getBytes("UTF-8"),
-        new byte[0], "null".getBytes("UTF-8")};
+        new byte[0], "NULL".getBytes("UTF-8")};
     byte[][] record_2 = {"100".getBytes("UTF-8"), "200".getBytes("UTF-8"),
         "123".getBytes("UTF-8"), "1000".getBytes("UTF-8"),
         "5.3".getBytes("UTF-8"), "howl and hadoop".getBytes("UTF-8"),
-        new byte[0], "null".getBytes("UTF-8")};
+        new byte[0], "NULL".getBytes("UTF-8")};
 
     RCFileOutputFormat.setColumnNumber(conf, 8);
     RCFile.Writer writer = new RCFile.Writer(fs, conf, file, null,
@@ -96,27 +94,81 @@ public class TestRCFileInputStorageDriver {
     InputSplit split = iF.getSplits(jc).get(0);
     sd.setOriginalSchema(jc, schema);
     sd.setOutputSchema(jc, schema);
-    sd.initialize(jc, null);
+    sd.initialize(jc, getProps());
 
     TaskAttemptContext tac = new TaskAttemptContext(conf, new TaskAttemptID());
     RecordReader<?,?> rr = iF.createRecordReader(split,tac);
     rr.initialize(split, tac);
-    HowlRecord[] tuples = getExpectedTuples();
+    HowlRecord[] tuples = getExpectedRecords();
     for(int j=0; j < 2; j++){
       Assert.assertTrue(rr.nextKeyValue());
       BytesRefArrayWritable w = (BytesRefArrayWritable)rr.getCurrentValue();
       Assert.assertEquals(bytesArr[j], w);
       HowlRecord t = sd.convertValueToHowlRecord(w);
-      Assert.assertTrue(t.equals(tuples[j]));
       Assert.assertEquals(8, t.size());
-      for(int i=0; i < 8; i++){
-        Assert.assertEquals(t.get(i),tuples[j].get(i));
-      }
+      Assert.assertEquals(t,tuples[j]);
     }
   }
 
+  public void testPruning() throws IOException,InterruptedException{
+    fs.delete(file, true);
 
-  private HowlRecord[] getExpectedTuples(){
+    byte[][] record_1 = {"123".getBytes("UTF-8"), "456".getBytes("UTF-8"),
+        "789".getBytes("UTF-8"), "1000".getBytes("UTF-8"),
+        "5.3".getBytes("UTF-8"), "howl and hadoop".getBytes("UTF-8"),
+        new byte[0], "NULL".getBytes("UTF-8")};
+    byte[][] record_2 = {"100".getBytes("UTF-8"), "200".getBytes("UTF-8"),
+        "123".getBytes("UTF-8"), "1000".getBytes("UTF-8"),
+        "5.3".getBytes("UTF-8"), "howl and hadoop".getBytes("UTF-8"),
+        new byte[0], "NULL".getBytes("UTF-8")};
+
+    RCFileOutputFormat.setColumnNumber(conf, 8);
+    RCFile.Writer writer = new RCFile.Writer(fs, conf, file, null,
+        new DefaultCodec());
+    BytesRefArrayWritable bytes = new BytesRefArrayWritable(record_1.length);
+    for (int i = 0; i < record_1.length; i++) {
+      BytesRefWritable cu = new BytesRefWritable(record_1[i], 0,
+          record_1[i].length);
+      bytes.set(i, cu);
+    }
+    writer.append(bytes);
+    BytesRefArrayWritable bytes2 = new BytesRefArrayWritable(record_2.length);
+    for (int i = 0; i < record_2.length; i++) {
+      BytesRefWritable cu = new BytesRefWritable(record_2[i], 0,
+          record_2[i].length);
+      bytes2.set(i, cu);
+    }
+    writer.append(bytes2);
+    writer.close();
+    BytesRefArrayWritable[] bytesArr = new BytesRefArrayWritable[]{bytes,bytes2};
+
+    RCFileInputStorageDriver sd = new RCFileInputStorageDriver();
+    sd.isFeatureSupported(HowlOperation.PROJECTION_PUSHDOWN);
+    JobContext jc = new JobContext(conf, new JobID());
+    sd.setInputPath(jc, file.toString());
+    InputFormat<?,?> iF = sd.getInputFormat(null);
+    InputSplit split = iF.getSplits(jc).get(0);
+    sd.setOriginalSchema(jc, buildHiveSchema());
+    sd.setOutputSchema(jc, buildPrunedSchema());
+
+    sd.initialize(jc, getProps());
+    conf.set(ColumnProjectionUtils.READ_COLUMN_IDS_CONF_STR,"0,2,4,5,6");
+    TaskAttemptContext tac = new TaskAttemptContext(conf, new TaskAttemptID());
+    RecordReader<?,?> rr = iF.createRecordReader(split,tac);
+    rr.initialize(split, tac);
+    HowlRecord[] tuples = getPrunedRecords();
+    for(int j=0; j < 2; j++){
+      Assert.assertTrue(rr.nextKeyValue());
+      BytesRefArrayWritable w = (BytesRefArrayWritable)rr.getCurrentValue();
+      Assert.assertFalse(bytesArr[j].equals(w));
+      Assert.assertEquals(w.size(), 8);
+      HowlRecord t = sd.convertValueToHowlRecord(w);
+      Assert.assertEquals(5, t.size());
+      Assert.assertEquals(t,tuples[j]);
+    }
+  }
+
+  private HowlRecord[] getExpectedRecords(){
 
     List<Object> rec_1 = new ArrayList<Object>(8);
     rec_1.add(new Byte("123"));
@@ -126,7 +178,7 @@ public class TestRCFileInputStorageDriver {
     rec_1.add( new Double(5.3D));
     rec_1.add( new String("howl and hadoop"));
     rec_1.add( null);
-    rec_1.add( "null");
+    rec_1.add( null);
 
     HowlRecord tup_1 = new DefaultHowlRecord(rec_1);
 
@@ -138,7 +190,29 @@ public class TestRCFileInputStorageDriver {
     rec_2.add( new Double(5.3D));
     rec_2.add( new String("howl and hadoop"));
     rec_2.add( null);
-    rec_2.add( "null");
+    rec_2.add( null);
+    HowlRecord tup_2 = new DefaultHowlRecord(rec_2);
+
+    return  new HowlRecord[]{tup_1,tup_2};
+
+  }
+
+  private HowlRecord[] getPrunedRecords(){
+
+    List<Object> rec_1 = new ArrayList<Object>(8);
+    rec_1.add(new Byte("123"));
+    rec_1.add( new Integer(789));
+    rec_1.add( new Double(5.3D));
+    rec_1.add( new String("howl and hadoop"));
+    rec_1.add( null);
+    HowlRecord tup_1 = new DefaultHowlRecord(rec_1);
+
+    List<Object> rec_2 = new ArrayList<Object>(8);
+    rec_2.add( new Byte("100"));
+    rec_2.add( new Integer(123));
+    rec_2.add( new Double(5.3D));
+    rec_2.add( new String("howl and hadoop"));
+    rec_2.add( null);
     HowlRecord tup_2 = new DefaultHowlRecord(rec_2);
 
     return  new HowlRecord[]{tup_1,tup_2};
@@ -158,8 +232,28 @@ public class TestRCFileInputStorageDriver {
     fields.add(new FieldSchema("anullstring", "string", ""));
 
     Map<String,String> props = new HashMap<String, String>();
-    props.put(Constants.SERIALIZATION_NULL_FORMAT, "null");
+    props.put(Constants.SERIALIZATION_NULL_FORMAT, "NULL");
     props.put(Constants.SERIALIZATION_FORMAT, "9");
     return new Schema(fields,props);
+  }
+
+  private Schema buildPrunedSchema(){
+
+    List<FieldSchema> fields = new ArrayList<FieldSchema>(5);
+    fields.add(new FieldSchema("atinyint", "tinyint", ""));
+    fields.add(new FieldSchema("aint", "int", ""));
+    fields.add(new FieldSchema("adouble", "double", ""));
+    fields.add(new FieldSchema("astring", "string", ""));
+    fields.add(new FieldSchema("anullint", "int", ""));
+
+
+    return new Schema(fields,null);
+  }
+
+  private Properties getProps(){
+    Properties props = new Properties();
+    props.setProperty(Constants.SERIALIZATION_NULL_FORMAT, "NULL");
+    props.setProperty(Constants.SERIALIZATION_FORMAT, "9");
+    return props;
   }
 }

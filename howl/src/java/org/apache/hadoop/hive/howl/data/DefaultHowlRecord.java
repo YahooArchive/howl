@@ -44,10 +44,10 @@ public class DefaultHowlRecord implements HowlRecord {
   public void readFields(DataInput in) throws IOException {
 
     contents.clear();
-    for(int i =0; i < in.readInt(); i++){
+    int len = in.readInt();
+    for(int i =0; i < len; i++){
       contents.add(ReaderWriter.readDatum(in));
     }
-
   }
 
   @Override

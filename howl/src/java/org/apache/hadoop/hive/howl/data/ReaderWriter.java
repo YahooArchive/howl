@@ -130,7 +130,7 @@ public abstract class ReaderWriter {
 
     case DataType.SHORT:
       out.writeByte(DataType.SHORT);
-      out.writeByte((Short)val);
+      out.writeShort((Short)val);
       return;
 
     case DataType.STRING:
