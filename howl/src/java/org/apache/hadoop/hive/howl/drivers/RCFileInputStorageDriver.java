@@ -20,7 +20,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputStorageDriver;
-import org.apache.hadoop.hive.howl.mapreduce.LoaderInfo;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
 import org.apache.hadoop.hive.io.RCFileMapReduceInputFormat;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
@@ -53,9 +52,10 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   private static final Log LOG = LogFactory.getLog(RCFileInputStorageDriver.class);
   private List<FieldSchema> fSchemasOfAll;
   private StructObjectInspector oi;
+  private Set<Integer> prjColumnPos;
 
   @Override
-  public InputFormat<? extends WritableComparable, ? extends Writable> getInputFormat(LoaderInfo loaderInfo) {
+  public InputFormat<? extends WritableComparable, ? extends Writable> getInputFormat(Properties howlProperties) {
     return new RCFileMapReduceInputFormat<LongWritable, BytesRefArrayWritable>();
   }
 
@@ -133,15 +133,16 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
       prjColNames.add(fs.getName());
     }
 
-    ArrayList<Integer> prjColumnPos = new ArrayList<Integer>();
+    ArrayList<Integer> prjColumns = new ArrayList<Integer>();
     for(int index = 0; index < fSchemasOfAll.size(); index++){
       if(prjColNames.contains(fSchemasOfAll.get(index).getName())) {
-        prjColumnPos.add(index);
+        prjColumns.add(index);
       }
     }
 
-    Collections.sort(prjColumnPos);
-    ColumnProjectionUtils.setReadColumnIDs(jobContext.getConfiguration(), prjColumnPos);
+    prjColumnPos = new HashSet<Integer>(prjColumns);
+    Collections.sort(prjColumns);
+    ColumnProjectionUtils.setReadColumnIDs(jobContext.getConfiguration(), prjColumns);
     return true;
   }
 
@@ -169,10 +170,13 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
     }
 
     List<? extends StructField> fields = oi.getAllStructFieldRefs();
-    List<Object> outList = new ArrayList<Object>(fields.size());
+    List<Object> outList = new ArrayList<Object>(prjColumnPos.size());
 
+    int index = 0;
     for(StructField field : fields){
-      outList.add(getTypedObj(oi.getStructFieldData(struct, field), field.getFieldObjectInspector()));
+      if(prjColumnPos.contains(index++)) {
+        outList.add(getTypedObj(oi.getStructFieldData(struct, field), field.getFieldObjectInspector()));
+      }
     }
 
     return new DefaultHowlRecord(outList);
@@ -226,18 +230,17 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   }
 
   @Override
-  public void initialize(JobContext context, LoaderInfo loaderInfo)
+  public void initialize(JobContext context,Properties howlProperties)
   throws IOException {
 
-    super.initialize(context, loaderInfo);
+    super.initialize(context, howlProperties);
 
-    Properties props = new Properties();
-    props.setProperty(Constants.LIST_COLUMNS,MetaStoreUtils.getColumnNamesFromFieldSchema(fSchemasOfAll));
-    props.setProperty(Constants.LIST_COLUMN_TYPES, MetaStoreUtils.getColumnTypesFromFieldSchema(fSchemasOfAll));
+    howlProperties.setProperty(Constants.LIST_COLUMNS,MetaStoreUtils.getColumnNamesFromFieldSchema(fSchemasOfAll));
+    howlProperties.setProperty(Constants.LIST_COLUMN_TYPES, MetaStoreUtils.getColumnTypesFromFieldSchema(fSchemasOfAll));
 
     try {
       serde = new ColumnarSerDe();
-      serde.initialize(context.getConfiguration(), props);
+      serde.initialize(context.getConfiguration(), howlProperties);
       oi = (StructObjectInspector) serde.getObjectInspector();
 
     } catch (SerDeException e) {

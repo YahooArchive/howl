@@ -11,7 +11,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -88,7 +90,48 @@ public class TestDefaultHowlRecord extends TestCase{
     rec_2.add( "null");
     HowlRecord tup_2 = new DefaultHowlRecord(rec_2);
 
-    return  new HowlRecord[]{tup_1,tup_2};
+    List<Object> rec_3 = new ArrayList<Object>(10);
+    rec_3.add(new Byte("123"));
+    rec_3.add(new Short("456"));
+    rec_3.add( new Integer(789));
+    rec_3.add( new Long(1000L));
+    rec_3.add( new Double(5.3D));
+    rec_3.add( new String("howl and hadoop"));
+    rec_3.add( null);
+    List<Integer> innerList = new ArrayList<Integer>();
+    innerList.add(314);
+    innerList.add(007);
+    rec_3.add( innerList);
+    Map<Short, String> map = new HashMap<Short, String>(3);
+    map.put(new Short("2"), "howl is cool");
+    map.put(new Short("3"), "is it?");
+    map.put(new Short("4"), "or is it not?");
+    rec_3.add(map);
+
+    HowlRecord tup_3 = new DefaultHowlRecord(rec_3);
+
+    List<Object> rec_4 = new ArrayList<Object>(8);
+    rec_4.add( new Byte("123"));
+    rec_4.add( new Short("456"));
+    rec_4.add( new Integer(789));
+    rec_4.add( new Long(1000L));
+    rec_4.add( new Double(5.3D));
+    rec_4.add( new String("howl and hadoop"));
+    rec_4.add( null);
+    rec_4.add( "null");
+
+    Map<Short, String> map2 = new HashMap<Short, String>(3);
+    map2.put(new Short("2"), "howl is cool");
+    map2.put(new Short("3"), "is it?");
+    map2.put(new Short("4"), "or is it not?");
+    rec_4.add(map2);
+    List<Integer> innerList2 = new ArrayList<Integer>();
+    innerList2.add(314);
+    innerList2.add(007);
+    rec_4.add( innerList2);
+    HowlRecord tup_4 = new DefaultHowlRecord(rec_4);
+
+    return  new HowlRecord[]{tup_1,tup_2,tup_3,tup_4};
 
   }
 }

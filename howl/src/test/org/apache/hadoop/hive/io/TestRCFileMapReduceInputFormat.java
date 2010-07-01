@@ -218,9 +218,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
         bytes.set(i, cu);
       }
       for (int i = 0; i < writeCount; i++) {
-        if (i == intervalRecordCount) {
-          System.out.println("write position:" + writer.getLength());
-        }
         writer.append(bytes);
       }
       writer.close();
@@ -234,15 +231,12 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
       assertEquals("splits length should be " + splitNumber, splits.size(), splitNumber);
       int readCount = 0;
       for (int i = 0; i < splits.size(); i++) {
-        int previousReadCount = readCount;
         TaskAttemptContext tac = new TaskAttemptContext(jonconf, new TaskAttemptID());
         RecordReader<LongWritable, BytesRefArrayWritable> rr = inputFormat.createRecordReader(splits.get(i), tac);
         rr.initialize(splits.get(i), tac);
         while (rr.nextKeyValue()) {
           readCount++;
         }
-        System.out.println("The " + i + "th split read "
-            + (readCount - previousReadCount));
       }
       assertEquals("readCount should be equal to writeCount", readCount, writeCount);
     }

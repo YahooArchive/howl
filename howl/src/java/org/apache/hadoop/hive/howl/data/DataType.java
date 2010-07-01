@@ -1,5 +1,7 @@
 package org.apache.hadoop.hive.howl.data;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,13 +41,13 @@ public abstract class DataType {
     // Try to put the most common first
     if (clazz == String.class) {
       return STRING;
-    } else if (clazz == List.class) {
+    } else if (clazz == ArrayList.class) {
       return LIST;
     } else if (clazz == Integer.class) {
       return INTEGER;
     } else if (clazz == Long.class) {
       return LONG;
-    } else if (clazz == Map.class) {
+    } else if (clazz == HashMap.class) {
       return MAP;
     } else if (clazz == Float.class) {
       return FLOAT;
