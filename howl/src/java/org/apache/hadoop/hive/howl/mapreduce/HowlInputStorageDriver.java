@@ -47,15 +47,13 @@ public abstract class HowlInputStorageDriver {
 
 
   /**
-   * Converts value to HowlRecord format usable by HowlInputFormat to convert to required valuetype.
+   * Converts to HowlRecord format usable by HowlInputFormat to convert to required valuetype.
    * Implementers of StorageDriver should look to overwriting this function so as to convert their
    * value type to HowlRecord. Default implementation is provided for StorageDriver implementations
    * on top of an underlying InputFormat that already uses HowlRecord as a tuple
    * @param value the underlying value to convert to HowlRecord
    */
-  public HowlRecord convertValueToHowlRecord(Writable value) throws IOException {
-    return (HowlRecord) value;
-  }
+  public abstract HowlRecord convertToHowlRecord(WritableComparable baseKey, Writable baseValue) throws IOException;
 
   /**
    * Returns true if this InputFormat supports specified operation.

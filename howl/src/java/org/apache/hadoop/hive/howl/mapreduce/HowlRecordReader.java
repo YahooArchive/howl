@@ -74,7 +74,7 @@ class HowlRecordReader extends RecordReader<WritableComparable, HowlRecord> {
      */
     @Override
     public HowlRecord getCurrentValue() throws IOException, InterruptedException {
-        return storageDriver.convertValueToHowlRecord(baseRecordReader.getCurrentValue());
+        return storageDriver.convertToHowlRecord(baseRecordReader.getCurrentKey(),baseRecordReader.getCurrentValue());
     }
 
     /* (non-Javadoc)
