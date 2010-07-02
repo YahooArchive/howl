@@ -16,7 +16,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver;
-import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.ql.io.RCFile;
@@ -87,7 +86,6 @@ public class TestRCFileInputStorageDriver extends TestCase{
 
     Schema schema = buildHiveSchema();
     RCFileInputStorageDriver sd = new RCFileInputStorageDriver();
-    sd.isFeatureSupported(HowlOperation.PROJECTION_PUSHDOWN);
     JobContext jc = new JobContext(conf, new JobID());
     sd.setInputPath(jc, file.toString());
     InputFormat<?,?> iF = sd.getInputFormat(null);
@@ -104,7 +102,7 @@ public class TestRCFileInputStorageDriver extends TestCase{
       Assert.assertTrue(rr.nextKeyValue());
       BytesRefArrayWritable w = (BytesRefArrayWritable)rr.getCurrentValue();
       Assert.assertEquals(bytesArr[j], w);
-      HowlRecord t = sd.convertValueToHowlRecord(w);
+      HowlRecord t = sd.convertToHowlRecord(null,w);
       Assert.assertEquals(8, t.size());
       Assert.assertEquals(t,tuples[j]);
     }
@@ -143,7 +141,6 @@ public class TestRCFileInputStorageDriver extends TestCase{
     BytesRefArrayWritable[] bytesArr = new BytesRefArrayWritable[]{bytes,bytes2};
 
     RCFileInputStorageDriver sd = new RCFileInputStorageDriver();
-    sd.isFeatureSupported(HowlOperation.PROJECTION_PUSHDOWN);
     JobContext jc = new JobContext(conf, new JobID());
     sd.setInputPath(jc, file.toString());
     InputFormat<?,?> iF = sd.getInputFormat(null);
@@ -162,7 +159,7 @@ public class TestRCFileInputStorageDriver extends TestCase{
       BytesRefArrayWritable w = (BytesRefArrayWritable)rr.getCurrentValue();
       Assert.assertFalse(bytesArr[j].equals(w));
       Assert.assertEquals(w.size(), 8);
-      HowlRecord t = sd.convertValueToHowlRecord(w);
+      HowlRecord t = sd.convertToHowlRecord(null,w);
       Assert.assertEquals(5, t.size());
       Assert.assertEquals(t,tuples[j]);
     }

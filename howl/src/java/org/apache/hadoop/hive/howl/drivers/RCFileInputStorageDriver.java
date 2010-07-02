@@ -20,7 +20,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputStorageDriver;
-import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
 import org.apache.hadoop.hive.io.RCFileMapReduceInputFormat;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -124,7 +123,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   }
 
   @Override
-  public boolean setOutputSchema(JobContext jobContext, Schema hiveSchema) throws IOException {
+  public void setOutputSchema(JobContext jobContext, Schema hiveSchema) throws IOException {
 
     List<FieldSchema> fSchemasOfPrj = hiveSchema.getFieldSchemas();
     Set<String> prjColNames = new HashSet<String>(fSchemasOfPrj.size());
@@ -143,7 +142,6 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
     prjColumnPos = new HashSet<Integer>(prjColumns);
     Collections.sort(prjColumns);
     ColumnProjectionUtils.setReadColumnIDs(jobContext.getConfiguration(), prjColumns);
-    return true;
   }
 
   @Override
@@ -153,13 +151,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   }
 
   @Override
-  public boolean isFeatureSupported(HowlOperation operation) throws IOException {
-
-    return operation.equals(HowlOperation.PROJECTION_PUSHDOWN) ? true : false;
-  }
-
-  @Override
-  public HowlRecord convertValueToHowlRecord(Writable bytesRefArray) throws IOException {
+  public HowlRecord convertToHowlRecord(WritableComparable ignored, Writable bytesRefArray) throws IOException {
 
      ColumnarStruct struct;
     try {
