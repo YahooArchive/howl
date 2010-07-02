@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.hive.howl.data.HowlRecord;
-import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -56,35 +55,12 @@ public abstract class HowlInputStorageDriver {
   public abstract HowlRecord convertToHowlRecord(WritableComparable baseKey, Writable baseValue) throws IOException;
 
   /**
-   * Returns true if this InputFormat supports specified operation.
-   * By default, returns false - the StorageDriver implementor is
-   * expected to override to check for features they implement.
-   * @param operation the operation to check for
-   * @return true, if specified operation is supported
-   */
-  public boolean isFeatureSupported(HowlOperation operation) throws IOException{
-    return false;
-  }
-
-  /**
    * Set the data location for the input.
    * @param jobContext the job context object
    * @param location the data location
    * @throws IOException Signals that an I/O exception has occurred.
    */
   public abstract void setInputPath(JobContext jobContext, String location) throws IOException;
-
-  /**
-   * Set the predicate filter to be pushed down to the storage driver.
-   * @param jobContext the job context object
-   * @param predicate the predicate filter, an arbitrary AND/OR filter
-   * @return true, if filtering for the specified predicate is supported. Default implementation in
-   *               HowlInputStorageDriver  always returns false.
-   * @throws IOException Signals that an I/O exception has occurred.
-   */
-  public boolean setPredicate(JobContext jobContext, String predicate) throws IOException {
-    return false;
-  }
 
   /**
    * Set the schema of the data as originally published in Howl. The storage driver might validate that this matches with
@@ -105,9 +81,7 @@ public abstract class HowlInputStorageDriver {
    *               HowlInputStorageDriver  always returns false.
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public boolean setOutputSchema(JobContext jobContext, Schema howlSchema) throws IOException{
-    return false;
-  }
+  public abstract void setOutputSchema(JobContext jobContext, Schema howlSchema) throws IOException;
 
   /**
    * Sets the partition key values for the current partition. The storage driver is passed this so that the storage
