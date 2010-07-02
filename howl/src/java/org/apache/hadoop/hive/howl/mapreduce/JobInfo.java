@@ -18,10 +18,8 @@
 package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.Serializable;
-import java.util.EnumSet;
 import java.util.List;
 
-import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat.HowlOperation;
 import org.apache.hadoop.hive.metastore.api.Schema;
 
 /** The class used to serialize and store the information read from the metadata server */
@@ -39,9 +37,6 @@ public class JobInfo implements Serializable{
 
     /** The list of partitions matching the filter. */
     private final List<PartInfo> partitions;
-
-    /** The enum set of supported HowlOperations */
-    private EnumSet<HowlOperation> supportedFeatures;
 
     /**
      * Instantiates a new howl job info.
@@ -89,19 +84,4 @@ public class JobInfo implements Serializable{
         return partitions;
     }
 
-    /**
-     * Sets the list of supported features.
-     * @param supportedFeatures the new supported features
-     */
-    public void setSupportedFeatures(EnumSet<HowlOperation> supportedFeatures) {
-        this.supportedFeatures = supportedFeatures;
-    }
-
-    /**
-     * Gets the supported features list.
-     * @return the supported features
-     */
-    public EnumSet<HowlOperation> getSupportedFeatures() {
-        return supportedFeatures;
-    }
 }
