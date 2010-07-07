@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -29,7 +30,6 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.impl.util.ObjectSerializer;
 
 class HowlOutputCommitter extends OutputCommitter {
 
@@ -85,11 +85,7 @@ class HowlOutputCommitter extends OutputCommitter {
         partition.setTableName(tableInfo.getTableName());
         partition.setParameters(new HashMap<String, String>());
         partition.setSd(table.getSd());
-
-        HowlOutputStorageDriver driver = HowlOutputFormat.getOutputDriverInstance(jobInfo.getStorerInfo());
-        //default location set by metastore
-        partition.getSd().setLocation(driver.getPartitionLocation(context,
-                table.getSd().getLocation(), tableInfo.getPartitionValues()));
+        partition.getSd().setLocation(jobInfo.getLocation());
 
         List<String> values = new ArrayList<String>();
         for(FieldSchema schema : table.getPartitionKeys()) {
@@ -97,9 +93,16 @@ class HowlOutputCommitter extends OutputCommitter {
         }
         partition.setValues(values);
 
-        partition.getSd().getParameters().put(InitializeInput.HOWL_LOADER_INFO,
-            ObjectSerializer.serialize(storer.getLoaderInfo()));
+        Map<String, String> params = new HashMap<String, String>();
+        params.put(InitializeInput.HOWL_ISD_CLASS, storer.getInputSDClass());
+        params.put(InitializeInput.HOWL_OSD_CLASS, storer.getOutputSDClass());
 
+        //Copy table level howl.* keys to the partition
+        for(Map.Entry<Object, Object> entry : storer.getProperties().entrySet()) {
+          params.put(entry.getKey().toString(), entry.getValue().toString());
+        }
+
+        partition.getSd().setParameters(params);
         client.add_partition(partition);
       } catch (Exception e) {
         throw new IOException("Error adding partition to metastore", e);

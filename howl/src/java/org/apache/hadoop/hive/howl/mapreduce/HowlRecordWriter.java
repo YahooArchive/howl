@@ -45,8 +45,9 @@ public class HowlRecordWriter extends RecordWriter<WritableComparable<?>, HowlRe
     @Override
     public void write(WritableComparable<?> key, HowlRecord value) throws IOException,
             InterruptedException {
-        WritableComparable<?> convertedKey = storageDriver.convertKey(key);
+        //The key given by user is ignored
+        WritableComparable<?> generatedKey = storageDriver.generateKey(value);
         Writable convertedValue = storageDriver.convertValue(value);
-        baseWriter.write(convertedKey, convertedValue);
+        baseWriter.write(generatedKey, convertedValue);
     }
 }

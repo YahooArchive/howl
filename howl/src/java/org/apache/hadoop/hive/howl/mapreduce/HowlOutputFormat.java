@@ -19,13 +19,15 @@
 package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
-import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.io.Writable;
@@ -37,7 +39,6 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.thrift.TException;
 
 /** The OutputFormat to use to write data to Howl */
 public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRecord> {
@@ -53,19 +54,36 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      * @param job the job object
      * @param outputInfo the table output info
      * @throws IOException the exception in communicating with the metadata server
-     * @throws MetaException
-     * @throws NoSuchObjectException
-     * @throws TException
      */
-    public static void setOutput(Job job, HowlTableInfo outputInfo) throws IOException, MetaException, TException, NoSuchObjectException {
-      HiveMetaStoreClient client = createHiveClient(outputInfo.getServerUri(), job.getConfiguration());
-      Table table = client.getTable(outputInfo.getDatabaseName(), outputInfo.getTableName());
+    @SuppressWarnings("unchecked")
+    public static void setOutput(Job job, HowlTableInfo outputInfo) throws IOException {
+      try {
+        HiveMetaStoreClient client = createHiveClient(outputInfo.getServerUri(), job.getConfiguration());
+        Table table = client.getTable(outputInfo.getDatabaseName(), outputInfo.getTableName());
 
-      Schema tableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
-      StorerInfo storerInfo = InitializeInput.extractStorerInfo(table.getSd());
+        Schema tableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
+        StorerInfo storerInfo = InitializeInput.extractStorerInfo(table.getSd());
 
-      OutputJobInfo jobInfo = new OutputJobInfo(outputInfo, tableSchema, tableSchema, storerInfo);
-      job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, ObjectSerializer.serialize(jobInfo));
+        List<String> partitionCols = new ArrayList<String>();
+        for(FieldSchema schema : table.getPartitionKeys()) {
+          partitionCols.add(schema.getName());
+        }
+
+        Class<? extends HowlOutputStorageDriver> driverClass =
+          (Class<? extends HowlOutputStorageDriver>) Class.forName(storerInfo.getOutputSDClass());
+        HowlOutputStorageDriver driver = driverClass.newInstance();
+
+        String location = driver.getPartitionLocation(job,
+            table.getSd().getLocation(), partitionCols,
+            outputInfo.getPartitionValues());
+
+        OutputJobInfo jobInfo = new OutputJobInfo(outputInfo,
+                tableSchema, tableSchema, storerInfo, location);
+        job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, ObjectSerializer.serialize(jobInfo));
+
+      } catch(Exception e) {
+        throw new IOException("Error setting output information", e);
+      }
     }
 
     /**
@@ -104,9 +122,10 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
                       ) throws IOException, InterruptedException {
 
         OutputJobInfo jobInfo = getJobInfo(context);
-        HowlOutputStorageDriver driver = getOutputDriverInstance(jobInfo.getStorerInfo());
+        HowlOutputStorageDriver driver = getOutputDriverInstance(context, jobInfo);
 
-        OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat = driver.getOutputFormat(jobInfo.getStorerInfo());
+        OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat = driver.getOutputFormat(
+                jobInfo.getStorerInfo().getProperties());
         return new HowlRecordWriter(driver, outputFormat.getRecordWriter(context));
     }
 
@@ -146,9 +165,10 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      */
     private OutputFormat<? super WritableComparable<?>, ? super Writable> getOutputFormat(JobContext context) throws IOException {
         OutputJobInfo jobInfo = getJobInfo(context);
-        HowlOutputStorageDriver driver = getOutputDriverInstance(jobInfo.getStorerInfo());
+        HowlOutputStorageDriver driver = getOutputDriverInstance(context, jobInfo);
 
-        OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat = driver.getOutputFormat(jobInfo.getStorerInfo());
+        OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat =
+              driver.getOutputFormat(jobInfo.getStorerInfo().getProperties());
         return outputFormat;
     }
 
@@ -177,12 +197,19 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      */
     @SuppressWarnings("unchecked")
     static HowlOutputStorageDriver getOutputDriverInstance(
-            StorerInfo storerInfo) throws IOException {
+            JobContext jobContext, OutputJobInfo jobInfo) throws IOException {
         try {
             Class<? extends HowlOutputStorageDriver> driverClass =
                 (Class<? extends HowlOutputStorageDriver>)
-                Class.forName(storerInfo.getOutputDriverClass());
-            return driverClass.newInstance();
+                Class.forName(jobInfo.getStorerInfo().getOutputSDClass());
+            HowlOutputStorageDriver driver = driverClass.newInstance();
+
+            //Initialize the storage driver
+            driver.setSchema(jobContext, jobInfo.getOutputSchema());
+            driver.setPartitionValues(jobContext, jobInfo.getTableInfo().getPartitionValues());
+            driver.setOutputPath(jobContext, jobInfo.getLocation());
+
+            return driver;
         } catch(Exception e) {
             throw new IOException("Error initializing output storage driver instance", e);
         }

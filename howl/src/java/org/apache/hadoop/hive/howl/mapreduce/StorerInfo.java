@@ -17,88 +17,78 @@
 package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.Serializable;
+import java.util.Properties;
 
 /** Info about the storer to use for writing the data */
-public class StorerInfo implements Serializable {
+class StorerInfo implements Serializable {
 
     /** The serialization version */
     private static final long serialVersionUID = 1L;
 
-    /** The class name of the OwlOutputStorageDriver. */
-    private String outputDriverClass;
+    /** The name of the input storage driver class */
+    private String inputSDClass;
 
-    /** Arguments to be passed to the storage driver. */
-    private String outputDriverArgs;
+    /** The name of the output storage driver class */
+    private String outputSDClass;
 
-    /** The loader corresponding to this storer. */
-    private LoaderInfo loaderInfo;
+    /** The properties for the storage driver */
+    private Properties properties;
+
 
     /**
-     * Instantiates a new owl storer info.
+     * Initialize the storage driver
+     * @param inputSDClass
+     * @param outputSDClass
+     * @param properties
      */
-    public StorerInfo() {
+    StorerInfo(String inputSDClass, String outputSDClass, Properties properties) {
+      super();
+      this.inputSDClass = inputSDClass;
+      this.outputSDClass = outputSDClass;
+      this.properties = properties;
     }
 
     /**
-     * Instantiates a new owl storer info.
-     *
-     * @param outputDriverClass the output driver class
-     * @param outputDriverArgs the output driver args
-     * @param loaderInfo the loader info
+     * @return the inputSDClass
      */
-    public StorerInfo(String outputDriverClass, String outputDriverArgs,
-            LoaderInfo loaderInfo) {
-        this.outputDriverClass = outputDriverClass;
-        this.outputDriverArgs = outputDriverArgs;
-        this.loaderInfo = loaderInfo;
+    public String getInputSDClass() {
+      return inputSDClass;
     }
 
     /**
-     * Gets the output driver class.
-     * @return the outputDriverClass
+     * @param inputSDClass the inputSDClass to set
      */
-    public String getOutputDriverClass() {
-        return outputDriverClass;
+    public void setInputSDClass(String inputSDClass) {
+      this.inputSDClass = inputSDClass;
     }
 
     /**
-     * Gets the output driver args.
-     * @return the outputDriverArgs
+     * @return the outputSDClass
      */
-    public String getOutputDriverArgs() {
-        return outputDriverArgs;
+    public String getOutputSDClass() {
+      return outputSDClass;
     }
 
     /**
-     * Gets the loader info.
-     * @return the loaderInfo
+     * @param outputSDClass the outputSDClass to set
      */
-    public LoaderInfo getLoaderInfo() {
-        return loaderInfo;
+    public void setOutputSDClass(String outputSDClass) {
+      this.outputSDClass = outputSDClass;
     }
 
     /**
-     * Sets the output driver class.
-     * @param outputDriverClass the outputDriverClass to set
+     * @return the properties
      */
-    public void setOutputDriverClass(String outputDriverClass) {
-        this.outputDriverClass = outputDriverClass;
+    public Properties getProperties() {
+      return properties;
     }
 
     /**
-     * Sets the output driver args.
-     * @param outputDriverArgs the outputDriverArgs to set
+     * @param properties the properties to set
      */
-    public void setOutputDriverArgs(String outputDriverArgs) {
-        this.outputDriverArgs = outputDriverArgs;
+    public void setProperties(Properties properties) {
+      this.properties = properties;
     }
 
-    /**
-     * Sets the loader info.
-     * @param loaderInfo the loaderInfo to set
-     */
-    public void setLoaderInfo(LoaderInfo loaderInfo) {
-        this.loaderInfo = loaderInfo;
-    }
 
 }

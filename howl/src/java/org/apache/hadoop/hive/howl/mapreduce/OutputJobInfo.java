@@ -29,7 +29,7 @@ class OutputJobInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** The table info provided by user. */
-    private HowlTableInfo tableInfo;;
+    private HowlTableInfo tableInfo;
 
     /** The output schema. */
     private Schema outputSchema;
@@ -40,13 +40,17 @@ class OutputJobInfo implements Serializable {
     /** The storer info */
     private StorerInfo storerInfo;
 
+    /** The location of the partition being written */
+    private String location;
+
     public OutputJobInfo(HowlTableInfo tableInfo, Schema outputSchema, Schema tableSchema,
-        StorerInfo storerInfo) {
+        StorerInfo storerInfo, String location) {
       super();
       this.tableInfo = tableInfo;
       this.outputSchema = outputSchema;
       this.tableSchema = tableSchema;
       this.storerInfo = storerInfo;
+      this.location = location;
     }
 
     /**
@@ -103,6 +107,20 @@ class OutputJobInfo implements Serializable {
      */
     public void setStorerInfo(StorerInfo storerInfo) {
       this.storerInfo = storerInfo;
+    }
+
+    /**
+     * @param location the location to set
+     */
+    public void setLocation(String location) {
+      this.location = location;
+    }
+
+    /**
+     * @return the location
+     */
+    public String getLocation() {
+      return location;
     }
 
 }

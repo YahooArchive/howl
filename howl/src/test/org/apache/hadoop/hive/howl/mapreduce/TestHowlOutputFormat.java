@@ -37,7 +37,6 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.pig.impl.util.ObjectSerializer;
 
 public class TestHowlOutputFormat extends TestCase {
   private HiveMetaStoreClient client;
@@ -94,6 +93,7 @@ public class TestHowlOutputFormat extends TestCase {
     sd.setCols(fields);
     tbl.setSd(sd);
 
+    //sd.setLocation("hdfs://tmp");
     sd.setParameters(new HashMap<String, String>());
     sd.getParameters().put("test_param_1", "Use this for comments etc");
     sd.setBucketCols(new ArrayList<String>(2));
@@ -107,12 +107,9 @@ public class TestHowlOutputFormat extends TestCase {
         org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.class.getName());
     tbl.setPartitionKeys(fields);
 
-    StorerInfo storer = new StorerInfo();
-    storer.setOutputDriverClass(OutputSDTest.class.getName());
-    storer.setLoaderInfo(new LoaderInfo("t", "a"));
-
-    String arg = ObjectSerializer.serialize(storer);
-    sd.getParameters().put(InitializeInput.HOWL_STORER_INFO, ObjectSerializer.serialize(storer));
+    sd.getParameters().put(InitializeInput.HOWL_OSD_CLASS, OutputSDTest.class.getName());
+    sd.getParameters().put(InitializeInput.HOWL_ISD_CLASS, "testInputClass");
+    sd.getParameters().put("howl.testarg", "testArgValue");
 
     client.createTable(tbl);
   }
@@ -136,7 +133,7 @@ public class TestHowlOutputFormat extends TestCase {
     assertEquals("colname", jobInfo.getTableSchema().getFieldSchemasIterator().next().getName());
 
     StorerInfo storer = jobInfo.getStorerInfo();
-    assertEquals(OutputSDTest.class.getName(), storer.getOutputDriverClass());
+    assertEquals(OutputSDTest.class.getName(), storer.getOutputSDClass());
 
     publishTest(job);
   }
@@ -148,8 +145,9 @@ public class TestHowlOutputFormat extends TestCase {
     Partition part = client.getPartition(dbName, tblName, Arrays.asList("p1"));
     assertNotNull(part);
 
-    LoaderInfo loader = InitializeInput.extractLoaderInfoFromStorageDescriptor(part.getSd());
-    assertEquals(loader.getInputDriverClass(), "t");
-    assertEquals(loader.getInputDriverArgs(), "a");
+    StorerInfo storer = InitializeInput.extractStorerInfo(part.getSd());
+    assertEquals(storer.getInputSDClass(), "testInputClass");
+    assertEquals(storer.getProperties().get("howl.testarg"), "testArgValue");
+    assertTrue(part.getSd().getLocation().indexOf("colname=p1") != -1);
   }
 }
