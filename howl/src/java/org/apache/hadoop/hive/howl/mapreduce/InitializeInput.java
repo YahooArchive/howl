@@ -40,13 +40,14 @@ import org.apache.pig.impl.util.ObjectSerializer;
  */
 public class InitializeInput {
 
-  @Deprecated
-  static final String HOWL_LOADER_INFO = "howlLoaderInfo";
-
-  static final String HOWL_STORER_INFO = "howlStorerInfo";
-
+  /** The prefix for keys used for storage driver arguments */
   private static final String HOWL_KEY_PREFIX = "howl.";
-  private static final String HOWL_ISD_CLASS = "howl.isd";
+
+  /** The key for the input storage driver class name */
+  public static final String HOWL_ISD_CLASS = "howl.isd";
+
+  /** The key for the output storage driver class name */
+  public static final String HOWL_OSD_CLASS = "howl.osd";
 
   private static final short MAX_PARTS = Short.MAX_VALUE;
 
@@ -141,23 +142,29 @@ public class InitializeInput {
 
 
   static StorerInfo extractStorerInfo(StorageDescriptor sd) throws IOException {
+    String inputSDClass, outputSDClass;
+    Properties howlProperties = new Properties();
 
-    StorerInfo storerInfo = null;
 
-    try {
-      if (sd != null && sd.getParameters().containsKey(HOWL_STORER_INFO)) {
-        String str = sd.getParameters().get(HOWL_STORER_INFO) ;
-        storerInfo = (StorerInfo) ObjectSerializer.deserialize(str);
+    if (sd.getParameters().containsKey(HOWL_ISD_CLASS)){
+      inputSDClass = sd.getParameters().get(HOWL_ISD_CLASS);
+    }else{
+      throw new IOException("No input storage driver classname found for table, cannot write partition");
+    }
+
+    if (sd.getParameters().containsKey(HOWL_OSD_CLASS)){
+      outputSDClass = sd.getParameters().get(HOWL_OSD_CLASS);
+    }else{
+      throw new IOException("No output storage driver classname found for table, cannot write partition");
+    }
+
+    for (String key : sd.getParameters().keySet()){
+      if (key.startsWith(HOWL_KEY_PREFIX)){
+        howlProperties.put(key, sd.getParameters().get(key));
       }
-    }catch(IOException e) {
-      throw new IOException("Error reading StorerInfo for table", e);
     }
 
-    if( storerInfo == null ) {
-      throw new IOException("StorerInfo not available for table");
-    }
-
-    return storerInfo;
+    return new StorerInfo(inputSDClass, outputSDClass, howlProperties);
   }
 
 }

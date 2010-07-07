@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.metastore.api.Schema;
@@ -30,19 +31,8 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 public class OutputSDTest extends HowlOutputStorageDriver {
 
   @Override
-  public WritableComparable<?> convertKey(WritableComparable<?> key) {
-    return key;
-  }
-
-  @Override
   public Writable convertValue(HowlRecord value) {
     return value;
-  }
-
-  @Override
-  public OutputFormat<? super WritableComparable<?>, ? super Writable> getOutputFormat(
-      StorerInfo storeInfo) {
-    return null;
   }
 
   @Override
@@ -56,6 +46,17 @@ public class OutputSDTest extends HowlOutputStorageDriver {
 
   @Override
   public void setSchema(JobContext jobContext, Schema schema) throws IOException {
+  }
+
+  @Override
+  public WritableComparable<?> generateKey(HowlRecord value) {
+    return null;
+  }
+
+  @Override
+  public OutputFormat<? super WritableComparable<?>, ? super Writable> getOutputFormat(
+      Properties properties) {
+    return null;
   }
 
 }
