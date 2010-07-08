@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -141,26 +142,25 @@ public class InitializeInput {
   }
 
 
-  static StorerInfo extractStorerInfo(StorageDescriptor sd) throws IOException {
+  static StorerInfo extractStorerInfo(Map<String, String> properties) throws IOException {
     String inputSDClass, outputSDClass;
-    Properties howlProperties = new Properties();
 
-
-    if (sd.getParameters().containsKey(HOWL_ISD_CLASS)){
-      inputSDClass = sd.getParameters().get(HOWL_ISD_CLASS);
+    if (properties.containsKey(HOWL_ISD_CLASS)){
+      inputSDClass = properties.get(HOWL_ISD_CLASS);
     }else{
       throw new IOException("No input storage driver classname found for table, cannot write partition");
     }
 
-    if (sd.getParameters().containsKey(HOWL_OSD_CLASS)){
-      outputSDClass = sd.getParameters().get(HOWL_OSD_CLASS);
+    if (properties.containsKey(HOWL_OSD_CLASS)){
+      outputSDClass = properties.get(HOWL_OSD_CLASS);
     }else{
       throw new IOException("No output storage driver classname found for table, cannot write partition");
     }
 
-    for (String key : sd.getParameters().keySet()){
+    Properties howlProperties = new Properties();
+    for (String key : properties.keySet()){
       if (key.startsWith(HOWL_KEY_PREFIX)){
-        howlProperties.put(key, sd.getParameters().get(key));
+        howlProperties.put(key, properties.get(key));
       }
     }
 
