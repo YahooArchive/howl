@@ -62,7 +62,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         Table table = client.getTable(outputInfo.getDatabaseName(), outputInfo.getTableName());
 
         Schema tableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
-        StorerInfo storerInfo = InitializeInput.extractStorerInfo(table.getSd());
+        StorerInfo storerInfo = InitializeInput.extractStorerInfo(table.getParameters());
 
         List<String> partitionCols = new ArrayList<String>();
         for(FieldSchema schema : table.getPartitionKeys()) {
