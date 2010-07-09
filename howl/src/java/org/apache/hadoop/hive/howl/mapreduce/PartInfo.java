@@ -32,10 +32,6 @@ public class PartInfo implements Serializable {
   /** The partition schema. */
   private final Schema partitionSchema;
 
-  /** The information about the to use. */
-  @Deprecated
-  private final LoaderInfo loaderInfo;
-
   /** The information about which input storage driver to use */
   private final String inputStorageDriverClass;
 
@@ -49,25 +45,9 @@ public class PartInfo implements Serializable {
   private Map<String,String> partitionValues;
 
   /**
-   * Instantiates a new owl partition info.
-   * @param partitionSchema the partition schema
-   * @param loaderInfo the loader info
-   * @param location the location
-   */
-  @Deprecated
-  public PartInfo(Schema partitionSchema,
-      LoaderInfo loaderInfo, String location) {
-    this.partitionSchema = partitionSchema;
-    this.loaderInfo = loaderInfo;
-    this.location = location;
-    this.howlProperties = null;
-    this.inputStorageDriverClass = null;
-  }
-
-  /**
    * Instantiates a new howl partition info.
    * @param partitionSchema the partition schema
-   * @param loaderInfo the loader info
+   * @param inputStorageDriverClass the input storage driver class name
    * @param location the location
    * @param howlProperties howl-specific properties at the partition
    */
@@ -76,7 +56,6 @@ public class PartInfo implements Serializable {
     this.inputStorageDriverClass = inputStorageDriverClass;
     this.location = location;
     this.howlProperties = howlProperties;
-    this.loaderInfo = null;
   }
 
   /**
@@ -87,18 +66,10 @@ public class PartInfo implements Serializable {
     return partitionSchema;
   }
 
-  /**
-   * Gets the value of loaderInfo.
-   * @return the loaderInfo
-   */
-  @Deprecated
-  public LoaderInfo getLoaderInfo() {
-    return loaderInfo;
-  }
 
   /**
-   * Gets the value of loaderInfo.
-   * @return the loaderInfo
+   * Gets the value of input storage driver class name.
+   * @return the input storage driver class name
    */
   public String getInputStorageDriverClass() {
     return inputStorageDriverClass;
