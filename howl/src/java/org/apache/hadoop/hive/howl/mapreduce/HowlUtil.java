@@ -18,7 +18,11 @@
 
 package org.apache.hadoop.hive.howl.mapreduce;
 
+import java.io.IOException;
+import java.io.Serializable;
+
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.pig.impl.util.ObjectSerializer;
 
 public class HowlUtil {
 
@@ -27,6 +31,14 @@ public class HowlUtil {
       return false;
     }
     return true;
+  }
+
+  public static Object deserialize(String representation) throws IOException{
+    return ObjectSerializer.deserialize(representation);
+  }
+
+  public static String serialize(Serializable o) throws IOException{
+    return ObjectSerializer.serialize(o);
   }
 
 }

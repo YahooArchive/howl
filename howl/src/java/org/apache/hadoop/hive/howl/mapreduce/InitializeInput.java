@@ -30,7 +30,6 @@ import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
  * The Class which handles querying the owl metadata server using the OwlDriver. The list of
@@ -107,7 +106,7 @@ public class InitializeInput {
 
     job.getConfiguration().set(
         HowlInputFormat.HOWL_KEY_JOB_INFO,
-        ObjectSerializer.serialize(howlJobInfo)
+        HowlUtil.serialize(howlJobInfo)
     );
   }
 
