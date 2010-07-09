@@ -78,12 +78,11 @@ class HowlOutputCommitter extends OutputCommitter {
             jobInfo.getTableInfo().getServerUri(), context.getConfiguration());
 
         Table table = client.getTable(tableInfo.getDatabaseName(), tableInfo.getTableName());
-        StorerInfo storer = InitializeInput.extractStorerInfo(table.getSd());
+        StorerInfo storer = InitializeInput.extractStorerInfo(table.getParameters());
 
         Partition partition = new Partition();
         partition.setDbName(tableInfo.getDatabaseName());
         partition.setTableName(tableInfo.getTableName());
-        partition.setParameters(new HashMap<String, String>());
         partition.setSd(table.getSd());
         partition.getSd().setLocation(jobInfo.getLocation());
 
@@ -102,8 +101,9 @@ class HowlOutputCommitter extends OutputCommitter {
           params.put(entry.getKey().toString(), entry.getValue().toString());
         }
 
-        partition.getSd().setParameters(params);
+        partition.setParameters(params);
         client.add_partition(partition);
+
       } catch (Exception e) {
         throw new IOException("Error adding partition to metastore", e);
       }
