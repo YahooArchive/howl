@@ -38,7 +38,6 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.impl.util.ObjectSerializer;
 
 /** The OutputFormat to use to write data to Howl */
 public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRecord> {
@@ -79,7 +78,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
         OutputJobInfo jobInfo = new OutputJobInfo(outputInfo,
                 tableSchema, tableSchema, storerInfo, location);
-        job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, ObjectSerializer.serialize(jobInfo));
+        job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
 
       } catch(Exception e) {
         throw new IOException("Error setting output information", e);
@@ -94,7 +93,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     public static void setSchema(Job job, Schema schema) throws IOException {
         OutputJobInfo jobInfo = getJobInfo(job);
         jobInfo.setOutputSchema(schema);
-        job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, ObjectSerializer.serialize(jobInfo));
+        job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
     }
 
     /**
@@ -186,7 +185,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
             throw new IOException("HowlOutputFormat not initialized, setOutput has to be called");
         }
 
-        return (OutputJobInfo) ObjectSerializer.deserialize(jobString);
+        return (OutputJobInfo) HowlUtil.deserialize(jobString);
     }
 
     /**

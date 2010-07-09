@@ -31,7 +31,6 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.impl.util.ObjectSerializer;
 
 /** The InputFormat to use to read data from Owl */
 public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord> {
@@ -65,7 +64,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @param howlSchema the schema to use as the consolidated schema
    */
   public static void setOutputSchema(Job job, Schema howlSchema) throws Exception {
-    job.getConfiguration().set(HOWL_KEY_OUTPUT_SCHEMA, ObjectSerializer.serialize(howlSchema));
+    job.getConfiguration().set(HOWL_KEY_OUTPUT_SCHEMA, HowlUtil.serialize(howlSchema));
   }
 
 
@@ -200,7 +199,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
       throw new Exception("Input not initialized from jobContext");
     }
 
-    return (JobInfo) ObjectSerializer.deserialize(jobString);
+    return (JobInfo) HowlUtil.deserialize(jobString);
   }
 
 
@@ -231,7 +230,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
     Schema outputSchema = null;
     String outputSchemaString = context.getConfiguration().get(HOWL_KEY_OUTPUT_SCHEMA);
     if( outputSchemaString != null ) {
-      outputSchema = (Schema) ObjectSerializer.deserialize(outputSchemaString);
+      outputSchema = (Schema) HowlUtil.deserialize(outputSchemaString);
     } else {
       outputSchema = tableSchema;
     }
