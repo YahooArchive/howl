@@ -97,7 +97,7 @@ public class InitializeInput {
     List<PartInfo> partInfoList = new ArrayList<PartInfo>();
 
     for (Partition ptn : parts){
-      PartInfo partInfo = extractPartInfoFromStorageDescriptor(ptn.getSd());
+      PartInfo partInfo = extractPartInfo(ptn.getSd(),ptn.getParameters());
       partInfo.setPartitionValues(ptn.getParameters());
       partInfoList.add(partInfo);
     }
@@ -111,21 +111,18 @@ public class InitializeInput {
     );
   }
 
-  private static PartInfo extractPartInfoFromStorageDescriptor(StorageDescriptor sd) throws IOException{
-    if (sd == null){
-      throw new IOException("Cannot construct partition info from an empty storage descriptor.");
-    }
+  private static PartInfo extractPartInfo(StorageDescriptor sd, Map<String,String> parameters) throws IOException{
     Schema schema = extractSchemaFromStorageDescriptor(sd);
     String inputStorageDriverClass = null;
     Properties howlProperties = new Properties();
-    if (sd.getParameters().containsKey(HOWL_ISD_CLASS)){
-      inputStorageDriverClass = sd.getParameters().get(HOWL_ISD_CLASS);
+    if (parameters.containsKey(HOWL_ISD_CLASS)){
+      inputStorageDriverClass = parameters.get(HOWL_ISD_CLASS);
     }else{
       throw new IOException("No input storage driver classname found, cannot read partition");
     }
-    for (String key : sd.getParameters().keySet()){
+    for (String key : parameters.keySet()){
       if (key.startsWith(HOWL_KEY_PREFIX)){
-        howlProperties.put(key, sd.getParameters().get(key));
+        howlProperties.put(key, parameters.get(key));
       }
     }
     return new PartInfo(schema,inputStorageDriverClass,  sd.getLocation(), howlProperties);
