@@ -107,9 +107,12 @@ public class TestHowlOutputFormat extends TestCase {
         org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.class.getName());
     tbl.setPartitionKeys(fields);
 
-    sd.getParameters().put(InitializeInput.HOWL_OSD_CLASS, OutputSDTest.class.getName());
-    sd.getParameters().put(InitializeInput.HOWL_ISD_CLASS, "testInputClass");
-    sd.getParameters().put("howl.testarg", "testArgValue");
+    Map<String, String> tableParams = new HashMap<String, String>();
+    tableParams.put(InitializeInput.HOWL_OSD_CLASS, OutputSDTest.class.getName());
+    tableParams.put(InitializeInput.HOWL_ISD_CLASS, "testInputClass");
+    tableParams.put("howl.testarg", "testArgValue");
+
+    tbl.setParameters(tableParams);
 
     client.createTable(tbl);
   }
@@ -145,7 +148,7 @@ public class TestHowlOutputFormat extends TestCase {
     Partition part = client.getPartition(dbName, tblName, Arrays.asList("p1"));
     assertNotNull(part);
 
-    StorerInfo storer = InitializeInput.extractStorerInfo(part.getSd());
+    StorerInfo storer = InitializeInput.extractStorerInfo(part.getParameters());
     assertEquals(storer.getInputSDClass(), "testInputClass");
     assertEquals(storer.getProperties().get("howl.testarg"), "testArgValue");
     assertTrue(part.getSd().getLocation().indexOf("colname=p1") != -1);
