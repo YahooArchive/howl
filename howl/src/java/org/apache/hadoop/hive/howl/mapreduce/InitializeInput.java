@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -96,9 +97,15 @@ public class InitializeInput {
     // convert List<OwlPartitionInfo> to List<OwlPartInfo>
     List<PartInfo> partInfoList = new ArrayList<PartInfo>();
 
-    for (Partition ptn : parts){
-      PartInfo partInfo = extractPartInfo(ptn.getSd(),ptn.getParameters());
-      partInfo.setPartitionValues(ptn.getParameters());
+    if (parts.size() > 0){
+      for (Partition ptn : parts){
+        PartInfo partInfo = extractPartInfo(ptn.getSd(),ptn.getParameters());
+        partInfo.setPartitionValues(ptn.getParameters());
+        partInfoList.add(partInfo);
+      }
+    }else{
+      PartInfo partInfo = extractPartInfo(table.getSd(),table.getParameters());
+      partInfo.setPartitionValues(new HashMap<String,String>());
       partInfoList.add(partInfo);
     }
 
