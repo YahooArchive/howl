@@ -59,14 +59,14 @@ public class InitializeInput {
       return client;
     }
     HiveConf hiveConf = new HiveConf(HowlInputFormat.class);
-
+//    System.err.println("XXX: all props:" + hiveConf.getAllProperties());
     if (inputInfo.getServerUri() != null){
       hiveConf.set("hive.metastore.uris", inputInfo.getServerUri());
-    } else if (! conf.get("hive.metastore.uris", "").equals("")){
-      hiveConf.set("hive.metastore.uris", conf.get("hive.metastore.uris"));
+      hiveConf.setInt("hive.metastore.connect.retries", 1);
     }
-    hiveConf.set("hive.metastore.warehouse.dir", conf.get("hive.metastore.warehouse.dir","/tmp/"));
-    hiveConf.setBoolean("hive.metastore.local", conf.getBoolean("hive.metastore.local",true));
+    
+//    hiveConf.set("hive.metastore.warehouse.dir", conf.get("hive.metastore.warehouse.dir","/tmp/"));
+//    hiveConf.setBoolean("hive.metastore.local", conf.getBoolean("hive.metastore.local",true));
 
     return (client = new HiveMetaStoreClient(hiveConf,null));
   }
