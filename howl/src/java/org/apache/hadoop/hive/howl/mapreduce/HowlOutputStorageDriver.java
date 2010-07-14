@@ -36,13 +36,22 @@ import org.apache.hadoop.mapreduce.OutputFormat;
  *  OwlOutputFormat.
  */
 public abstract class HowlOutputStorageDriver {
+
+  /**
+   * Initialize the storage driver with specified properties, default implementation does nothing.
+   * @param context the job context object
+   * @param howlProperties the properties for the storage driver
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+    public void initialize(JobContext context, Properties howlProperties) throws IOException {
+    }
+
     /**
      * Returns the OutputFormat to use with this Storage Driver.
-     * @param storeInfo the store info object containing parameters required for initialization of OutputFormat
      * @return the OutputFormat instance
+     * @throws IOException Signals that an I/O exception has occurred.
      */
-    public abstract OutputFormat<? super WritableComparable<?>, ? super Writable>
-            getOutputFormat(Properties properties);
+    public abstract OutputFormat<? super WritableComparable<?>, ? super Writable> getOutputFormat() throws IOException;
 
     /**
      * Set the data location for the output.
@@ -73,15 +82,17 @@ public abstract class HowlOutputStorageDriver {
      * argument. The key given to HowlOutputFormat is ignored..
      * @param value the value given to HowlOutputFormat
      * @return a key instance
+     * @throws IOException Signals that an I/O exception has occurred.
      */
-    public abstract WritableComparable<?> generateKey(HowlRecord value);
+    public abstract WritableComparable<?> generateKey(HowlRecord value) throws IOException;
 
     /**
      * Convert the given HowlRecord value to the actual value type.
      * @param value the HowlRecord value to convert
      * @return a value instance
+     * @throws IOException Signals that an I/O exception has occurred.
      */
-    public abstract Writable convertValue(HowlRecord value);
+    public abstract Writable convertValue(HowlRecord value) throws IOException;
 
     /**
      * Gets the location to use for the specified partition values. The default implementation returns the default hive
@@ -105,4 +116,5 @@ public abstract class HowlOutputStorageDriver {
       Path path = new Path(tableLocation, partitionLocation);
       return path.toString();
     }
+
 }
