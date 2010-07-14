@@ -21,6 +21,8 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -46,6 +48,8 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     static final String HOWL_KEY_OUTPUT_BASE = "mapreduce.lib.howloutput";
     static final String HOWL_KEY_OUTPUT_INFO = HOWL_KEY_OUTPUT_BASE + ".info";
     static final String HOWL_KEY_OUTPUT_TABLE_SCHEMA = HOWL_KEY_OUTPUT_BASE + ".table.schema";
+    static final String HOWL_KEY_HIVE_CONF = HOWL_KEY_OUTPUT_BASE + ".hive.conf";
+
 
     /**
      * Set the info about the output to write for the Job. This queries the metadata server
@@ -56,8 +60,10 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      */
     @SuppressWarnings("unchecked")
     public static void setOutput(Job job, HowlTableInfo outputInfo) throws IOException {
+      HiveMetaStoreClient client = null;
+
       try {
-        HiveMetaStoreClient client = createHiveClient(outputInfo.getServerUri(), job.getConfiguration());
+        client = createHiveClient(outputInfo.getServerUri(), job.getConfiguration());
         Table table = client.getTable(outputInfo.getDatabaseName(), outputInfo.getTableName());
 
         Schema tableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
@@ -82,6 +88,10 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
       } catch(Exception e) {
         throw new IOException("Error setting output information", e);
+      } finally {
+        if( client != null ) {
+          client.close();
+        }
       }
     }
 
@@ -123,8 +133,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         OutputJobInfo jobInfo = getJobInfo(context);
         HowlOutputStorageDriver driver = getOutputDriverInstance(context, jobInfo);
 
-        OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat = driver.getOutputFormat(
-                jobInfo.getStorerInfo().getProperties());
+        OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat = driver.getOutputFormat();
         return new HowlRecordWriter(driver, outputFormat.getRecordWriter(context));
     }
 
@@ -167,7 +176,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         HowlOutputStorageDriver driver = getOutputDriverInstance(context, jobInfo);
 
         OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat =
-              driver.getOutputFormat(jobInfo.getStorerInfo().getProperties());
+              driver.getOutputFormat();
         return outputFormat;
     }
 
@@ -208,19 +217,47 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
             driver.setPartitionValues(jobContext, jobInfo.getTableInfo().getPartitionValues());
             driver.setOutputPath(jobContext, jobInfo.getLocation());
 
+            driver.initialize(jobContext, jobInfo.getStorerInfo().getProperties());
+
             return driver;
         } catch(Exception e) {
             throw new IOException("Error initializing output storage driver instance", e);
         }
     }
 
-    static HiveMetaStoreClient createHiveClient(String url, Configuration conf) throws MetaException {
+    static HiveMetaStoreClient createHiveClient(String url, Configuration conf) throws IOException, MetaException {
       HiveConf hiveConf = new HiveConf(HowlOutputFormat.class);
 
       if( url != null ) {
+        //User specified a thrift url
         hiveConf.set("hive.metastore.local", "false");
         hiveConf.set(HiveConf.ConfVars.METATORETHRIFTRETRIES.varname, "2");
-        hiveConf.set("hive.metastore.uris", url);
+        hiveConf.set(HiveConf.ConfVars.METASTOREURIS.varname, url);
+      } else {
+        //Thrift url is null, copy the hive conf into the job conf and restore it
+        //in the backend context
+
+        if( conf.get(HOWL_KEY_HIVE_CONF) == null ) {
+          conf.set(HOWL_KEY_HIVE_CONF, HowlUtil.serialize(hiveConf.getAllProperties()));
+        } else {
+          //Copy configuration properties into the hive conf
+          Properties properties = (Properties) HowlUtil.deserialize(conf.get(HOWL_KEY_HIVE_CONF));
+
+          for(Map.Entry<Object, Object> prop : properties.entrySet() ) {
+            if( prop.getValue() instanceof String ) {
+              hiveConf.set((String) prop.getKey(), (String) prop.getValue());
+            } else if( prop.getValue() instanceof Integer ) {
+              hiveConf.setInt((String) prop.getKey(), (Integer) prop.getValue());
+            } else if( prop.getValue() instanceof Boolean ) {
+              hiveConf.setBoolean((String) prop.getKey(), (Boolean) prop.getValue());
+            } else if( prop.getValue() instanceof Long ) {
+              hiveConf.setLong((String) prop.getKey(), (Long) prop.getValue());
+            } else if( prop.getValue() instanceof Float ) {
+              hiveConf.setFloat((String) prop.getKey(), (Float) prop.getValue());
+            }
+          }
+        }
+
       }
 
       return new HiveMetaStoreClient(hiveConf);

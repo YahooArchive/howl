@@ -72,12 +72,20 @@ class HowlOutputCommitter extends OutputCommitter {
       }
 
       OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(context);
+      HiveMetaStoreClient client = null;
+
       try {
         HowlTableInfo tableInfo = jobInfo.getTableInfo();
-        HiveMetaStoreClient client = HowlOutputFormat.createHiveClient(
+        client = HowlOutputFormat.createHiveClient(
             jobInfo.getTableInfo().getServerUri(), context.getConfiguration());
 
         Table table = client.getTable(tableInfo.getDatabaseName(), tableInfo.getTableName());
+
+        if( table.getPartitionKeys().size() == 0 ) {
+          //non partitioned table
+          return;
+        }
+
         StorerInfo storer = InitializeInput.extractStorerInfo(table.getParameters());
 
         Partition partition = new Partition();
@@ -106,6 +114,10 @@ class HowlOutputCommitter extends OutputCommitter {
 
       } catch (Exception e) {
         throw new IOException("Error adding partition to metastore", e);
+      } finally {
+        if( client != null ) {
+          client.close();
+        }
       }
     }
 }
