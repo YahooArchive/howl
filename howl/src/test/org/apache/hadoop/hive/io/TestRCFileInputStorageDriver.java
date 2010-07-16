@@ -2,9 +2,7 @@ package org.apache.hadoop.hive.io;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import junit.framework.Assert;
@@ -15,9 +13,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver;
+import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.ql.io.RCFile;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
 import org.apache.hadoop.hive.serde.Constants;
@@ -84,7 +83,7 @@ public class TestRCFileInputStorageDriver extends TestCase{
     writer.close();
     BytesRefArrayWritable[] bytesArr = new BytesRefArrayWritable[]{bytes,bytes2};
 
-    Schema schema = buildHiveSchema();
+    HowlSchema schema = buildHiveSchema();
     RCFileInputStorageDriver sd = new RCFileInputStorageDriver();
     JobContext jc = new JobContext(conf, new JobID());
     sd.setInputPath(jc, file.toString());
@@ -216,7 +215,7 @@ public class TestRCFileInputStorageDriver extends TestCase{
 
   }
 
-  private Schema buildHiveSchema(){
+  private HowlSchema buildHiveSchema(){
 
     List<FieldSchema> fields = new ArrayList<FieldSchema>(8);
     fields.add(new FieldSchema("atinyint", "tinyint", ""));
@@ -228,13 +227,11 @@ public class TestRCFileInputStorageDriver extends TestCase{
     fields.add(new FieldSchema("anullint", "int", ""));
     fields.add(new FieldSchema("anullstring", "string", ""));
 
-    Map<String,String> props = new HashMap<String, String>();
-    props.put(Constants.SERIALIZATION_NULL_FORMAT, "NULL");
-    props.put(Constants.SERIALIZATION_FORMAT, "9");
-    return new Schema(fields,props);
+   
+    return new HowlSchema(HowlUtil.getHowlFieldSchemaList(fields));
   }
 
-  private Schema buildPrunedSchema(){
+  private HowlSchema buildPrunedSchema(){
 
     List<FieldSchema> fields = new ArrayList<FieldSchema>(5);
     fields.add(new FieldSchema("atinyint", "tinyint", ""));
@@ -244,7 +241,7 @@ public class TestRCFileInputStorageDriver extends TestCase{
     fields.add(new FieldSchema("anullint", "int", ""));
 
 
-    return new Schema(fields,null);
+    return new HowlSchema(HowlUtil.getHowlFieldSchemaList(fields));
   }
 
   private Properties getProps(){

@@ -20,7 +20,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.Serializable;
 
-import org.apache.hadoop.hive.metastore.api.Schema;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 
 /** The class used to serialize and store the output related information  */
 class OutputJobInfo implements Serializable {
@@ -32,10 +32,10 @@ class OutputJobInfo implements Serializable {
     private HowlTableInfo tableInfo;
 
     /** The output schema. */
-    private Schema outputSchema;
+    private HowlSchema outputSchema;
 
     /** The table level schema. */
-    private Schema tableSchema;
+    private HowlSchema tableSchema;
 
     /** The storer info */
     private StorerInfo storerInfo;
@@ -43,7 +43,7 @@ class OutputJobInfo implements Serializable {
     /** The location of the partition being written */
     private String location;
 
-    public OutputJobInfo(HowlTableInfo tableInfo, Schema outputSchema, Schema tableSchema,
+    public OutputJobInfo(HowlTableInfo tableInfo, HowlSchema outputSchema, HowlSchema tableSchema,
         StorerInfo storerInfo, String location) {
       super();
       this.tableInfo = tableInfo;
@@ -70,28 +70,28 @@ class OutputJobInfo implements Serializable {
     /**
      * @return the outputSchema
      */
-    public Schema getOutputSchema() {
+    public HowlSchema getOutputSchema() {
       return outputSchema;
     }
 
     /**
-     * @param outputSchema the outputSchema to set
+     * @param schema the outputSchema to set
      */
-    public void setOutputSchema(Schema outputSchema) {
-      this.outputSchema = outputSchema;
+    public void setOutputSchema(HowlSchema schema) {
+      this.outputSchema = schema;
     }
 
     /**
      * @return the tableSchema
      */
-    public Schema getTableSchema() {
+    public HowlSchema getTableSchema() {
       return tableSchema;
     }
 
     /**
      * @param tableSchema the tableSchema to set
      */
-    public void setTableSchema(Schema tableSchema) {
+    public void setTableSchema(HowlSchema tableSchema) {
       this.tableSchema = tableSchema;
     }
 
