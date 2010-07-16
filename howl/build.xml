@@ -42,10 +42,11 @@ to call at top-level: ant deploy-contrib compile-core-test
   <target name="fatjar" depends="jar">
     <jar jarfile="${howl.jar}" basedir="${build.dir}/classes">
         <zipgroupfileset dir="${build.dir.hive}/ivy/lib/metastore/default" includes="*.jar" excludes="*hadoop*.jar"/>
-        <zipgroupfileset dir="${hive.root}/lib" includes="libfb303.jar,libthrift.jar"/> 
+        <zipgroupfileset dir="${hive.root}/lib" includes="libfb303.jar,libthrift.jar,commons-lang-2.4.jar,derby.jar"/> 
         <zipgroupfileset dir="${build.dir.hive}/metastore" includes="hive-metastore-${version}.jar"/> 
         <zipgroupfileset dir="${build.dir.hive}/ql" includes="hive-exec-${version}.jar"/> 
         <zipgroupfileset dir="${build.dir.hive}/common" includes="hive-common-${version}.jar"/> 
+        <zipgroupfileset dir="${build.dir.hive}/serde" includes="hive-serde-${version}.jar"/> 
     </jar>
   </target>
 </project>
