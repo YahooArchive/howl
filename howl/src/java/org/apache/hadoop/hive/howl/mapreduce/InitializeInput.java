@@ -26,9 +26,9 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.Partition;
-import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.Job;
@@ -90,7 +90,7 @@ public class InitializeInput {
     createHiveMetaClient(job.getConfiguration(),inputInfo);
 
     Table table = client.getTable(inputInfo.getDatabaseName(), inputInfo.getTableName());
-    Schema tableSchema = extractSchemaFromStorageDescriptor(table.getSd());
+    HowlSchema tableSchema = extractSchemaFromStorageDescriptor(table.getSd());
 
     List<Partition> parts = client.listPartitions(inputInfo.getDatabaseName(), inputInfo.getTableName(), MAX_PARTS);
 
@@ -119,7 +119,7 @@ public class InitializeInput {
   }
 
   private static PartInfo extractPartInfo(StorageDescriptor sd, Map<String,String> parameters) throws IOException{
-    Schema schema = extractSchemaFromStorageDescriptor(sd);
+    HowlSchema schema = extractSchemaFromStorageDescriptor(sd);
     String inputStorageDriverClass = null;
     Properties howlProperties = new Properties();
     if (parameters.containsKey(HOWL_ISD_CLASS)){
@@ -135,12 +135,11 @@ public class InitializeInput {
     return new PartInfo(schema,inputStorageDriverClass,  sd.getLocation(), howlProperties);
   }
 
-  static Schema extractSchemaFromStorageDescriptor(StorageDescriptor sd) throws IOException {
+  static HowlSchema extractSchemaFromStorageDescriptor(StorageDescriptor sd) throws IOException {
     if (sd == null){
       throw new IOException("Cannot construct partition info from an empty storage descriptor.");
     }
-    Schema schema = new Schema();
-    schema.setFieldSchemas(sd.getCols());
+    HowlSchema schema = new HowlSchema(HowlUtil.getHowlFieldSchemaList(sd.getCols()));
     return schema;
   }
 

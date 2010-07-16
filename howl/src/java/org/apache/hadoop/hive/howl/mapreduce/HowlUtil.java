@@ -24,7 +24,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.mapreduce.JobContext;
 
 public class HowlUtil {
@@ -84,5 +88,29 @@ public class HowlUtil {
       bytes[i/2] += (c - 'a');
     }
     return bytes;
+  }
+  
+  public static List<HowlFieldSchema> getHowlFieldSchemaList(List<FieldSchema> fields) {
+      if(fields == null) {
+          return null;
+      } else {
+          List<HowlFieldSchema> result = new ArrayList<HowlFieldSchema>();
+          for(FieldSchema f: fields) {
+              result.add(new HowlFieldSchema(f));
+          }
+          return result;
+      }
+  }
+  
+  public static List<FieldSchema> getFieldSchemaList(List<HowlFieldSchema> howlFields) {
+      if(howlFields == null) {
+          return null;
+      } else {
+          List<FieldSchema> result = new ArrayList<FieldSchema>();
+          for(FieldSchema f: howlFields) {
+              result.add(f);
+          }
+          return result;
+      }
   }
 }

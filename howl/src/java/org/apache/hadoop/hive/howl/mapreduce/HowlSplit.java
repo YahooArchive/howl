@@ -22,7 +22,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 
-import org.apache.hadoop.hive.metastore.api.Schema;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -37,7 +37,7 @@ class HowlSplit extends InputSplit implements Writable {
     private InputSplit baseSplit;
 
     /** The schema for the HowlTable */
-    private Schema tableSchema;
+    private HowlSchema tableSchema;
     /**
      * Instantiates a new owl split.
      */
@@ -51,7 +51,7 @@ class HowlSplit extends InputSplit implements Writable {
      * @param baseSplit the base split
      * @param tableSchema the owl table level schema
      */
-    public HowlSplit(PartInfo partitionInfo, InputSplit baseSplit, Schema tableSchema) {
+    public HowlSplit(PartInfo partitionInfo, InputSplit baseSplit, HowlSchema tableSchema) {
         this.partitionInfo = partitionInfo;
         this.baseSplit = baseSplit;
         this.tableSchema = tableSchema;
@@ -77,7 +77,7 @@ class HowlSplit extends InputSplit implements Writable {
      * Sets the table schema.
      * @param tableSchema the new table schema
      */
-    public void setTableSchema(Schema tableSchema) {
+    public void setTableSchema(HowlSchema tableSchema) {
         this.tableSchema = tableSchema;
     }
 
@@ -85,7 +85,7 @@ class HowlSplit extends InputSplit implements Writable {
      * Gets the table schema.
      * @return the table schema
      */
-    public Schema getTableSchema() {
+    public HowlSchema getTableSchema() {
         return tableSchema;
     }
 
@@ -135,7 +135,7 @@ class HowlSplit extends InputSplit implements Writable {
         }
 
         String tableSchemaString = WritableUtils.readString(input);
-        tableSchema = (Schema) HowlUtil.deserialize(tableSchemaString);
+        tableSchema = (HowlSchema) HowlUtil.deserialize(tableSchemaString);
     }
 
     /* (non-Javadoc)

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.howl.data.HowlRecord;
-import org.apache.hadoop.hive.metastore.api.Schema;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -63,7 +63,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @param job the job object
    * @param howlSchema the schema to use as the consolidated schema
    */
-  public static void setOutputSchema(Job job, Schema howlSchema) throws Exception {
+  public static void setOutputSchema(Job job,HowlSchema howlSchema) throws Exception {
     job.getConfiguration().set(HOWL_KEY_OUTPUT_SCHEMA, HowlUtil.serialize(howlSchema));
   }
 
@@ -180,7 +180,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @return the table schema
    * @throws Exception if OwlInputFromat.setInput has not been called for the current context
    */
-  public static Schema getTableSchema(JobContext context) throws Exception {
+  public static HowlSchema getTableSchema(JobContext context) throws Exception {
     JobInfo jobInfo = getJobInfo(context);
     return jobInfo.getTableSchema();
   }
@@ -215,7 +215,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    */
   private void initStorageDriver(HowlInputStorageDriver storageDriver,
       JobContext context, PartInfo partitionInfo,
-      Schema tableSchema) throws IOException {
+      HowlSchema tableSchema) throws IOException {
 
     storageDriver.setInputPath(context, partitionInfo.getLocation());
 
@@ -227,10 +227,10 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
 
     //Set the output schema. Use the schema given by user if set, otherwise use the
     //table level schema
-    Schema outputSchema = null;
+    HowlSchema outputSchema = null;
     String outputSchemaString = context.getConfiguration().get(HOWL_KEY_OUTPUT_SCHEMA);
     if( outputSchemaString != null ) {
-      outputSchema = (Schema) HowlUtil.deserialize(outputSchemaString);
+      outputSchema = (HowlSchema) HowlUtil.deserialize(outputSchemaString);
     } else {
       outputSchema = tableSchema;
     }
