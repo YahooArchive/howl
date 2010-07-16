@@ -19,20 +19,18 @@ package org.apache.hadoop.hive.howl.drivers;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputStorageDriver;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputStorageDriver;
+import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.Schema;
-import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.columnar.BytesRefArrayWritable;
 import org.apache.hadoop.hive.serde2.columnar.BytesRefWritable;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -44,7 +42,7 @@ public class TestRCFileOutputStorageDriver extends TestCase {
     Configuration conf = new Configuration();
     JobContext jc = new JobContext(conf, new JobID());
 
-    Schema schema = buildHiveSchema();
+    HowlSchema schema = buildHiveSchema();
     HowlInputStorageDriver isd = new RCFileInputStorageDriver();
 
     isd.setOriginalSchema(jc, schema);
@@ -81,7 +79,7 @@ public class TestRCFileOutputStorageDriver extends TestCase {
     return bytes;
   }
 
-  private Schema buildHiveSchema(){
+  private HowlSchema buildHiveSchema(){
 
     List<FieldSchema> fields = new ArrayList<FieldSchema>(8);
     fields.add(new FieldSchema("atinyint", "tinyint", ""));
@@ -91,14 +89,6 @@ public class TestRCFileOutputStorageDriver extends TestCase {
     fields.add(new FieldSchema("adouble", "double", ""));
     fields.add(new FieldSchema("astring", "string", ""));
 
-    //TODO : check null value handling
-    /*
-    fields.add(new FieldSchema("anullint", "int", ""));
-    fields.add(new FieldSchema("anullstring", "string", ""));
-    */
-    Map<String,String> props = new HashMap<String, String>();
-    props.put(Constants.SERIALIZATION_NULL_FORMAT, "NULL");
-    props.put(Constants.SERIALIZATION_FORMAT, "9");
-    return new Schema(fields,props);
+    return new HowlSchema(HowlUtil.getHowlFieldSchemaList(fields));
   }
 }

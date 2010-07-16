@@ -21,7 +21,7 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.hadoop.hive.metastore.api.Schema;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 
 /** The Class used to serialize the partition information read from the metadata server that maps to a partition */
 public class PartInfo implements Serializable {
@@ -30,7 +30,7 @@ public class PartInfo implements Serializable {
   private static final long serialVersionUID = 1L;
 
   /** The partition schema. */
-  private final Schema partitionSchema;
+  private final HowlSchema partitionSchema;
 
   /** The information about which input storage driver to use */
   private final String inputStorageDriverClass;
@@ -51,7 +51,7 @@ public class PartInfo implements Serializable {
    * @param location the location
    * @param howlProperties howl-specific properties at the partition
    */
-  public PartInfo(Schema partitionSchema, String inputStorageDriverClass, String location, Properties howlProperties){
+  public PartInfo(HowlSchema partitionSchema, String inputStorageDriverClass, String location, Properties howlProperties){
     this.partitionSchema = partitionSchema;
     this.inputStorageDriverClass = inputStorageDriverClass;
     this.location = location;
@@ -62,7 +62,7 @@ public class PartInfo implements Serializable {
    * Gets the value of partitionSchema.
    * @return the partitionSchema
    */
-  public Schema getPartitionSchema() {
+  public HowlSchema getPartitionSchema() {
     return partitionSchema;
   }
 
