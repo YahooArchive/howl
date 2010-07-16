@@ -125,6 +125,8 @@ import org.apache.hadoop.mapreduce.OutputFormat;
   @Override
   public void setSchema(JobContext jobContext, Schema schema) throws IOException {
     outputSchema = schema;
+    RCFileMapReduceOutputFormat.setColumnNumber(
+        jobContext.getConfiguration(), schema.getFieldSchemasSize());
   }
 
   @Override
