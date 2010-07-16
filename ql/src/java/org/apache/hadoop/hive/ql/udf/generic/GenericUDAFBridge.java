@@ -38,7 +38,7 @@ import org.apache.hadoop.util.ReflectionUtils;
  * This class is a bridge between GenericUDAF and UDAF. Old UDAF can be used
  * with the GenericUDAF infrastructure through this bridge.
  */
-public class GenericUDAFBridge implements GenericUDAFResolver {
+public class GenericUDAFBridge extends AbstractGenericUDAFResolver {
 
   UDAF udaf;
 
@@ -104,6 +104,7 @@ public class GenericUDAFBridge implements GenericUDAFResolver {
 
       // Get the reflection methods from ue
       for (Method method : udafEvaluator.getMethods()) {
+        method.setAccessible(true);
         if (method.getName().equals("iterate")) {
           iterateMethod = method;
         }
