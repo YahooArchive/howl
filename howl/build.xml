@@ -29,11 +29,16 @@ to call at top-level: ant deploy-contrib compile-core-test
   <property name="howl.jar" value="${ant.project.name}-${howl.version}.jar"/>
   <import file="../build-common.xml"/>
 
-  <!--
-  <target name="test">
-    <echo message="Nothing to do!"/>
-  </target>
-  -->
+  <path id="test.classpath">
+    <pathelement location="${test.build.classes}" />
+    <pathelement location="" />
+    <pathelement location="${test.data.dir}/conf"/>
+    <pathelement location="${hive.conf.dir}"/>
+    <pathelement location="${common.jar}"/>
+    <fileset dir="${hive.root}" includes="testlibs/*.jar"/>
+    <path refid="classpath"/>
+  </path>
+
   <target name="fatjar" depends="jar">
     <jar jarfile="${howl.jar}" basedir="${build.dir}/classes">
         <zipgroupfileset dir="${build.dir.hive}/ivy/lib/metastore/default" includes="*.jar" excludes="*hadoop*.jar"/>

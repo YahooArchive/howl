@@ -28,7 +28,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskInputOutputContext;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
 
@@ -45,8 +45,10 @@ public class RCFileMapReduceOutputFormat extends
   public org.apache.hadoop.mapreduce.RecordWriter<WritableComparable<?>, BytesRefArrayWritable> getRecordWriter(
       TaskAttemptContext task) throws IOException, InterruptedException {
 
-    //TODO: check is cast to TaskInputOutputContext applies always
-    Path outputPath = getWorkOutputPath((TaskInputOutputContext<?, ?, ?, ?>) task);
+    //FileOutputFormat.getWorkOutputPath takes TaskInputOutputContext instead of
+    //TaskAttemptContext, so can't use that here
+    FileOutputCommitter committer = (FileOutputCommitter) getOutputCommitter(task);
+    Path outputPath = committer.getWorkPath();
 
     FileSystem fs = outputPath.getFileSystem(task.getConfiguration());
     if (!fs.exists(outputPath)) {
