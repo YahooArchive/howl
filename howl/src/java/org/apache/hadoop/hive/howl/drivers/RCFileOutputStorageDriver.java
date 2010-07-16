@@ -175,7 +175,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
     case PRIMITIVE :
       PrimitiveTypeInfo primitiveType = (PrimitiveTypeInfo) type;
       return PrimitiveObjectInspectorFactory.
-      getPrimitiveJavaObjectInspector(primitiveType.getPrimitiveCategory());
+        getPrimitiveJavaObjectInspector(primitiveType.getPrimitiveCategory());
 
     case MAP :
       MapTypeInfo mapType = (MapTypeInfo) type;
