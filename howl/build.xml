@@ -40,6 +40,7 @@ to call at top-level: ant deploy-contrib compile-core-test
         <zipgroupfileset dir="${hive.root}/lib" includes="libfb303.jar,libthrift.jar"/> 
         <zipgroupfileset dir="${build.dir.hive}/metastore" includes="hive-metastore-${version}.jar"/> 
         <zipgroupfileset dir="${build.dir.hive}/ql" includes="hive-exec-${version}.jar"/> 
+        <zipgroupfileset dir="${build.dir.hive}/common" includes="hive-common-${version}.jar"/> 
     </jar>
   </target>
 </project>
