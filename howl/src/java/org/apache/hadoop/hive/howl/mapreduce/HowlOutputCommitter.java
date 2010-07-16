@@ -34,7 +34,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 class HowlOutputCommitter extends OutputCommitter {
 
     /** The underlying output committer */
-    OutputCommitter baseCommitter;
+    private final OutputCommitter baseCommitter;
 
     HowlOutputCommitter(OutputCommitter baseCommitter) {
         this.baseCommitter = baseCommitter;
@@ -57,7 +57,7 @@ class HowlOutputCommitter extends OutputCommitter {
 
     @Override
     public void setupJob(JobContext context) throws IOException {
-        baseCommitter.setupJob(context);
+      baseCommitter.setupJob(context);
     }
 
     @Override

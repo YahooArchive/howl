@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.io;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.io.RCFile;
@@ -38,6 +39,19 @@ import org.apache.hadoop.util.ReflectionUtils;
 public class RCFileMapReduceOutputFormat extends
     FileOutputFormat<WritableComparable<?>, BytesRefArrayWritable> {
 
+  /**
+   * Set number of columns into the given configuration.
+   * @param conf
+   *          configuration instance which need to set the column number
+   * @param columnNum
+   *          column number for RCFile's Writer
+   *
+   */
+  public static void setColumnNumber(Configuration conf, int columnNum) {
+    assert columnNum > 0;
+    conf.setInt(RCFile.COLUMN_NUMBER_CONF_STR, columnNum);
+  }
+
   /* (non-Javadoc)
    * @see org.apache.hadoop.mapreduce.lib.output.FileOutputFormat#getRecordWriter(org.apache.hadoop.mapreduce.TaskAttemptContext)
    */
@@ -51,9 +65,11 @@ public class RCFileMapReduceOutputFormat extends
     Path outputPath = committer.getWorkPath();
 
     FileSystem fs = outputPath.getFileSystem(task.getConfiguration());
+    /*
     if (!fs.exists(outputPath)) {
       fs.mkdirs(outputPath);
     }
+    */
 
     CompressionCodec codec = null;
     if (getCompressOutput(task)) {
