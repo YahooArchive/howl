@@ -106,6 +106,10 @@ public abstract class HowlOutputStorageDriver {
     public String getPartitionLocation(JobContext jobContext,
             String tableLocation, List<String> partitionCols, Map<String, String> partitionValues) throws IOException {
 
+      if( partitionValues == null || partitionValues.size() == 0 ) {
+        return tableLocation + "/data";
+      }
+
       List<String> values = new ArrayList<String>();
       for(String partitionCol : partitionCols) {
         values.add(partitionValues.get(partitionCol));

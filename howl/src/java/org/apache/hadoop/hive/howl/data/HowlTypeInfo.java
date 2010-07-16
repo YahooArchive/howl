@@ -148,4 +148,22 @@ public class HowlTypeInfo extends TypeInfo {
     return baseTypeInfo.getTypeName();
   }
 
+  @Override
+  public int hashCode(){
+    return baseTypeInfo.hashCode();
+    // true, we have other fields here, but all other fields base themselves off parsing
+    // the base TypeInfo. Also, for equal HowlTypeInfos, the hashCode() must be the same
+  }
+
+  @Override
+  public boolean equals(Object other){
+    if (other == null){
+      return false;
+      // no need to check if we're null too, because we disallow empty ctor,
+      // and baseTypeInfo *will* be set on instantiations. if baseTypeInfo is
+      // not set because of some future modification without this being changed,
+      // it's good to throw that exception
+    }
+    return baseTypeInfo.equals(((HowlTypeInfo)other).getBaseTypeInfo());
+  }
 }
