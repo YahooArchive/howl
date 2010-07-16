@@ -20,7 +20,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.Serializable;
 import java.util.List;
 
-import org.apache.hadoop.hive.metastore.api.Schema;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 
 /** The class used to serialize and store the information read from the metadata server */
 public class JobInfo implements Serializable{
@@ -33,7 +33,7 @@ public class JobInfo implements Serializable{
     private final String tableName;
 
     /** The table schema. */
-    private final Schema tableSchema;
+    private final HowlSchema tableSchema;
 
     /** The list of partitions matching the filter. */
     private final List<PartInfo> partitions;
@@ -44,7 +44,7 @@ public class JobInfo implements Serializable{
      * @param tableSchema the table schema
      * @param partitions the partitions
      */
-    public JobInfo(HowlTableInfo howlTableInfo, Schema tableSchema,
+    public JobInfo(HowlTableInfo howlTableInfo, HowlSchema tableSchema,
             List<PartInfo> partitions) {
         this.tableName = howlTableInfo.getTableName();
         this.dbName = howlTableInfo.getDatabaseName();
@@ -72,7 +72,7 @@ public class JobInfo implements Serializable{
      * Gets the value of tableSchema
      * @return the tableSchema
      */
-    public Schema getTableSchema() {
+    public HowlSchema getTableSchema() {
         return tableSchema;
     }
 

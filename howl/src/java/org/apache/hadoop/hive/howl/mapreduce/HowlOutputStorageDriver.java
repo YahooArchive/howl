@@ -25,7 +25,7 @@ import java.util.Properties;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
-import org.apache.hadoop.hive.metastore.api.Schema;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -67,7 +67,7 @@ public abstract class HowlOutputStorageDriver {
      * @param schema the data schema
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    public abstract void setSchema(JobContext jobContext, Schema schema) throws IOException;
+    public abstract void setSchema(JobContext jobContext, HowlSchema schema) throws IOException;
 
     /**
      * Sets the partition key values for the partition being written.
