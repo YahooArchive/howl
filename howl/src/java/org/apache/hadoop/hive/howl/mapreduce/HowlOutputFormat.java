@@ -27,10 +27,10 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
-import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -66,7 +66,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         client = createHiveClient(outputInfo.getServerUri(), job.getConfiguration());
         Table table = client.getTable(outputInfo.getDatabaseName(), outputInfo.getTableName());
 
-        Schema tableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
+        HowlSchema tableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
         StorerInfo storerInfo = InitializeInput.extractStorerInfo(table.getParameters());
 
         List<String> partitionCols = new ArrayList<String>();
@@ -100,7 +100,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      * @param job the job object
      * @param schema the schema for the data
      */
-    public static void setSchema(Job job, Schema schema) throws IOException {
+    public static void setSchema(Job job, HowlSchema schema) throws IOException {
         OutputJobInfo jobInfo = getJobInfo(job);
         jobInfo.setOutputSchema(schema);
         job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
@@ -113,7 +113,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      * @return the table schema
      * @throws IOlException if HowlOutputFromat.setOutput has not been called for the passed context
      */
-    public static Schema getTableSchema(JobContext context) throws IOException {
+    public static HowlSchema getTableSchema(JobContext context) throws IOException {
         OutputJobInfo jobInfo = getJobInfo(context);
         return jobInfo.getTableSchema();
     }

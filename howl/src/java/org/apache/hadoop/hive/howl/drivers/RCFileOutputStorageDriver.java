@@ -24,11 +24,12 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.hive.howl.data.HowlRecord;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputStorageDriver;
+import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
 import org.apache.hadoop.hive.io.RCFileMapReduceOutputFormat;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -62,7 +63,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
    private StructObjectInspector objectInspector;
 
    /** The schema for the output data */
-   private Schema outputSchema;
+   private HowlSchema outputSchema;
 
   /* (non-Javadoc)
    * @see org.apache.hadoop.hive.howl.mapreduce.HowlOutputStorageDriver#convertValue(org.apache.hadoop.hive.howl.data.HowlRecord)
@@ -123,7 +124,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
    * @see org.apache.hadoop.hive.howl.mapreduce.HowlOutputStorageDriver#setSchema(org.apache.hadoop.mapreduce.JobContext, org.apache.hadoop.hive.metastore.api.Schema)
    */
   @Override
-  public void setSchema(JobContext jobContext, Schema schema) throws IOException {
+  public void setSchema(JobContext jobContext, HowlSchema schema) throws IOException {
     outputSchema = schema;
     RCFileMapReduceOutputFormat.setColumnNumber(
         jobContext.getConfiguration(), schema.getFieldSchemasSize());
@@ -133,11 +134,11 @@ import org.apache.hadoop.mapreduce.OutputFormat;
   public void initialize(JobContext context,Properties howlProperties) throws IOException {
 
     super.initialize(context, howlProperties);
-
+    List<FieldSchema> fields = HowlUtil.getFieldSchemaList(outputSchema.getHowlFieldSchemas());
     howlProperties.setProperty(Constants.LIST_COLUMNS,
-          MetaStoreUtils.getColumnNamesFromFieldSchema(outputSchema.getFieldSchemas()));
+          MetaStoreUtils.getColumnNamesFromFieldSchema(fields));
     howlProperties.setProperty(Constants.LIST_COLUMN_TYPES,
-          MetaStoreUtils.getColumnTypesFromFieldSchema(outputSchema.getFieldSchemas()));
+          MetaStoreUtils.getColumnTypesFromFieldSchema(fields));
 
     try {
       serde = new ColumnarSerDe();
@@ -158,7 +159,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
     List<ObjectInspector> fieldInspectors = new ArrayList<ObjectInspector>();
     List<String> fieldNames = new ArrayList<String>();
 
-    for(FieldSchema fieldSchema : outputSchema.getFieldSchemas()) {
+    for(FieldSchema fieldSchema : outputSchema.getHowlFieldSchemas()) {
       TypeInfo type = TypeInfoUtils.getTypeInfoFromTypeString(fieldSchema.getType());
 
       fieldNames.add(fieldSchema.getName());

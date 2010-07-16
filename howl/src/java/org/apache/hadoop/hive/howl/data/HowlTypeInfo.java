@@ -17,25 +17,25 @@
  */
 package org.apache.hadoop.hive.howl.data;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.typeinfo.ListTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.MapTypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
-public class HowlTypeInfo extends TypeInfo {
+public class HowlTypeInfo {
 
-  TypeInfo baseTypeInfo = null;
+  HowlType type;
+  
+  private TypeInfo baseTypeInfo = null;
 
   // populated if the base type is a struct
-  List<HowlTypeInfo> listFields = null;
+  List<HowlTypeInfo> structFields = null;
 
   // populated if base type is a list
   HowlTypeInfo listType = null;
@@ -47,22 +47,6 @@ public class HowlTypeInfo extends TypeInfo {
   @SuppressWarnings("unused")
   private HowlTypeInfo(){
     // preventing empty ctor from being callable
-  }
-
-  /**
-   * Instantiates a HowlTypeInfo from a Schema object.
-   * @param schema The base Schema
-   */
-  public HowlTypeInfo(Schema schema){
-    List<FieldSchema> fields = schema.getFieldSchemas();
-    List<String> names = new ArrayList<String>();
-    List<TypeInfo> typeInfos = new ArrayList<TypeInfo>();
-    for (FieldSchema f : fields){
-      names.add(f.getName());
-      typeInfos.add(TypeInfoUtils.getTypeInfoFromTypeString(f.getType()));
-    }
-    this.baseTypeInfo = TypeInfoFactory.getStructTypeInfo(names, typeInfos);
-    deepTraverseAndSetup();
   }
 
   /**
@@ -85,7 +69,7 @@ public class HowlTypeInfo extends TypeInfo {
    * Instantiating a HowlTypeInfo overlaying a underlying TypeInfo
    * @param typeInfo the base TypeInfo
    */
-  public HowlTypeInfo(TypeInfo typeInfo){
+  private HowlTypeInfo(TypeInfo typeInfo){
     this.baseTypeInfo = typeInfo;
     deepTraverseAndSetup();
   }
@@ -98,8 +82,38 @@ public class HowlTypeInfo extends TypeInfo {
       listType = new HowlTypeInfo(((ListTypeInfo)baseTypeInfo).getListElementTypeInfo());
     }else if (baseTypeInfo.getCategory() == Category.STRUCT){
       for(TypeInfo ti : ((StructTypeInfo)baseTypeInfo).getAllStructFieldTypeInfos()){
-        listFields.add(new HowlTypeInfo(ti));
+        structFields.add(new HowlTypeInfo(ti));
       }
+    } else if(baseTypeInfo.getCategory() == Category.PRIMITIVE) {
+        switch(((PrimitiveTypeInfo)baseTypeInfo).getPrimitiveCategory()) {
+        case BOOLEAN:
+            type = HowlType.BOOLEAN;
+            break;
+        case BYTE:
+            type = HowlType.TINYINT;
+            break;
+        case DOUBLE:
+            type = HowlType.DOUBLE;
+            break;
+        case FLOAT:
+            type = HowlType.FLOAT;
+            break;
+        case INT:
+            type = HowlType.INT;
+            break;
+        case LONG:
+            type = HowlType.BIGINT;
+            break;
+        case SHORT:
+            type = HowlType.SMALLINT;
+            break;
+        case STRING:
+            type = HowlType.STRING;
+            break;
+        default:
+            throw new 
+            TypeNotPresentException(((PrimitiveTypeInfo)baseTypeInfo).getTypeName(), null);        
+        }
     }
   }
 
@@ -131,23 +145,10 @@ public class HowlTypeInfo extends TypeInfo {
    * Get the underlying struct element types (if the underlying TypeInfo is a struct type)
    */
   public List<HowlTypeInfo> getAllStructFieldTypeInfos(){
-    return listFields;
+    return structFields;
   }
 
-  public TypeInfo getBaseTypeInfo(){
-    return baseTypeInfo;
-  }
-
-  @Override
-  public Category getCategory() {
-    return baseTypeInfo.getCategory();
-  }
-
-  @Override
-  public String getTypeName() {
-    return baseTypeInfo.getTypeName();
-  }
-
+ 
   @Override
   public int hashCode(){
     return baseTypeInfo.hashCode();
@@ -164,6 +165,13 @@ public class HowlTypeInfo extends TypeInfo {
       // not set because of some future modification without this being changed,
       // it's good to throw that exception
     }
-    return baseTypeInfo.equals(((HowlTypeInfo)other).getBaseTypeInfo());
+    return baseTypeInfo.equals(((HowlTypeInfo)other).baseTypeInfo);
+  }
+
+  /**
+   * @return the type
+   */
+  public HowlType getType() {
+    return type;
   }
 }

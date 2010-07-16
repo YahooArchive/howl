@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.hive.howl.data.HowlRecord;
-import org.apache.hadoop.hive.metastore.api.Schema;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -70,7 +70,7 @@ public abstract class HowlInputStorageDriver {
    * @param instantiationState
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setOriginalSchema(JobContext jobContext, Schema howlSchema) throws IOException;
+  public abstract void setOriginalSchema(JobContext jobContext, HowlSchema howlSchema) throws IOException;
 
   /**
    * Set the consolidated schema for the HowlRecord data returned by the storage driver. All tuples returned by the RecordReader should
@@ -81,7 +81,7 @@ public abstract class HowlInputStorageDriver {
    *               HowlInputStorageDriver  always returns false.
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  public abstract void setOutputSchema(JobContext jobContext, Schema howlSchema) throws IOException;
+  public abstract void setOutputSchema(JobContext jobContext, HowlSchema howlSchema) throws IOException;
 
   /**
    * Sets the partition key values for the current partition. The storage driver is passed this so that the storage
