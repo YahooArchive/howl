@@ -89,6 +89,7 @@ not
 or
 parse_url
 percentile
+percentile_approx
 pi
 pmod
 positive
@@ -106,6 +107,7 @@ round
 rpad
 rtrim
 second
+sentences
 sign
 sin
 size

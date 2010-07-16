@@ -8,6 +8,14 @@ Trunk -  Unreleased
 
     HIVE-1304. Add function row_sequence in contrib (John Sichi via namit)
 
+    HIVE-1405. Add ability to run an initialization script by 'hive -i <fileName>' (John Sichi via namit)
+
+    HIVE-1387. Add PERCENTILE_APPROX which works with double data type
+    (Mayank Lahiri via jvs)
+
+    HIVE-1438. SENTENCES() UDF for natural language tokenization
+    (Mayank Lahiri via jvs)
+
   IMPROVEMENTS
 
     HIVE-1394. Do not update transient_lastDdlTime if the partition is modified by a housekeeping
@@ -15,9 +23,40 @@ Trunk -  Unreleased
 
     HIVE-1430. Dont run serialize plan by default (Ning Zhang via namit)
 
+    HIVE-1443. Add an API to turn off bucketing (Paul Yang via namit)
+
+    HIVE-1447. Speed up reflection method calls (Zheng via He Yongqiang)
+
+    HIVE-1462. Report progress in FileSinkOperator works in multiple directory
+    case
+    (Siying Dong via Ning Zhang)
+
   OPTIMIZATIONS
 
   BUG FIXES
+
+    HIVE-1440. Bug in RCFiles with local work (map-join or sort-merge join)
+    (He Yongqiang via namit)
+
+    HIVE-1454. insert overwrite and CTAS fail in hive local mode
+    (Joydeep Sen Sarma via He Yongqiang )
+
+    HIVE-1305. add progress in join and groupby
+    (Siying Dong via He Yongqiang)
+
+    HIVE-1453. Make Eclipse launch tempaltes auto-adjust to Hive
+    version number changes.
+    (Arvind Prabhakar via jvs)
+
+    HIVE-1056. Predicate push down does not work with UDTF's
+    (Paul Yang via He Yongqiang)
+
+    HIVE-1428. ALTER TABLE ADD PARTITION failes with a remote Thrift
+    metastore
+    (Pradeep Kamath via jvs)
+
+    HIVE-1385. UDF field() doesn't work
+    (Siying Dong via He Yongqiang)
 
 Release 0.6.0 -  Unreleased
 
@@ -117,6 +156,9 @@ Release 0.6.0 -  Unreleased
 
     HIVE-1255. Add mathematical UDFs PI, E, degrees, radians, tan,
     sign, and atan.  (Edward Capriolo via jvs)
+
+    HIVE-287. Support count(*) and count distinct on multiple columns
+    (Arvind Prabhakar via jvs)
 
   IMPROVEMENTS
     HIVE-983. Function from_unixtime takes long.
@@ -248,6 +290,9 @@ Release 0.6.0 -  Unreleased
 
     HIVE-1359. Unit test should be shim-aware
     (Ning Zhang via jvs)
+
+    HIVE-1135. Use Anakia for version controlled documentation
+    (Edward Capriolo via jvs)
 
   OPTIMIZATIONS
 
@@ -568,6 +613,9 @@ Release 0.6.0 -  Unreleased
     HIVE-1176. 'create if not exists' fails for a table name with
     'select' in it.
     (Arvind Prabhakar via jvs)
+
+    HIVE-1435. Upgraded naming scheme causes JDO exceptions
+    (Paul Yang via jvs)
 
 Release 0.5.0 -  Unreleased
 

@@ -27,6 +27,7 @@ TOK_ALLCOLREF;
 TOK_TABLE_OR_COL;
 TOK_FUNCTION;
 TOK_FUNCTIONDI;
+TOK_FUNCTIONSTAR;
 TOK_WHERE;
 TOK_OP_EQ;
 TOK_OP_NE;
@@ -403,6 +404,9 @@ alterStatementSuffixClusterbySortby
 @after{msgs.pop();}
 	:name=Identifier tableBuckets
 	->^(TOK_ALTERTABLE_CLUSTER_SORT $name tableBuckets)
+	| 
+	name=Identifier KW_NOT KW_CLUSTERED
+	->^(TOK_ALTERTABLE_CLUSTER_SORT $name)
 	;
 
 fileFormat
@@ -1182,10 +1186,13 @@ function
     :
     functionName
     LPAREN
-      (dist=KW_DISTINCT)?
-      (expression (COMMA expression)*)?
-    RPAREN -> {$dist == null}? ^(TOK_FUNCTION functionName (expression+)?)
-                          -> ^(TOK_FUNCTIONDI functionName (expression+)?)
+      (
+        (star=STAR)
+        | (dist=KW_DISTINCT)? (expression (COMMA expression)*)?
+      )
+    RPAREN -> {$star != null}? ^(TOK_FUNCTIONSTAR functionName)
+           -> {$dist == null}? ^(TOK_FUNCTION functionName (expression+)?)
+                            -> ^(TOK_FUNCTIONDI functionName (expression+)?)
     ;
 
 functionName
