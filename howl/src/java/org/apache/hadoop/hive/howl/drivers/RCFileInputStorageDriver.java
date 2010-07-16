@@ -18,12 +18,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
+import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputStorageDriver;
+import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
 import org.apache.hadoop.hive.io.RCFileMapReduceInputFormat;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.SerDe;
@@ -49,7 +51,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
 
   private SerDe serde;
   private static final Log LOG = LogFactory.getLog(RCFileInputStorageDriver.class);
-  private List<FieldSchema> fSchemasOfAll;
+  private List<HowlFieldSchema> fSchemasOfAll;
   private StructObjectInspector oi;
   private Set<Integer> prjColumnPos;
 
@@ -117,15 +119,15 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   }
 
   @Override
-  public void setOriginalSchema(JobContext jobContext, Schema hiveSchema) throws IOException {
+  public void setOriginalSchema(JobContext jobContext, HowlSchema hiveSchema) throws IOException {
 
-    fSchemasOfAll = hiveSchema.getFieldSchemas();
+    fSchemasOfAll = hiveSchema.getHowlFieldSchemas();
   }
 
   @Override
-  public void setOutputSchema(JobContext jobContext, Schema hiveSchema) throws IOException {
+  public void setOutputSchema(JobContext jobContext, HowlSchema hiveSchema) throws IOException {
 
-    List<FieldSchema> fSchemasOfPrj = hiveSchema.getFieldSchemas();
+    List<HowlFieldSchema> fSchemasOfPrj = hiveSchema.getHowlFieldSchemas();
     Set<String> prjColNames = new HashSet<String>(fSchemasOfPrj.size());
 
     for(FieldSchema fs : fSchemasOfPrj){
@@ -226,9 +228,11 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   throws IOException {
 
     super.initialize(context, howlProperties);
-
-    howlProperties.setProperty(Constants.LIST_COLUMNS,MetaStoreUtils.getColumnNamesFromFieldSchema(fSchemasOfAll));
-    howlProperties.setProperty(Constants.LIST_COLUMN_TYPES, MetaStoreUtils.getColumnTypesFromFieldSchema(fSchemasOfAll));
+    List<FieldSchema> fields = HowlUtil.getFieldSchemaList(fSchemasOfAll);
+    howlProperties.setProperty(Constants.LIST_COLUMNS,MetaStoreUtils.
+            getColumnNamesFromFieldSchema(fields));
+    howlProperties.setProperty(Constants.LIST_COLUMN_TYPES, MetaStoreUtils.
+            getColumnTypesFromFieldSchema(fields));
 
     try {
       serde = new ColumnarSerDe();
