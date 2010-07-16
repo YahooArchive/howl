@@ -64,7 +64,7 @@ public class InitializeInput {
       hiveConf.set("hive.metastore.uris", inputInfo.getServerUri());
       hiveConf.setInt("hive.metastore.connect.retries", 1);
     }
-    
+
 //    hiveConf.set("hive.metastore.warehouse.dir", conf.get("hive.metastore.warehouse.dir","/tmp/"));
 //    hiveConf.setBoolean("hive.metastore.local", conf.getBoolean("hive.metastore.local",true));
 
