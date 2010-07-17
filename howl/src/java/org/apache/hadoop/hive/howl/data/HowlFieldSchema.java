@@ -24,12 +24,12 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
  */
 public class HowlFieldSchema extends FieldSchema {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
-    private HowlTypeInfo howlTypeInfo;
-    
-    
+    private final HowlTypeInfo howlTypeInfo;
+
+
     /**
      * @param other
      */
