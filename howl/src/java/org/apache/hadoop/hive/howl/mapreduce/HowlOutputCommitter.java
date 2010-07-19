@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -93,6 +94,13 @@ class HowlOutputCommitter extends OutputCommitter {
         partition.setTableName(tableInfo.getTableName());
         partition.setSd(table.getSd());
         partition.getSd().setLocation(jobInfo.getLocation());
+
+        List<FieldSchema> fields = new ArrayList<FieldSchema>();
+        for(HowlFieldSchema fieldSchema : jobInfo.getOutputSchema().getHowlFieldSchemas()) {
+          fields.add(fieldSchema);
+        }
+
+        partition.getSd().setCols(fields);
 
         List<String> values = new ArrayList<String>();
         for(FieldSchema schema : table.getPartitionKeys()) {

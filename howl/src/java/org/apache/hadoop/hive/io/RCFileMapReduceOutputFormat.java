@@ -65,11 +65,12 @@ public class RCFileMapReduceOutputFormat extends
     Path outputPath = committer.getWorkPath();
 
     FileSystem fs = outputPath.getFileSystem(task.getConfiguration());
-    /*
+
     if (!fs.exists(outputPath)) {
       fs.mkdirs(outputPath);
     }
-    */
+
+    Path file = getDefaultWorkFile(task, "");
 
     CompressionCodec codec = null;
     if (getCompressOutput(task)) {
@@ -77,7 +78,7 @@ public class RCFileMapReduceOutputFormat extends
       codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, task.getConfiguration());
     }
 
-    final RCFile.Writer out = new RCFile.Writer(fs, task.getConfiguration(), outputPath, task, codec);
+    final RCFile.Writer out = new RCFile.Writer(fs, task.getConfiguration(), file, task, codec);
 
     return new RecordWriter<WritableComparable<?>, BytesRefArrayWritable>() {
 
