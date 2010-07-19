@@ -127,7 +127,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
   public void setSchema(JobContext jobContext, HowlSchema schema) throws IOException {
     outputSchema = schema;
     RCFileMapReduceOutputFormat.setColumnNumber(
-        jobContext.getConfiguration(), schema.getFieldSchemasSize());
+        jobContext.getConfiguration(), schema.getHowlFieldSchemas().size());
   }
 
   @Override
