@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hive.howl.data;
 
+import java.io.Serializable;
 import java.util.List;
 
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -28,10 +29,12 @@ import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
-public class HowlTypeInfo {
+public class HowlTypeInfo implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   HowlType type;
-  
+
   private TypeInfo baseTypeInfo = null;
 
   // populated if the base type is a struct
@@ -111,8 +114,8 @@ public class HowlTypeInfo {
             type = HowlType.STRING;
             break;
         default:
-            throw new 
-            TypeNotPresentException(((PrimitiveTypeInfo)baseTypeInfo).getTypeName(), null);        
+            throw new
+            TypeNotPresentException(((PrimitiveTypeInfo)baseTypeInfo).getTypeName(), null);
         }
     }
   }
@@ -148,7 +151,7 @@ public class HowlTypeInfo {
     return structFields;
   }
 
- 
+
   @Override
   public int hashCode(){
     return baseTypeInfo.hashCode();
