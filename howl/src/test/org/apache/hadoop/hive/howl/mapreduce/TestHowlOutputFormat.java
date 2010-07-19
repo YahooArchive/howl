@@ -124,7 +124,7 @@ public class TestHowlOutputFormat extends TestCase {
     Map<String, String> partitionValues = new HashMap<String, String>();
     partitionValues.put("colname", "p1");
     //null server url means local mode
-    HowlTableInfo info = new HowlTableInfo(null, dbName, tblName, partitionValues);
+    HowlTableInfo info = HowlTableInfo.getOutputTableInfo(null, dbName, tblName, partitionValues);
 
     HowlOutputFormat.setOutput(job, info);
     OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(job);
