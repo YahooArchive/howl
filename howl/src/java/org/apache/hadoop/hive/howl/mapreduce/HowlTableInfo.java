@@ -23,6 +23,9 @@ import java.util.Map;
 
 public class HowlTableInfo implements Serializable {
 
+
+  private static final long serialVersionUID = 1L;
+
   public enum TableInfoType {
     INPUT_INFO,
     OUTPUT_INFO
@@ -47,57 +50,45 @@ public class HowlTableInfo implements Serializable {
   private Map<String, String> partitionValues;
 
   /**
-   * Initializes a new HowlTableInfo instance.
+   * Initializes a new HowlTableInfo instance to be used with {@link HowlInputFormat}
+   * for reading data from a table.
    * @param serverUri the Metadata server uri
    * @param dbName the db name
    * @param tableName the table name
-   * @param partitionPredicates the partition predicates to filter on, an arbitrary AND/OR filter.
    */
-  public HowlTableInfo(String serverUri, String dbName, String tableName,
-      String partitionPredicates) {
-    this.serverUri = serverUri;
-    this.dbName = dbName;
-    this.tableName = tableName;
-    this.partitionPredicates = partitionPredicates;
-    this.partitionValues = null;
-    this.tableInfoType = TableInfoType.INPUT_INFO;
+  public static HowlTableInfo getInputTableInfo(String serverUri, String dbName, 
+          String tableName) {
+    return new HowlTableInfo(serverUri, dbName, tableName);
   }
 
+  private HowlTableInfo(String serverUri, String dbName, String tableName) {
+      this.serverUri = serverUri;
+      this.dbName = dbName;
+      this.tableName = tableName;
+      this.partitionPredicates = null;
+      this.partitionValues = null;
+      this.tableInfoType = TableInfoType.INPUT_INFO;      
+  }
   /**
-   * Initializes a new HowlTableInfo instance.
+   * Initializes a new HowlTableInfo instance to be used with {@link HowlOutputFormat}
+   * for writing data from a table.
    * @param serverUri the Metadata server uri
    * @param dbName the db name
    * @param tableName the table name
    * @param partitionValues The partition values to publish to
    */
-
-  public HowlTableInfo(String serverUri, String dbName, String tableName, Map<String, String> partitionValues){
+  public static HowlTableInfo getOutputTableInfo(String serverUri, 
+          String dbName, String tableName, Map<String, String> partitionValues){
+      return new HowlTableInfo(serverUri, dbName, tableName, partitionValues);
+  }
+  
+  private HowlTableInfo(String serverUri, String dbName, String tableName, Map<String, String> partitionValues){
     this.serverUri = serverUri;
     this.dbName = dbName;
     this.tableName = tableName;
     this.partitionPredicates = null;
     this.partitionValues = partitionValues;
     this.tableInfoType = TableInfoType.OUTPUT_INFO;
-  }
-
-  /**
-   * Creates a new HowlTableInfo instance from a uri-representation of information required to instantiate an HowlTableInfo
-   * @param uri : Uri representing the input information.
-   * For eg: http://localhost:4080/howl/?table=dbname.tablename&seq=001
-   * would represent that the serverUri is http://localhost:4080/howl ,
-   * tableName is formed from database = dbname and table = tablename
-   * and filter is "seq=001". The filter would be uri-encoded for spaces, equals, ampersands, etc
-   */
-  public HowlTableInfo(String uri) {
-    // initially, trivial implementations which are comma separated.
-    // for eg: http://localhost:4080/howl/,dbname,tablename,seq=001
-    // FIXME: change to uri parsing
-
-    String[] params = uri.split(",",4);
-    this.serverUri = params[0];
-    this.dbName = params[1];
-    this.tableName = params[2];
-    this.partitionPredicates = params[3];
   }
 
   /**

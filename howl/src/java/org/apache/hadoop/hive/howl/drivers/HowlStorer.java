@@ -251,7 +251,7 @@ public class HowlStorer extends StoreFunc {
     if(userStr.length != 2) {
       throw new IOException("Incorrect store location. Please, specify the store location as dbname.tblname");
     }
-    HowlTableInfo tblInfo = new HowlTableInfo(UDFContext.getUDFContext().getClientSystemProps().getProperty(HOWL_THRIFT_SERVER_URI),
+    HowlTableInfo tblInfo = HowlTableInfo.getOutputTableInfo(UDFContext.getUDFContext().getClientSystemProps().getProperty(HOWL_THRIFT_SERVER_URI),
         userStr[0],userStr[1],partitions);
     HowlOutputFormat.setOutput(job, tblInfo);
     HowlSchema howlSchema = HowlOutputFormat.getTableSchema(job);
