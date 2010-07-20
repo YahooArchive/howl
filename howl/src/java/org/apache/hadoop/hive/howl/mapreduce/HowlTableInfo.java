@@ -75,7 +75,9 @@ public class HowlTableInfo implements Serializable {
    * @param serverUri the Metadata server uri
    * @param dbName the db name
    * @param tableName the table name
-   * @param partitionValues The partition values to publish to
+   * @param partitionValues The partition values to publish to, can be null or empty Map to
+   * indicate write to a unpartitioned table. For partitioned tables, this map should
+   * contain keys for all partition columns with corresponding values.
    */
   public static HowlTableInfo getOutputTableInfo(String serverUri, 
           String dbName, String tableName, Map<String, String> partitionValues){
