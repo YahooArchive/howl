@@ -17,6 +17,8 @@
  */
 package org.apache.hadoop.hive.howl.data;
 
+import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
+import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 
 /**
@@ -35,7 +37,7 @@ public class HowlFieldSchema extends FieldSchema {
      */
     public HowlFieldSchema(FieldSchema other) {
         super(other);
-        howlTypeInfo = new HowlTypeInfo(other.getType());
+        howlTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(other.getType());
     }
 
 
@@ -46,7 +48,7 @@ public class HowlFieldSchema extends FieldSchema {
      */
     public HowlFieldSchema(String name, String type, String comment) {
         super(name, type, comment);
-        howlTypeInfo = new HowlTypeInfo(type);
+        howlTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(type);
     }
 
 
