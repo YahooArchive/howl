@@ -169,7 +169,19 @@ public class HowlTypeInfo implements Serializable {
     return type;
   }
 
+  /**
+   * @return the string representation of the type
+   */
+  public String getTypeString(){
+    return baseTypeInfo.getTypeName();
+  }
+
+  /**
+   * package scope function - returns the underlying TypeInfo
+   * @return the underlying TypeInfo
+   */
   TypeInfo getTypeInfo(){
     return baseTypeInfo;
   }
+
 }
