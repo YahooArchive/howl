@@ -177,37 +177,6 @@ public class PigHowlUtil {
     return table;
   }
 
-  //  static public ColumnType getOwlType(byte pigType) throws IOException {
-  //    switch (pigType) {
-  //    case DataType.BAG:
-  //        return ColumnType.COLLECTION;
-  //    case DataType.BIGCHARARRAY:
-  //    case DataType.CHARARRAY:
-  //        return ColumnType.STRING;
-  //    case DataType.BOOLEAN:
-  //        return ColumnType.BOOL;
-  //    case DataType.BYTEARRAY:
-  //        return ColumnType.BYTES;
-  //    case DataType.DOUBLE:
-  //        return ColumnType.DOUBLE;
-  //    case DataType.FLOAT:
-  //        return ColumnType.FLOAT;
-  //    case DataType.INTEGER:
-  //        return ColumnType.INT;
-  //    case DataType.LONG:
-  //        return ColumnType.LONG;
-  //    case DataType.MAP:
-  //        return ColumnType.MAP;
-  //    case DataType.TUPLE:
-  //        return ColumnType.RECORD;
-  //    default:
-  //        String errMsg = "Pig column type '" +
-  //        DataType.findTypeName(pigType) +"' is not a valid type that " +
-  //                "OwlLoader can handle";
-  //    throw new PigException(errMsg, OwlExceptionCode);
-  //    }
-  // }
-
   static public ResourceSchema getResourceSchema(HowlSchema howlSchema) throws IOException {
     if(howlSchema == null) {
       return null;
