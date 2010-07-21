@@ -61,8 +61,8 @@ public class InitializeInput {
     HiveConf hiveConf = new HiveConf(HowlInputFormat.class);
 //    System.err.println("XXX: all props:" + hiveConf.getAllProperties());
     if (inputInfo.getServerUri() != null){
+      hiveConf.set("hive.metastore.local", "false");
       hiveConf.set("hive.metastore.uris", inputInfo.getServerUri());
-      hiveConf.setInt("hive.metastore.connect.retries", 1);
     }
 
 //    hiveConf.set("hive.metastore.warehouse.dir", conf.get("hive.metastore.warehouse.dir","/tmp/"));
