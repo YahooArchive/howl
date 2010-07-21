@@ -75,7 +75,7 @@ public class TestRCFileOutputStorageDriver extends TestCase {
     byte[][] bytes = {"123".getBytes("UTF-8"), "456".getBytes("UTF-8"),
         "789".getBytes("UTF-8"), "1000".getBytes("UTF-8"),
         "5.3".getBytes("UTF-8"), "howl and hadoop".getBytes("UTF-8"),
-        /* new byte[0], "NULL".getBytes("UTF-8") */ };
+        new byte[0], "NULL".getBytes("UTF-8") };
     return bytes;
   }
 
@@ -88,6 +88,8 @@ public class TestRCFileOutputStorageDriver extends TestCase {
     fields.add(new FieldSchema("along", "bigint", ""));
     fields.add(new FieldSchema("adouble", "double", ""));
     fields.add(new FieldSchema("astring", "string", ""));
+    fields.add(new FieldSchema("anullint", "int", ""));
+    fields.add(new FieldSchema("anullstring", "string", ""));
 
     return new HowlSchema(HowlUtil.getHowlFieldSchemaList(fields));
   }
