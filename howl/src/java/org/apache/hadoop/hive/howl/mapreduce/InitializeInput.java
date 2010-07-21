@@ -61,8 +61,8 @@ public class InitializeInput {
     HiveConf hiveConf = new HiveConf(HowlInputFormat.class);
 //    System.err.println("XXX: all props:" + hiveConf.getAllProperties());
     if (inputInfo.getServerUri() != null){
+      hiveConf.set("hive.metastore.local", "false");
       hiveConf.set("hive.metastore.uris", inputInfo.getServerUri());
-      hiveConf.setInt("hive.metastore.connect.retries", 1);
     }
 
 //    hiveConf.set("hive.metastore.warehouse.dir", conf.get("hive.metastore.warehouse.dir","/tmp/"));
@@ -92,18 +92,19 @@ public class InitializeInput {
     Table table = client.getTable(inputInfo.getDatabaseName(), inputInfo.getTableName());
     HowlSchema tableSchema = extractSchemaFromStorageDescriptor(table.getSd());
 
-    List<Partition> parts = client.listPartitions(inputInfo.getDatabaseName(), inputInfo.getTableName(), MAX_PARTS);
-
-    // convert List<OwlPartitionInfo> to List<OwlPartInfo>
     List<PartInfo> partInfoList = new ArrayList<PartInfo>();
 
-    if (parts.size() > 0){
+    if( table.getPartitionKeys().size() != 0 ) {
+      //Partitioned table
+      List<Partition> parts = client.listPartitions(inputInfo.getDatabaseName(), inputInfo.getTableName(), MAX_PARTS);
+
       for (Partition ptn : parts){
         PartInfo partInfo = extractPartInfo(ptn.getSd(),ptn.getParameters());
         partInfo.setPartitionValues(ptn.getParameters());
         partInfoList.add(partInfo);
       }
     }else{
+      //Non partitioned table
       PartInfo partInfo = extractPartInfo(table.getSd(),table.getParameters());
       partInfo.setPartitionValues(new HashMap<String,String>());
       partInfoList.add(partInfo);

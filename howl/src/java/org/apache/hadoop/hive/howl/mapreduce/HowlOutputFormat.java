@@ -20,11 +20,15 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
@@ -40,6 +44,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.thrift.TException;
 
 /** The OutputFormat to use to write data to Howl */
 public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRecord> {
@@ -66,6 +71,13 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         client = createHiveClient(outputInfo.getServerUri(), job.getConfiguration());
         Table table = client.getTable(outputInfo.getDatabaseName(), outputInfo.getTableName());
 
+        if( outputInfo.getPartitionValues() == null ) {
+          outputInfo.setPartitionValues(new HashMap<String, String>());
+        }
+
+        //Handle duplicate publish
+        handleDuplicatePublish(job, outputInfo, client, table);
+
         HowlSchema tableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
         StorerInfo storerInfo = InitializeInput.extractStorerInfo(table.getParameters());
 
@@ -82,12 +94,17 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
             table.getSd().getLocation(), partitionCols,
             outputInfo.getPartitionValues());
 
+        //Serialize the output info into the configuration
         OutputJobInfo jobInfo = new OutputJobInfo(outputInfo,
                 tableSchema, tableSchema, storerInfo, location);
         job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
 
       } catch(Exception e) {
-        throw new IOException("Error setting output information", e);
+        if( e instanceof IOException ) {
+          throw (IOException) e;
+        } else {
+          throw new IOException("Error setting output information", e);
+        }
       } finally {
         if( client != null ) {
           client.close();
@@ -96,7 +113,51 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     }
 
     /**
-     * Set the schema for the data being written out to the partition.
+     * Handles duplicate publish of partition. Fails if partition already exists.
+     * For non partitioned tables, fails if files are present in table directory. If
+     * no files are present in table directory, deletes the table directory so that
+     * the underlying output format can create the directory.
+     * @param job the job
+     * @param outputInfo the output info
+     * @param client the metastore client
+     * @param table the table being written to
+     * @throws IOException
+     * @throws MetaException
+     * @throws TException
+     */
+    private static void handleDuplicatePublish(Job job, HowlTableInfo outputInfo,
+        HiveMetaStoreClient client, Table table) throws IOException, MetaException, TException {
+      List<String> partitionValues = HowlOutputCommitter.getPartitionValueList(
+                  table, outputInfo.getPartitionValues());
+
+      if( table.getPartitionKeys().size() > 0 ) {
+        //For partitioned table, fail if partition is already present
+        List<String> currentParts = client.listPartitionNames(outputInfo.getDatabaseName(),
+            outputInfo.getTableName(), partitionValues, (short) 1);
+
+        if( currentParts.size() > 0 ) {
+          throw new IOException("Partition already present with given partition key values");
+        }
+      } else {
+        Path tablePath = new Path(table.getSd().getLocation());
+        FileSystem fs = tablePath.getFileSystem(job.getConfiguration());
+
+        if ( fs.exists(tablePath) ) {
+          FileStatus[] status = fs.globStatus(new Path(tablePath, "*"));
+
+          if( status.length > 0 ) {
+            throw new IOException("Non-partitioned table " + outputInfo.getTableName() + " already contains data");
+          }
+
+          //Delete the table level directory
+          fs.delete(tablePath, false);
+        }
+      }
+    }
+
+    /**
+     * Set the schema for the data being written out to the partition. The
+     * table schema is used by default for the partition if this is not called.
      * @param job the job object
      * @param schema the schema for the data
      */
@@ -111,7 +172,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      * on the specified job context.
      * @param context the context
      * @return the table schema
-     * @throws IOlException if HowlOutputFromat.setOutput has not been called for the passed context
+     * @throws IOException if HowlOutputFromat.setOutput has not been called for the passed context
      */
     public static HowlSchema getTableSchema(JobContext context) throws IOException {
         OutputJobInfo jobInfo = getJobInfo(context);
@@ -231,7 +292,6 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
       if( url != null ) {
         //User specified a thrift url
         hiveConf.set("hive.metastore.local", "false");
-        hiveConf.set(HiveConf.ConfVars.METATORETHRIFTRETRIES.varname, "2");
         hiveConf.set(HiveConf.ConfVars.METASTOREURIS.varname, url);
       } else {
         //Thrift url is null, copy the hive conf into the job conf and restore it

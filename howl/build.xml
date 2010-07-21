@@ -35,6 +35,7 @@ to call at top-level: ant deploy-contrib compile-core-test
     <pathelement location="${test.data.dir}/conf"/>
     <pathelement location="${hive.conf.dir}"/>
     <pathelement location="${common.jar}"/>
+    <pathelement location="${hadoop.test.jar}"/>
     <fileset dir="${hive.root}" includes="testlibs/*.jar"/>
     <path refid="classpath"/>
   </path>

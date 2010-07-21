@@ -18,6 +18,7 @@
 package org.apache.hadoop.hive.howl.data.type;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
@@ -75,6 +76,7 @@ public class HowlTypeInfo implements Serializable {
     }else if (baseTypeInfo.getCategory() == Category.LIST){
       listType = new HowlTypeInfo(((ListTypeInfo)baseTypeInfo).getListElementTypeInfo());
     }else if (baseTypeInfo.getCategory() == Category.STRUCT){
+      structFields = new ArrayList<HowlTypeInfo>();
       for(TypeInfo ti : ((StructTypeInfo)baseTypeInfo).getAllStructFieldTypeInfos()){
         structFields.add(new HowlTypeInfo(ti));
       }
