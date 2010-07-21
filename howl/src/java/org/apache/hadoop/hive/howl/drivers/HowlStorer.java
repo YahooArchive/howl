@@ -28,6 +28,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
@@ -266,10 +267,25 @@ public class HowlStorer extends StoreFunc {
     }
     HowlTableInfo tblInfo = HowlTableInfo.getOutputTableInfo(UDFContext.getUDFContext().getClientSystemProps().getProperty(HOWL_THRIFT_SERVER_URI),
         userStr[0],userStr[1],partitions);
-    HowlOutputFormat.setOutput(job, tblInfo);
-    HowlSchema howlSchema = HowlOutputFormat.getTableSchema(job);
+
+
+    Configuration config = job.getConfiguration();
     if(!HowlUtil.checkJobContextIfRunningFromBackend(job)){
+      HowlOutputFormat.setOutput(job, tblInfo);
+
       HowlOutputFormat.setSchema(job, convertPigSchemaToHowlSchema(pigSchema));
+      p.setProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, config.get(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
+      if(config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
+           p.setProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF, config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
+      }
+      HowlSchema howlSchema = HowlOutputFormat.getTableSchema(job);
+
+    }else{
+      config.set(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, p.getProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
+      if(p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
+         config.set(HowlOutputFormat.HOWL_KEY_HIVE_CONF, p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
+      }
+
     }
   }
 }
