@@ -31,7 +31,7 @@ public class HowlTableInfo implements Serializable {
     OUTPUT_INFO
   };
 
-  private TableInfoType tableInfoType;
+  private final TableInfoType tableInfoType;
 
   /** The Metadata server uri */
   private final String serverUri;
@@ -56,7 +56,7 @@ public class HowlTableInfo implements Serializable {
    * @param dbName the db name
    * @param tableName the table name
    */
-  public static HowlTableInfo getInputTableInfo(String serverUri, String dbName, 
+  public static HowlTableInfo getInputTableInfo(String serverUri, String dbName,
           String tableName) {
     return new HowlTableInfo(serverUri, dbName, tableName);
   }
@@ -67,7 +67,7 @@ public class HowlTableInfo implements Serializable {
       this.tableName = tableName;
       this.partitionPredicates = null;
       this.partitionValues = null;
-      this.tableInfoType = TableInfoType.INPUT_INFO;      
+      this.tableInfoType = TableInfoType.INPUT_INFO;
   }
   /**
    * Initializes a new HowlTableInfo instance to be used with {@link HowlOutputFormat}
@@ -79,11 +79,11 @@ public class HowlTableInfo implements Serializable {
    * indicate write to a unpartitioned table. For partitioned tables, this map should
    * contain keys for all partition columns with corresponding values.
    */
-  public static HowlTableInfo getOutputTableInfo(String serverUri, 
+  public static HowlTableInfo getOutputTableInfo(String serverUri,
           String dbName, String tableName, Map<String, String> partitionValues){
       return new HowlTableInfo(serverUri, dbName, tableName, partitionValues);
   }
-  
+
   private HowlTableInfo(String serverUri, String dbName, String tableName, Map<String, String> partitionValues){
     this.serverUri = serverUri;
     this.dbName = dbName;
@@ -151,5 +151,13 @@ public class HowlTableInfo implements Serializable {
 
   public TableInfoType getTableType(){
     return this.tableInfoType;
+  }
+
+  /**
+   * Sets the value of partitionValues
+   * @param partitionValues the partition values to set
+   */
+  void setPartitionValues(Map<String, String>  partitionValues) {
+    this.partitionValues = partitionValues;
   }
 }
