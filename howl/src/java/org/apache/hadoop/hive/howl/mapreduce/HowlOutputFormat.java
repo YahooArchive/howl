@@ -292,7 +292,6 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
       if( url != null ) {
         //User specified a thrift url
         hiveConf.set("hive.metastore.local", "false");
-        hiveConf.set(HiveConf.ConfVars.METATORETHRIFTRETRIES.varname, "2");
         hiveConf.set(HiveConf.ConfVars.METASTOREURIS.varname, url);
       } else {
         //Thrift url is null, copy the hive conf into the job conf and restore it
