@@ -102,10 +102,9 @@ class HowlOutputCommitter extends OutputCommitter {
 
         partition.getSd().setCols(fields);
 
-        List<String> values = new ArrayList<String>();
-        for(FieldSchema schema : table.getPartitionKeys()) {
-          values.add(tableInfo.getPartitionValues().get(schema.getName()));
-        }
+        //Get partition value list
+        List<String> values = getPartitionValueList(table,
+            jobInfo.getTableInfo().getPartitionValues());
         partition.setValues(values);
 
         Map<String, String> params = new HashMap<String, String>();
@@ -127,5 +126,36 @@ class HowlOutputCommitter extends OutputCommitter {
           client.close();
         }
       }
+    }
+
+    /**
+     * Convert the partition value map to a value list in the partition key order.
+     * @param table the table being written to
+     * @param valueMap the partition value map
+     * @return the partition value list
+     * @throws IOException
+     */
+    static List<String> getPartitionValueList(Table table, Map<String, String> valueMap) throws IOException {
+
+      if( valueMap.size() != table.getPartitionKeys().size() ) {
+          throw new IOException("Invalid partition values specified, table "
+              + table.getTableName() + " has " +
+              table.getPartitionKeys().size() + " partition keys)");
+      }
+
+      List<String> values = new ArrayList<String>();
+
+      for(FieldSchema schema : table.getPartitionKeys()) {
+        String value = valueMap.get(schema.getName());
+
+        if( value == null ) {
+          throw new IOException("No partition key value provided for key " +
+              schema.getName() + " of table " + table.getTableName());
+        }
+
+        values.add(value);
+      }
+
+      return values;
     }
 }
