@@ -140,6 +140,9 @@ import org.apache.hadoop.mapreduce.OutputFormat;
     howlProperties.setProperty(Constants.LIST_COLUMN_TYPES,
           MetaStoreUtils.getColumnTypesFromFieldSchema(fields));
 
+    howlProperties.setProperty(Constants.SERIALIZATION_NULL_FORMAT, "NULL");
+    howlProperties.setProperty(Constants.SERIALIZATION_FORMAT, "9");
+
     try {
       serde = new ColumnarSerDe();
       serde.initialize(context.getConfiguration(), howlProperties);

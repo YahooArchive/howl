@@ -140,6 +140,23 @@ public class HowlStorer extends StoreFunc {
 //              return  new HowlTypeInfo(getHiveTypeString(type));
 //          }
 
+//    for(FieldSchema fSchema : pigSchema.getFields()){
+//      byte type = fSchema.type;
+//      HowlTypeInfo howlTypeInfo;
+//      if(type == org.apache.pig.data.DataType.BAG || type == org.apache.pig.data.DataType.TUPLE){
+//        howlTypeInfo = new HowlTypeInfo(fSchema.alias,convertPigSchemaToHiveSchemaStr(fSchema.schema.toString()),"");
+//      }
+//
+//      else if (type == org.apache.pig.data.DataType.MAP){
+//        // We only allow map<string,primitive>
+//        howlFSchema = new HowlFieldSchema(fSchema.alias,"map<string,string>","");
+//      }
+//      else{
+//        howlFSchema = new HowlFieldSchema(fSchema.alias,getHiveTypeString(fSchema.type),"");
+//
+//      }
+//      fieldSchemas.add(howlFSchema);
+//    }
   }
 
   private String getHiveTypeString(byte type){
