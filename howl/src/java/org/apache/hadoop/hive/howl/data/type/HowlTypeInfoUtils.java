@@ -70,7 +70,7 @@ public class HowlTypeInfoUtils {
     return getHowlTypeInfo(s.getFieldSchemas());
   }
 
-  public static HowlTypeInfo getHowlTypeInfo(List<FieldSchema> fslist){
+  public static HowlTypeInfo getHowlTypeInfo(List<? extends FieldSchema> fslist){
     StructBuilder sbuilder = getStructHowlTypeInfoBuilder();
     for (FieldSchema fieldSchema : fslist){
       sbuilder.addField(fieldSchema.getName(),fieldSchema.getType());
