@@ -33,7 +33,8 @@ import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
-import org.apache.hadoop.hive.howl.data.HowlTypeInfo;
+import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
+import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputFormat;
 import org.apache.hadoop.hive.howl.mapreduce.HowlTableInfo;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
@@ -140,6 +141,23 @@ public class HowlStorer extends StoreFunc {
 //              return  new HowlTypeInfo(getHiveTypeString(type));
 //          }
 
+//    for(FieldSchema fSchema : pigSchema.getFields()){
+//      byte type = fSchema.type;
+//      HowlTypeInfo howlTypeInfo;
+//      if(type == org.apache.pig.data.DataType.BAG || type == org.apache.pig.data.DataType.TUPLE){
+//        howlTypeInfo = new HowlTypeInfo(fSchema.alias,convertPigSchemaToHiveSchemaStr(fSchema.schema.toString()),"");
+//      }
+//
+//      else if (type == org.apache.pig.data.DataType.MAP){
+//        // We only allow map<string,primitive>
+//        howlFSchema = new HowlFieldSchema(fSchema.alias,"map<string,string>","");
+//      }
+//      else{
+//        howlFSchema = new HowlFieldSchema(fSchema.alias,getHiveTypeString(fSchema.type),"");
+//
+//      }
+//      fieldSchemas.add(howlFSchema);
+//    }
   }
 
   private String getHiveTypeString(byte type){
