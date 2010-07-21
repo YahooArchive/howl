@@ -135,7 +135,7 @@ public class InitializeInput {
     return new PartInfo(schema,inputStorageDriverClass,  sd.getLocation(), howlProperties);
   }
 
-  static HowlSchema extractSchemaFromStorageDescriptor(StorageDescriptor sd) throws IOException {
+  public static HowlSchema extractSchemaFromStorageDescriptor(StorageDescriptor sd) throws IOException {
     if (sd == null){
       throw new IOException("Cannot construct partition info from an empty storage descriptor.");
     }
