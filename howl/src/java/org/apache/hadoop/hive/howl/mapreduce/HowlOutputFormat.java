@@ -50,10 +50,9 @@ import org.apache.thrift.TException;
 public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRecord> {
 
     //The keys used to store info into the job Configuration
-    static final String HOWL_KEY_OUTPUT_BASE = "mapreduce.lib.howloutput";
-    static final String HOWL_KEY_OUTPUT_INFO = HOWL_KEY_OUTPUT_BASE + ".info";
-    static final String HOWL_KEY_OUTPUT_TABLE_SCHEMA = HOWL_KEY_OUTPUT_BASE + ".table.schema";
-    static final String HOWL_KEY_HIVE_CONF = HOWL_KEY_OUTPUT_BASE + ".hive.conf";
+    public static final String HOWL_KEY_OUTPUT_BASE = "mapreduce.lib.howloutput";
+    public static final String HOWL_KEY_OUTPUT_INFO = HOWL_KEY_OUTPUT_BASE + ".info";
+    public static final String HOWL_KEY_HIVE_CONF = HOWL_KEY_OUTPUT_BASE + ".hive.conf";
 
 
     /**
