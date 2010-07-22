@@ -124,7 +124,7 @@ public class HowlStorer extends StoreFunc {
 
     // Magically get HowlTypeInfo from Pig's Schema.
 
-    return new HowlTypeInfo("");
+    return HowlTypeInfoUtils.getPrimitiveTypeInfo(fSchema.getClass()); // no, not really, below needs to be done.
 //          byte type = fSchema.type;
 //          HowlTypeInfo howlTypeInfo;
 //          switch(type){
