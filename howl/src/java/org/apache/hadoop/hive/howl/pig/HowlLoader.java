@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.howl.data.Pair;
@@ -99,6 +100,11 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   @Override
   public void prepareToRead(RecordReader reader, PigSplit arg1) throws IOException {
     this.reader = reader;
+  }
+
+  @Override
+  public String relativeToAbsolutePath(String location, Path curDir) throws IOException {
+    return location;
   }
 
   @Override
