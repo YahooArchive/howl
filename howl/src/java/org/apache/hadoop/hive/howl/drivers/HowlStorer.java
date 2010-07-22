@@ -50,6 +50,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
@@ -103,14 +104,14 @@ public class HowlStorer extends StoreFunc {
     UDFContext.getUDFContext().getUDFProperties(this.getClass()).setProperty(signature, ObjectSerializer.serialize(fSchemas));
   }
 
-  private HowlSchema convertPigSchemaToHowlSchema(Schema pigSchema){
+  private HowlSchema convertPigSchemaToHowlSchema(Schema pigSchema, HowlSchema howlSchema) throws FrontendException{
 
     List<HowlFieldSchema> fieldSchemas = new ArrayList<HowlFieldSchema>(pigSchema.size());
     for(FieldSchema fSchema : pigSchema.getFields()){
       byte type = fSchema.type;
       HowlFieldSchema howlFSchema;
       if(type == org.apache.pig.data.DataType.BAG || type == org.apache.pig.data.DataType.TUPLE || type == DataType.MAP){
-        howlFSchema = new HowlFieldSchema(fSchema.alias,getTypeInfoFrom(fSchema).toString(),"");
+        howlFSchema = new HowlFieldSchema(fSchema.alias,getTypeInfoFrom(fSchema).getTypeString(),"");
       }
       else{
         howlFSchema = new HowlFieldSchema(fSchema.alias,getHiveTypeString(fSchema.type),"");
@@ -120,45 +121,33 @@ public class HowlStorer extends StoreFunc {
     return new HowlSchema(fieldSchemas);
   }
 
-  private HowlTypeInfo getTypeInfoFrom(FieldSchema fSchema){
+  private HowlTypeInfo getTypeInfoFrom(FieldSchema fSchema) throws FrontendException{
 
-    // Magically get HowlTypeInfo from Pig's Schema.
+    byte type = fSchema.type;
+    switch(type){
+    case DataType.BAG:
+      Schema bagSchema = fSchema.schema;
+      Schema tupleSchema = bagSchema.getField(0).schema;
+      if(tupleSchema.size() == 1){
+        // throw away the tuple.
+        return HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(tupleSchema.getField(0)));
+      }
+      return HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(bagSchema.getField(0)));
+    case DataType.TUPLE:
+      List<String> fieldNames = new ArrayList<String>();
+      List<HowlTypeInfo> typeInfos = new ArrayList<HowlTypeInfo>();
+      for( FieldSchema fieldSchema : fSchema.schema.getFields()){
+        fieldNames.add( fieldSchema.alias);
+        getTypeInfoFrom(fieldSchema);
+      }
+      return HowlTypeInfoUtils.getStructHowlTypeInfo(fieldNames, typeInfos);
 
-    return HowlTypeInfoUtils.getPrimitiveTypeInfo(fSchema.getClass()); // no, not really, below needs to be done.
-//          byte type = fSchema.type;
-//          HowlTypeInfo howlTypeInfo;
-//          switch(type){
-//          case DataType.BAG:
-//          case DataType.TUPLE:
-//            List<String> fieldNames = new ArrayList<String>();
-//            List<TypeInfo> typeInfos = new ArrayList<TypeInfo>();
-//            for( FieldSchema fieldSchema : fSchema.schema.getFields()){
-//              fieldNames.add( fieldSchema.alias);
-//              getTypeInfoFrom(fieldSchema).toString();
-//            }
-//            return new HowlTypeInfo(TypeInfoFactory.getStructTypeInfo(fieldNames, typeInfos));
-//          case DataType.MAP:
-//            default:
-//              return  new HowlTypeInfo(getHiveTypeString(type));
-//          }
+    case DataType.MAP:
+      return HowlTypeInfoUtils.getMapHowlTypeInfo(HowlTypeInfoUtils.getPrimitiveTypeInfo(String.class), HowlTypeInfoUtils.getPrimitiveTypeInfo(String.class));
+    default:
+      return HowlTypeInfoUtils.getHowlTypeInfo(getHiveTypeString(type));
+    }
 
-//    for(FieldSchema fSchema : pigSchema.getFields()){
-//      byte type = fSchema.type;
-//      HowlTypeInfo howlTypeInfo;
-//      if(type == org.apache.pig.data.DataType.BAG || type == org.apache.pig.data.DataType.TUPLE){
-//        howlTypeInfo = new HowlTypeInfo(fSchema.alias,convertPigSchemaToHiveSchemaStr(fSchema.schema.toString()),"");
-//      }
-//
-//      else if (type == org.apache.pig.data.DataType.MAP){
-//        // We only allow map<string,primitive>
-//        howlFSchema = new HowlFieldSchema(fSchema.alias,"map<string,string>","");
-//      }
-//      else{
-//        howlFSchema = new HowlFieldSchema(fSchema.alias,getHiveTypeString(fSchema.type),"");
-//
-//      }
-//      fieldSchemas.add(howlFSchema);
-//    }
   }
 
   private String getHiveTypeString(byte type){
@@ -272,18 +261,17 @@ public class HowlStorer extends StoreFunc {
     Configuration config = job.getConfiguration();
     if(!HowlUtil.checkJobContextIfRunningFromBackend(job)){
       HowlOutputFormat.setOutput(job, tblInfo);
-
-      HowlOutputFormat.setSchema(job, convertPigSchemaToHowlSchema(pigSchema));
+      HowlOutputFormat.setSchema(job, convertPigSchemaToHowlSchema(pigSchema,HowlOutputFormat.getTableSchema(job)));
       p.setProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, config.get(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
       if(config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
-           p.setProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF, config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
+        p.setProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF, config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
       }
-      HowlSchema howlSchema = HowlOutputFormat.getTableSchema(job);
+
 
     }else{
       config.set(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, p.getProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
       if(p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
-         config.set(HowlOutputFormat.HOWL_KEY_HIVE_CONF, p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
+        config.set(HowlOutputFormat.HOWL_KEY_HIVE_CONF, p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
       }
 
     }
