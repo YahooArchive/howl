@@ -271,8 +271,14 @@ public class PigHowlUtil {
         (itemType != org.apache.hadoop.hive.howl.data.DataType.LIST)
         && (itemType != org.apache.hadoop.hive.howl.data.DataType.STRUCT)
         && (itemType != org.apache.hadoop.hive.howl.data.DataType.MAP)){
-      // primitive type, easy return.
-      return o;
+      // primitive type.
+      if (itemType != org.apache.hadoop.hive.howl.data.DataType.SHORT){
+        return new Integer(((Short)o).intValue());
+      } else if (itemType != org.apache.hadoop.hive.howl.data.DataType.BYTE){
+          return new Integer(((Byte)o).intValue());
+      }else{
+        return o;
+      }
     } else  if (itemType == org.apache.hadoop.hive.howl.data.DataType.STRUCT) {
       return transformToTuple((HowlRecord) o);
     } else  if (itemType == org.apache.hadoop.hive.howl.data.DataType.LIST) {
