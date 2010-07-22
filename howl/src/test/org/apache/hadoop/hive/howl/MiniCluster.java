@@ -56,12 +56,14 @@ public class MiniCluster {
 
   private void setupMiniDfsAndMrClusters() {
     try {
-      final int dataNodes = 4;     // There will be 4 data nodes
-      final int taskTrackers = 4;  // There will be 4 task tracker nodes
+      final int dataNodes = 1;     // There will be 4 data nodes
+      final int taskTrackers = 1;  // There will be 4 task tracker nodes
       Configuration config = new Configuration();
 
       // Builds and starts the mini dfs and mapreduce clusters
+      System.setProperty("hadoop.log.dir", ".");
       m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
+
       m_fileSys = m_dfs.getFileSystem();
       m_mr = new MiniMRCluster(taskTrackers, m_fileSys.getUri().toString(), 1);
 
@@ -72,7 +74,7 @@ public class MiniCluster {
 
       // Write the necessary config info to hadoop-site.xml
       m_conf = m_mr.createJobConf();
-      m_conf.setInt("mapred.submit.replication", 2);
+      m_conf.setInt("mapred.submit.replication", 1);
       m_conf.set("dfs.datanode.address", "0.0.0.0:0");
       m_conf.set("dfs.datanode.http.address", "0.0.0.0:0");
       m_conf.writeXml(new FileOutputStream(conf_file));
@@ -164,10 +166,11 @@ public class MiniCluster {
 
    static public void createInputFile(FileSystem fs, String fileName,
        String[] inputData) throws IOException {
-     if(fs.exists(new Path(fileName))) {
+     Path path = new Path(fileName);
+     if(fs.exists(path)) {
        throw new IOException("File " + fileName + " already exists on the minicluster");
      }
-     FSDataOutputStream stream = fs.create(new Path(fileName));
+     FSDataOutputStream stream = fs.create(path);
      PrintWriter pw = new PrintWriter(new OutputStreamWriter(stream, "UTF-8"));
      for (int i=0; i<inputData.length; i++){
        pw.println(inputData[i]);

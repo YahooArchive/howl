@@ -25,11 +25,11 @@ import java.util.List;
  */
 public class HowlSchema implements Serializable {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
-    private List<HowlFieldSchema> fields;
-    
+    private final List<HowlFieldSchema> fields;
+
     /**
      * @param fields
      */
@@ -44,5 +44,13 @@ public class HowlSchema implements Serializable {
     public List<HowlFieldSchema> getHowlFieldSchemas() {
         return fields;
     }
-    
+
+    @Override
+    public String toString() {
+      StringBuilder string = new StringBuilder();
+      for(HowlFieldSchema field : fields){
+        string.append(field.toString()+", ");
+      }
+    return string.toString();
+    }
 }
