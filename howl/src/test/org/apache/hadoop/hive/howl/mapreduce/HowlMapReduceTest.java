@@ -281,7 +281,6 @@ public abstract class HowlMapReduceTest extends TestCase {
     job.waitForCompletion(true);
 
     Assert.assertEquals(readCount, MapRead.readCount);
-    System.out.println("Assert passed rowCount " + MapRead.readCount);
   }
 
 
