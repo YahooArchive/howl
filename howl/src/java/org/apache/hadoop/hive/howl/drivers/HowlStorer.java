@@ -107,6 +107,7 @@ public class HowlStorer extends StoreFunc {
   private HowlSchema convertPigSchemaToHowlSchema(Schema pigSchema, HowlSchema howlSchema) throws FrontendException{
 
     List<HowlFieldSchema> fieldSchemas = new ArrayList<HowlFieldSchema>(pigSchema.size());
+    int i=0;
     for(FieldSchema fSchema : pigSchema.getFields()){
       byte type = fSchema.type;
       HowlFieldSchema howlFSchema;
@@ -128,17 +129,17 @@ public class HowlStorer extends StoreFunc {
     case DataType.BAG:
       Schema bagSchema = fSchema.schema;
       Schema tupleSchema = bagSchema.getField(0).schema;
-      if(tupleSchema.size() == 1){
-        // throw away the tuple.
-        return HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(tupleSchema.getField(0)));
-      }
+//      if(tupleSchema.size() == 1){
+//        // throw away the tuple.
+//        return HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(tupleSchema.getField(0)));
+//      }
       return HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(bagSchema.getField(0)));
     case DataType.TUPLE:
       List<String> fieldNames = new ArrayList<String>();
       List<HowlTypeInfo> typeInfos = new ArrayList<HowlTypeInfo>();
       for( FieldSchema fieldSchema : fSchema.schema.getFields()){
         fieldNames.add( fieldSchema.alias);
-        getTypeInfoFrom(fieldSchema);
+        typeInfos.add(getTypeInfoFrom(fieldSchema));
       }
       return HowlTypeInfoUtils.getStructHowlTypeInfo(fieldNames, typeInfos);
 
@@ -184,6 +185,7 @@ public class HowlStorer extends StoreFunc {
       outgoing.add(getJavaObj(tuple.get(i++), fSchema));
     }
 
+    System.out.println("About to write: "+outgoing);
     try {
       writer.write(null, new DefaultHowlRecord(outgoing));
     } catch (InterruptedException e) {
@@ -194,31 +196,36 @@ public class HowlStorer extends StoreFunc {
   private Object getJavaObj(Object pigObj, ResourceFieldSchema fSchema) throws ExecException{
 
     Byte type = fSchema.getType();
+    System.out.println("Type: "+type);
     if(!org.apache.pig.data.DataType.isComplex(type)){
+      System.out.println("Returning primitive type: "+pigObj);
       return pigObj;
     }
     switch(type){
     case org.apache.pig.data.DataType.BAG:
       DataBag pigBag = (DataBag)pigObj;
+      System.out.println("Converting bag: "+pigBag);
       ResourceFieldSchema tupSchema = fSchema.getSchema().getFields()[0];
       List<Object> bagContents = new ArrayList<Object>((int)pigBag.size());
       Iterator<Tuple> bagItr = pigBag.iterator();
       ResourceFieldSchema[] innerElems = tupSchema.getSchema().getFields();
 
       while(bagItr.hasNext()){
-        if(innerElems.length == 1){
-          // If there is only one element in tuple contained in bag, we throw away the tuple.
-          bagContents.add(getJavaObj(bagItr.next().get(0),innerElems[0]));
-        } else {
+//        if(innerElems.length == 1){
+//          // If there is only one element in tuple contained in bag, we throw away the tuple.
+//          bagContents.add(getJavaObj(bagItr.next().get(0),innerElems[0]));
+//        } else {
           bagContents.add(getJavaObj(bagItr.next(), tupSchema));
-        }
+        //}
       }
       return bagContents;
     case org.apache.pig.data.DataType.MAP:
       // Pray to God that they really made use of value objects in there script.
+      System.out.println("Converting map: "+pigObj);
       return pigObj;
     case org.apache.pig.data.DataType.TUPLE:
       Tuple innerTup = (Tuple)pigObj;
+      System.out.println("Converting tuple: "+innerTup);
       List<Object> innerList = new ArrayList<Object>(innerTup.size());
       int i = 0;
       for(ResourceFieldSchema fieldSchema : fSchema.getSchema().getFields()){
@@ -261,7 +268,9 @@ public class HowlStorer extends StoreFunc {
     Configuration config = job.getConfiguration();
     if(!HowlUtil.checkJobContextIfRunningFromBackend(job)){
       HowlOutputFormat.setOutput(job, tblInfo);
-      HowlOutputFormat.setSchema(job, convertPigSchemaToHowlSchema(pigSchema,HowlOutputFormat.getTableSchema(job)));
+      HowlSchema outgoing = convertPigSchemaToHowlSchema(pigSchema,HowlOutputFormat.getTableSchema(job));
+      System.out.println("Outgoing schema: "+outgoing);
+      HowlOutputFormat.setSchema(job, outgoing);
       p.setProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, config.get(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
       if(config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
         p.setProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF, config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
