@@ -71,13 +71,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
   @Override
   public Writable convertValue(HowlRecord value) throws IOException {
     try {
-      List<Object> objectList = new ArrayList<Object>();
-
-      for(int i = 0;i < value.size();i++ ) {
-        objectList.add(value.get(i));
-      }
-
-      return serde.serialize(objectList, objectInspector);
+      return serde.serialize(value.getAll(), objectInspector);
     } catch(SerDeException e) {
       throw new IOException(e);
     }

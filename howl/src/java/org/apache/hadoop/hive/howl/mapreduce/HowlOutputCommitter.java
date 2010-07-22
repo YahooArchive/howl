@@ -58,7 +58,9 @@ class HowlOutputCommitter extends OutputCommitter {
 
     @Override
     public void setupJob(JobContext context) throws IOException {
-      baseCommitter.setupJob(context);
+      if( baseCommitter != null ) {
+        baseCommitter.setupJob(context);
+      }
     }
 
     @Override

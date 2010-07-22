@@ -17,6 +17,8 @@
  */
 package org.apache.hadoop.hive.howl.data;
 
+import java.util.List;
+
 import org.apache.hadoop.io.WritableComparable;
 
 /** HowlRecord is designed only to be used as in-memory representation only.
@@ -25,10 +27,30 @@ import org.apache.hadoop.io.WritableComparable;
 
 public interface HowlRecord extends WritableComparable<Object> {
 
+  /**
+   * Gets the field at the specified index.
+   * @param fieldNum the field number
+   * @return the object at the specified index
+   */
   Object get(int fieldNum);
 
-  void set(int fieldNum, Object val);
+  /**
+   * Gets all the fields of the howl record.
+   * @return the list of fields
+   */
+  List<Object> getAll();
 
+  /**
+   * Sets the field at the specified index.
+   * @param fieldNum the field number
+   * @param value the value to set
+   */
+  void set(int fieldNum, Object value);
+
+  /**
+   * Gets the size of the howl record.
+   * @return the size
+   */
   int size();
 
 }
