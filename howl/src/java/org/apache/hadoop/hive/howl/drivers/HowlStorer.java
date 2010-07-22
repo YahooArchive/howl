@@ -34,7 +34,8 @@ import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
-import org.apache.hadoop.hive.howl.data.HowlTypeInfo;
+import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
+import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputFormat;
 import org.apache.hadoop.hive.howl.mapreduce.HowlTableInfo;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
@@ -123,7 +124,7 @@ public class HowlStorer extends StoreFunc {
 
     // Magically get HowlTypeInfo from Pig's Schema.
 
-    return new HowlTypeInfo("");
+    return HowlTypeInfoUtils.getPrimitiveTypeInfo(fSchema.getClass()); // no, not really, below needs to be done.
 //          byte type = fSchema.type;
 //          HowlTypeInfo howlTypeInfo;
 //          switch(type){
