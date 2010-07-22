@@ -189,6 +189,7 @@ public class PigHowlUtil {
       .setDescription(hfs.getComment())
       .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType()) ))
       .setSchema(null); // TODO: see if we need to munge inner schemas for these
+      rfSchemaList.add(rfSchema);
     }
     ResourceSchema rSchema = new ResourceSchema();
     rSchema.setFields(rfSchemaList.toArray(new ResourceFieldSchema[0]));
@@ -254,6 +255,9 @@ public class PigHowlUtil {
 
   @SuppressWarnings("unchecked")
   public static Tuple transformToTuple(HowlRecord hr) throws Exception{
+    if (hr == null){
+      return null;
+    }
     Tuple t = new DefaultTuple();
     for (int i = 0; i< hr.size(); i++){
       t.append(extractPigObject(hr.get(i),org.apache.hadoop.hive.howl.data.DataType.findType(hr.get(i))));
@@ -273,9 +277,11 @@ public class PigHowlUtil {
         && (itemType != org.apache.hadoop.hive.howl.data.DataType.MAP)){
       // primitive type.
       if (itemType != org.apache.hadoop.hive.howl.data.DataType.SHORT){
-        return new Integer(((Short)o).intValue());
+        // return new Integer(((Short)o).intValue());
+        return o; // we seem to be getting a runtime Integer here anyway.
       } else if (itemType != org.apache.hadoop.hive.howl.data.DataType.BYTE){
-          return new Integer(((Byte)o).intValue());
+        // return new Integer(((Byte)o).intValue());
+        return new Integer(((Short)o).intValue()); // we're getting a runtime Short here.
       }else{
         return o;
       }
