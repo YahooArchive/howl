@@ -256,7 +256,7 @@ public class PigHowlUtil {
   public static Tuple transformToTuple(HowlRecord hr) throws Exception{
     Tuple t = new DefaultTuple();
     for (int i = 0; i< hr.size(); i++){
-      t.set(i,extractPigObject(hr.get(i),org.apache.hadoop.hive.howl.data.DataType.findType(hr.get(i))));
+      t.append(extractPigObject(hr.get(i),org.apache.hadoop.hive.howl.data.DataType.findType(hr.get(i))));
     }
     return t;
   }
