@@ -31,6 +31,11 @@ public class DefaultHowlRecord implements HowlRecord {
   }
 
   @Override
+  public List<Object> getAll() {
+    return contents;
+  }
+
+  @Override
   public void set(int fieldNum, Object val) {
     contents.set(fieldNum, val);
   }

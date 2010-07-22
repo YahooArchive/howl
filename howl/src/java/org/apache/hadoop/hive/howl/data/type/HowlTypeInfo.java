@@ -73,13 +73,16 @@ public class HowlTypeInfo implements Serializable {
     if (baseTypeInfo.getCategory() == Category.MAP){
       mapKeyType = new HowlTypeInfo(((MapTypeInfo)baseTypeInfo).getMapKeyTypeInfo());
       mapValueType = new HowlTypeInfo(((MapTypeInfo)baseTypeInfo).getMapValueTypeInfo());
+      type = HowlType.MAP;
     }else if (baseTypeInfo.getCategory() == Category.LIST){
       listType = new HowlTypeInfo(((ListTypeInfo)baseTypeInfo).getListElementTypeInfo());
+      type = HowlType.ARRAY;
     }else if (baseTypeInfo.getCategory() == Category.STRUCT){
       structFields = new ArrayList<HowlTypeInfo>();
       for(TypeInfo ti : ((StructTypeInfo)baseTypeInfo).getAllStructFieldTypeInfos()){
         structFields.add(new HowlTypeInfo(ti));
       }
+      type = HowlType.STRUCT;
     } else if(baseTypeInfo.getCategory() == Category.PRIMITIVE) {
         switch(((PrimitiveTypeInfo)baseTypeInfo).getPrimitiveCategory()) {
         case BOOLEAN:
@@ -110,6 +113,8 @@ public class HowlTypeInfo implements Serializable {
             throw new
             TypeNotPresentException(((PrimitiveTypeInfo)baseTypeInfo).getTypeName(), null);
         }
+    } else{
+      throw new TypeNotPresentException(baseTypeInfo.getTypeName(),null);
     }
   }
 
