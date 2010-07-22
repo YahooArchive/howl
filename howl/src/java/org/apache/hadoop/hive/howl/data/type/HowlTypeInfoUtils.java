@@ -29,7 +29,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
 public class HowlTypeInfoUtils {
 
-  private static HowlTypeInfoUtils ref;
+  private static HowlTypeInfoUtils ref = new HowlTypeInfoUtils();
   public static MapBuilder getMapHowlTypeInfoBuilder(){
     return ref.new MapBuilder();
   }

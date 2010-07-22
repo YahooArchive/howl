@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -69,7 +70,7 @@ public class HowlStorer extends StoreFunc {
   /**
    *
    */
-  private static final String HOWL_THRIFT_SERVER_URI = "howl.thrift.server.uri";
+  private static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
   private final Map<String,String> partitions;
   private ResourceFieldSchema[] fSchemas;
@@ -185,7 +186,6 @@ public class HowlStorer extends StoreFunc {
       outgoing.add(getJavaObj(tuple.get(i++), fSchema));
     }
 
-    System.out.println("About to write: "+outgoing);
     try {
       writer.write(null, new DefaultHowlRecord(outgoing));
     } catch (InterruptedException e) {
@@ -195,16 +195,13 @@ public class HowlStorer extends StoreFunc {
 
   private Object getJavaObj(Object pigObj, ResourceFieldSchema fSchema) throws ExecException{
 
-    Byte type = fSchema.getType();
-    System.out.println("Type: "+type);
+    byte type = fSchema.getType();
     if(!org.apache.pig.data.DataType.isComplex(type)){
-      System.out.println("Returning primitive type: "+pigObj);
       return pigObj;
     }
     switch(type){
     case org.apache.pig.data.DataType.BAG:
       DataBag pigBag = (DataBag)pigObj;
-      System.out.println("Converting bag: "+pigBag);
       ResourceFieldSchema tupSchema = fSchema.getSchema().getFields()[0];
       List<Object> bagContents = new ArrayList<Object>((int)pigBag.size());
       Iterator<Tuple> bagItr = pigBag.iterator();
@@ -221,11 +218,15 @@ public class HowlStorer extends StoreFunc {
       return bagContents;
     case org.apache.pig.data.DataType.MAP:
       // Pray to God that they really made use of value objects in there script.
-      System.out.println("Converting map: "+pigObj);
-      return pigObj;
+      Map<String,Object> incoming = (Map<String,Object>)pigObj;
+      Map<String, Object> typedMap = new HashMap<String, Object>(incoming.size());
+      for(Entry<String, Object> untyped : incoming.entrySet()){
+        typedMap.put(untyped.getKey(), untyped.getValue().toString());
+      }
+
+      return typedMap;
     case org.apache.pig.data.DataType.TUPLE:
       Tuple innerTup = (Tuple)pigObj;
-      System.out.println("Converting tuple: "+innerTup);
       List<Object> innerList = new ArrayList<Object>(innerTup.size());
       int i = 0;
       for(ResourceFieldSchema fieldSchema : fSchema.getSchema().getFields()){
@@ -261,7 +262,7 @@ public class HowlStorer extends StoreFunc {
     if(userStr.length != 2) {
       throw new IOException("Incorrect store location. Please, specify the store location as dbname.tblname");
     }
-    HowlTableInfo tblInfo = HowlTableInfo.getOutputTableInfo(UDFContext.getUDFContext().getClientSystemProps().getProperty(HOWL_THRIFT_SERVER_URI),
+    HowlTableInfo tblInfo = HowlTableInfo.getOutputTableInfo(UDFContext.getUDFContext().getClientSystemProps().getProperty(HOWL_METASTORE_URI),
         userStr[0],userStr[1],partitions);
 
 
@@ -269,7 +270,6 @@ public class HowlStorer extends StoreFunc {
     if(!HowlUtil.checkJobContextIfRunningFromBackend(job)){
       HowlOutputFormat.setOutput(job, tblInfo);
       HowlSchema outgoing = convertPigSchemaToHowlSchema(pigSchema,HowlOutputFormat.getTableSchema(job));
-      System.out.println("Outgoing schema: "+outgoing);
       HowlOutputFormat.setSchema(job, outgoing);
       p.setProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, config.get(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
       if(config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
