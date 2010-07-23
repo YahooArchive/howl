@@ -50,6 +50,7 @@ import org.apache.pig.impl.util.UDFContext;
 public class PigHowlUtil {
 
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
+  public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
 
   static final int HowlExceptionCode = 4010;
@@ -74,9 +75,8 @@ public class PigHowlUtil {
 
   static public String getHowlServerUri() {
     String howlServerUri;
-    final String METADATA_URI = "metadata.uri";
     Properties props = UDFContext.getUDFContext().getClientSystemProps();
-    howlServerUri = props.getProperty(METADATA_URI);
+    howlServerUri = props.getProperty(HOWL_METASTORE_URI);
     //    if(howlServerUri == null) {
     //      String msg = "Please provide uri to the metadata server using" +
     //      " -Dmetadata.uri system property";
@@ -96,8 +96,12 @@ public class PigHowlUtil {
     if (serverUri != null){
       hiveConf.set("hive.metastore.uris", serverUri);
     }
-
-    return (client = new HiveMetaStoreClient(hiveConf,null));
+    try {
+    client = new HiveMetaStoreClient(hiveConf,null);
+    } catch (Exception e){
+      throw new Exception("Could not instantiate a HiveMetaStoreClient connecting to server uri:["+serverUri+"]");
+    }
+    return client;
   }
 
   //  HowlFieldSchema getHowlColumnSchema( RequiredField rf) throws IOException{
@@ -184,11 +188,18 @@ public class PigHowlUtil {
     //    return getResourceSchema(HowlTypeInfoUtils.getHowlTypeInfo(howlSchema.getHowlFieldSchemas()));
     List<ResourceFieldSchema> rfSchemaList = new ArrayList<ResourceFieldSchema>();
     for (HowlFieldSchema hfs : howlSchema.getHowlFieldSchemas()){
-      ResourceFieldSchema rfSchema = new ResourceFieldSchema()
-      .setName(hfs.getName())
-      .setDescription(hfs.getComment())
-      .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType()) ))
-      .setSchema(null); // TODO: see if we need to munge inner schemas for these
+      ResourceFieldSchema rfSchema;
+//      try {
+      rfSchema = new ResourceFieldSchema()
+                  .setName(hfs.getName())
+                  .setDescription(hfs.getComment())
+                  .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType()) ))
+                  .setSchema(null); // TODO: see if we need to munge inner schemas for these
+//      } catch (NullPointerException e){
+//        throw new IOException("RFSchema translation error from hfs:{ name:"+nullProtectedPrint(hfs.getName())
+//            +",type:"+nullProtectedPrint(hfs.getType())
+//            +",comment:"+nullProtectedPrint(hfs.getComment())+"}",e);
+//      }
       rfSchemaList.add(rfSchema);
     }
     ResourceSchema rSchema = new ResourceSchema();
@@ -197,6 +208,9 @@ public class PigHowlUtil {
 
   }
 
+//  static public String nullProtectedPrint(String s) {
+//    return (s == null ? "null" : s);
+//  }
 
   /**
    * @param type owl column type
