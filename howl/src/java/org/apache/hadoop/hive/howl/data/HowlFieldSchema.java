@@ -52,7 +52,7 @@ public class HowlFieldSchema extends FieldSchema {
     }
 
 
-    HowlTypeInfo getHowlTypeInfo() {
+    public HowlTypeInfo getHowlTypeInfo() {
         return howlTypeInfo;
     }
 }

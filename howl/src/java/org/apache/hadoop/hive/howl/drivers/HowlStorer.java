@@ -35,6 +35,7 @@ import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
+import org.apache.hadoop.hive.howl.data.type.HowlType;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputFormat;
@@ -46,7 +47,6 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -71,12 +71,11 @@ public class HowlStorer extends StoreFunc {
    *
    */
   private static final String HOWL_METASTORE_URI = "howl.metastore.uri";
+  private static final String COMPUTED_OUTPUT_SCHEMA = "howl.output.schema";
 
   private final Map<String,String> partitions;
-  private ResourceFieldSchema[] fSchemas;
   private final Schema pigSchema;
   private static final Log log = LogFactory.getLog(HowlStorer.class);
-  private String signature;
 
   public HowlStorer(String partSpecs, String schema) throws ParseException {
 
@@ -94,15 +93,15 @@ public class HowlStorer extends StoreFunc {
 
   private RecordWriter<WritableComparable<?>, HowlRecord> writer;
 
+  private boolean isSchemaPassed = false;
 
   @Override
   public void checkSchema(ResourceSchema resourceSchema) throws IOException {
-    fSchemas = resourceSchema.getFields();
+
     Schema runtimeSchema = Schema.getPigSchema(resourceSchema);
     assert Schema.equals(runtimeSchema, pigSchema, false, true) : "Schema provided in store statement doesn't match with the Schema" +
     "returned by Pig run-time. Schema provided in HowlStorer: "+pigSchema.toString()+ " Schema received from Pig runtime: "+runtimeSchema.toString();
-
-    UDFContext.getUDFContext().getUDFProperties(this.getClass()).setProperty(signature, ObjectSerializer.serialize(fSchemas));
+    isSchemaPassed = true;
   }
 
   private HowlSchema convertPigSchemaToHowlSchema(Schema pigSchema, HowlSchema howlSchema) throws FrontendException{
@@ -173,7 +172,7 @@ public class HowlStorer extends StoreFunc {
   @Override
   public void prepareToWrite(RecordWriter writer) throws IOException {
     this.writer = writer;
-    fSchemas = (ResourceFieldSchema[])ObjectSerializer.deserialize(UDFContext.getUDFContext().getUDFProperties(this.getClass()).getProperty(signature));
+    computedSchema = (HowlSchema)ObjectSerializer.deserialize(UDFContext.getUDFContext().getUDFProperties(this.getClass()).getProperty(COMPUTED_OUTPUT_SCHEMA));
   }
 
   @Override
@@ -182,8 +181,18 @@ public class HowlStorer extends StoreFunc {
     List<Object> outgoing = new ArrayList<Object>(tuple.size());
 
     int i = 0;
-    for (ResourceFieldSchema fSchema : fSchemas) {
-      outgoing.add(getJavaObj(tuple.get(i++), fSchema));
+    for(HowlFieldSchema fSchema : computedSchema.getHowlFieldSchemas()){
+      HowlType type = fSchema.getHowlTypeInfo().getType();
+      switch(type){
+      case MAP:
+      case STRUCT:
+      case ARRAY:
+        outgoing.add(getJavaObj(tuple.get(i++), fSchema.getHowlTypeInfo()));
+        break;
+        default:
+          outgoing.add(tuple.get(i++));
+          break;
+      }
     }
 
     try {
@@ -193,48 +202,45 @@ public class HowlStorer extends StoreFunc {
     }
   }
 
-  private Object getJavaObj(Object pigObj, ResourceFieldSchema fSchema) throws ExecException{
+  private Object getJavaObj(Object pigObj, HowlTypeInfo typeInfo) throws ExecException{
 
-    byte type = fSchema.getType();
-    if(!org.apache.pig.data.DataType.isComplex(type)){
-      return pigObj;
-    }
+    HowlType type = typeInfo.getType();
+
     switch(type){
-    case org.apache.pig.data.DataType.BAG:
+    case MAP:
+      typeInfo.getMapValueTypeInfo();
+      Map<String,Object> incoming = (Map<String,Object>)pigObj;
+      Map<String, Object> typedMap = new HashMap<String, Object>(incoming.size());
+      for(Entry<String, Object> untyped : incoming.entrySet()){
+        typedMap.put(untyped.getKey(), untyped.getValue().toString());
+      }
+      return typedMap;
+    case STRUCT:
+      Tuple innerTup = (Tuple)pigObj;
+      List<Object> innerList = new ArrayList<Object>(innerTup.size());
+      int i = 0;
+      for(HowlTypeInfo structFieldTypeInfo : typeInfo.getAllStructFieldTypeInfos()){
+        innerList.add(getJavaObj(innerTup.get(i++), structFieldTypeInfo));
+      }
+      return innerList;
+    case ARRAY:
       DataBag pigBag = (DataBag)pigObj;
-      ResourceFieldSchema tupSchema = fSchema.getSchema().getFields()[0];
+      HowlTypeInfo tupTypeInfo = typeInfo.getListElementTypeInfo();
       List<Object> bagContents = new ArrayList<Object>((int)pigBag.size());
       Iterator<Tuple> bagItr = pigBag.iterator();
-      ResourceFieldSchema[] innerElems = tupSchema.getSchema().getFields();
 
       while(bagItr.hasNext()){
 //        if(innerElems.length == 1){
 //          // If there is only one element in tuple contained in bag, we throw away the tuple.
 //          bagContents.add(getJavaObj(bagItr.next().get(0),innerElems[0]));
 //        } else {
-          bagContents.add(getJavaObj(bagItr.next(), tupSchema));
+          bagContents.add(getJavaObj(bagItr.next(), tupTypeInfo));
         //}
       }
       return bagContents;
-    case org.apache.pig.data.DataType.MAP:
-      // Pray to God that they really made use of value objects in there script.
-      Map<String,Object> incoming = (Map<String,Object>)pigObj;
-      Map<String, Object> typedMap = new HashMap<String, Object>(incoming.size());
-      for(Entry<String, Object> untyped : incoming.entrySet()){
-        typedMap.put(untyped.getKey(), untyped.getValue().toString());
-      }
 
-      return typedMap;
-    case org.apache.pig.data.DataType.TUPLE:
-      Tuple innerTup = (Tuple)pigObj;
-      List<Object> innerList = new ArrayList<Object>(innerTup.size());
-      int i = 0;
-      for(ResourceFieldSchema fieldSchema : fSchema.getSchema().getFields()){
-        innerList.add(getJavaObj(innerTup.get(i++), fieldSchema));
-      }
-      return innerList;
     default:
-      throw new ExecException("Unknown pig type: "+type);
+        return pigObj;
     }
   }
 
@@ -247,16 +253,14 @@ public class HowlStorer extends StoreFunc {
 
   @Override
   public void setStoreFuncUDFContextSignature(String signature) {
-    this.signature = signature;
   }
+
+  HowlSchema computedSchema;
 
   @Override
   public void setStoreLocation(String location, Job job) throws IOException {
 
     Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
-    if(p == null){
-      throw new IOException("Cannot determine the schema of output data. Aborting.");
-    }
 
     String[] userStr = location.split("\\.");
     if(userStr.length != 2) {
@@ -268,20 +272,22 @@ public class HowlStorer extends StoreFunc {
 
     Configuration config = job.getConfiguration();
     if(!HowlUtil.checkJobContextIfRunningFromBackend(job)){
+
       HowlOutputFormat.setOutput(job, tblInfo);
-      HowlSchema outgoing = convertPigSchemaToHowlSchema(pigSchema,HowlOutputFormat.getTableSchema(job));
-      HowlOutputFormat.setSchema(job, outgoing);
+      computedSchema = convertPigSchemaToHowlSchema(pigSchema,HowlOutputFormat.getTableSchema(job));
+      HowlOutputFormat.setSchema(job, computedSchema);
       p.setProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, config.get(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
       if(config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
         p.setProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF, config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
       }
-
+      p.setProperty(COMPUTED_OUTPUT_SCHEMA,ObjectSerializer.serialize(computedSchema));
 
     }else{
       config.set(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, p.getProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
       if(p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
         config.set(HowlOutputFormat.HOWL_KEY_HIVE_CONF, p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
       }
+
 
     }
   }
