@@ -82,6 +82,10 @@ public class HowlTypeInfoUtils {
     return new HowlTypeInfo(typeString);
   }
 
+  public static boolean isComplex(HowlType type){
+    return type == HowlType.ARRAY || type == HowlType.MAP || type == HowlType.STRUCT;
+  }
+
   public abstract class HowlTypeInfoBuilder {
     public abstract HowlTypeInfo build();
   }
