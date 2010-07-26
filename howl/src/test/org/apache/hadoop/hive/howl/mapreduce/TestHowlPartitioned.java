@@ -27,14 +27,19 @@ import java.util.Map;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.serde.Constants;
 
 public class TestHowlPartitioned extends HowlMapReduceTest {
 
+  private List<HowlRecord> writeRecords;
+  private List<HowlFieldSchema> partitionColumns;
+
   @Override
   protected void initialize() {
 
+    tableName = "testHowlPartitionedTable";
     writeRecords = new ArrayList<HowlRecord>();
 
     for(int i = 0;i < 20;i++) {
@@ -44,16 +49,12 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
       objList.add("strvalue" + i);
       writeRecords.add(new DefaultHowlRecord(objList));
     }
+
+    partitionColumns = new ArrayList<HowlFieldSchema>();
+    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
   }
 
-
-  @Override
-  protected List<HowlFieldSchema> getPartitionColumns() {
-    List<HowlFieldSchema> fields = new ArrayList<HowlFieldSchema>();
-    fields.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
-    fields.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
-    return fields;
-  }
 
   @Override
   protected List<FieldSchema> getPartitionKeys() {
@@ -76,17 +77,17 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     Map<String, String> partitionMap = new HashMap<String, String>();
     partitionMap.put("p1", "p1value1");
 
-    runMRCreate(partitionMap, 10);
+    runMRCreate(partitionMap, partitionColumns, writeRecords, 10);
 
     partitionMap.clear();
     partitionMap.put("p1", "p1value2");
 
-    runMRCreate(partitionMap, 20);
+    runMRCreate(partitionMap, partitionColumns, writeRecords, 20);
 
     //Test for duplicate publish
     IOException exc = null;
     try {
-      runMRCreate(partitionMap, 20);
+      runMRCreate(partitionMap, partitionColumns, writeRecords, 20);
     } catch(IOException e) {
       exc = e;
     }
@@ -101,7 +102,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     partitionMap.put("px", "p1value2");
 
     try {
-      runMRCreate(partitionMap, 20);
+      runMRCreate(partitionMap, partitionColumns, writeRecords, 20);
     } catch(IOException e) {
       exc = e;
     }
@@ -114,7 +115,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     //Test for null partition value map
     exc = null;
     try {
-      runMRCreate(null, 20);
+      runMRCreate(null, partitionColumns, writeRecords, 20);
     } catch(IOException e) {
       exc = e;
     }
@@ -125,5 +126,79 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     //Read should get 10 + 20 rows
     runMRRead(30);
+
+    tableSchemaTest();
+  }
+
+  //test that new columns gets added to table schema
+  public void tableSchemaTest() throws Exception {
+
+    HowlSchema tableSchema = getTableSchema();
+    assertTrue(tableSchema.getHowlFieldSchemas().size() == 2 );
+
+    //Update partition schema to have 4 fields, one same as partition key
+    partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("p1", Constants.STRING_TYPE_NAME, ""));
+
+    writeRecords = new ArrayList<HowlRecord>();
+
+    for(int i = 0;i < 20;i++) {
+      List<Object> objList = new ArrayList<Object>();
+
+      objList.add(i);
+      objList.add("strvalue" + i);
+      objList.add("str2value" + i);
+      objList.add("p1value5");
+
+      writeRecords.add(new DefaultHowlRecord(objList));
+    }
+
+    Map<String, String> partitionMap = new HashMap<String, String>();
+    partitionMap.put("p1", "p1value5");
+
+    runMRCreate(partitionMap, partitionColumns, writeRecords, 10);
+
+    tableSchema = getTableSchema();
+
+    //assert that c3 has got added to table schema, p1 has not
+    assertEquals(3, tableSchema.getHowlFieldSchemas().size());
+    assertEquals("c1", tableSchema.getHowlFieldSchemas().get(0).getName());
+    assertEquals("c2", tableSchema.getHowlFieldSchemas().get(1).getName());
+    assertEquals("c3", tableSchema.getHowlFieldSchemas().get(2).getName());
+
+    //Test that changing column data type fails
+    partitionMap.clear();
+    partitionMap.put("p1", "p1value6");
+
+    partitionColumns = new ArrayList<HowlFieldSchema>();
+    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("c2", Constants.INT_TYPE_NAME, ""));
+
+    IOException exc = null;
+    try {
+      runMRCreate(partitionMap, partitionColumns, writeRecords, 20);
+    } catch(IOException e) {
+      exc = e;
+    }
+
+    assertTrue(exc != null);
+    assertTrue(exc.getMessage().indexOf(
+        "Invalid type for column <c2>") != -1);
+
+    //Test that changing partition data type fails
+    partitionColumns = new ArrayList<HowlFieldSchema>();
+    partitionColumns.add(new HowlFieldSchema("p1", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
+
+    exc = null;
+    try {
+      runMRCreate(partitionMap, partitionColumns, writeRecords, 20);
+    } catch(IOException e) {
+      exc = e;
+    }
+
+    assertTrue(exc != null);
+    assertTrue(exc.getMessage().indexOf(
+        "Invalid type for column <p1>") != -1);
   }
 }
