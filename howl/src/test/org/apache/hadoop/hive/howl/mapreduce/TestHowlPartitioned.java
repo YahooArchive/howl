@@ -128,10 +128,12 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     runMRRead(30);
 
     tableSchemaTest();
+    columnOrderChangeTest();
   }
 
+
   //test that new columns gets added to table schema
-  public void tableSchemaTest() throws Exception {
+  private void tableSchemaTest() throws Exception {
 
     HowlSchema tableSchema = getTableSchema();
     assertTrue(tableSchema.getHowlFieldSchemas().size() == 2 );
@@ -187,8 +189,10 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     //Test that changing partition data type fails
     partitionColumns = new ArrayList<HowlFieldSchema>();
-    partitionColumns.add(new HowlFieldSchema("p1", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
     partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("p1", Constants.INT_TYPE_NAME, ""));
 
     exc = null;
     try {
@@ -200,5 +204,65 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     assertTrue(exc != null);
     assertTrue(exc.getMessage().indexOf(
         "Invalid type for column <p1>") != -1);
+  }
+
+  //check behavior while change the order of columns
+  private void columnOrderChangeTest() throws Exception {
+
+    HowlSchema tableSchema = getTableSchema();
+    assertTrue(tableSchema.getHowlFieldSchemas().size() == 3 );
+
+    partitionColumns = new ArrayList<HowlFieldSchema>();
+    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
+
+    writeRecords = new ArrayList<HowlRecord>();
+
+    for(int i = 0;i < 10;i++) {
+      List<Object> objList = new ArrayList<Object>();
+
+      objList.add(i);
+      objList.add("co strvalue" + i);
+      objList.add("co str2value" + i);
+
+      writeRecords.add(new DefaultHowlRecord(objList));
+    }
+
+    Map<String, String> partitionMap = new HashMap<String, String>();
+    partitionMap.put("p1", "p1value8");
+
+
+    Exception exc = null;
+    try {
+      runMRCreate(partitionMap, partitionColumns, writeRecords, 10);
+    } catch(IOException e) {
+      exc = e;
+    }
+
+    assertTrue(exc != null);
+    assertTrue(exc.getMessage().indexOf(
+        "Expected column <c2> at position 2, found column <c3>") != -1);
+
+
+    partitionColumns = new ArrayList<HowlFieldSchema>();
+    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
+
+    writeRecords = new ArrayList<HowlRecord>();
+
+    for(int i = 0;i < 10;i++) {
+      List<Object> objList = new ArrayList<Object>();
+
+      objList.add(i);
+      objList.add("co strvalue" + i);
+
+      writeRecords.add(new DefaultHowlRecord(objList));
+    }
+
+    runMRCreate(partitionMap, partitionColumns, writeRecords, 10);
+
+    //Read should get 10 + 20 + 10 + 10 rows
+    runMRRead(50);
   }
 }

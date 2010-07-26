@@ -154,26 +154,36 @@ class HowlOutputCommitter extends OutputCommitter {
      * @throws IOException Signals that an I/O exception has occurred.
      */
     static List<FieldSchema> validatePartitionSchema(Table table, HowlSchema partitionSchema) throws IOException {
-      Map<String, FieldSchema> tableMap = new HashMap<String, FieldSchema>();
-
-      for(FieldSchema field :  table.getSd().getCols()) {
-        tableMap.put(field.getName().toLowerCase(), field);
-      }
+      Map<String, FieldSchema> partitionKeyMap = new HashMap<String, FieldSchema>();
 
       for(FieldSchema field : table.getPartitionKeys()) {
-        tableMap.put(field.getName().toLowerCase(), field);
+        partitionKeyMap.put(field.getName().toLowerCase(), field);
       }
 
+      List<FieldSchema> tableCols = table.getSd().getCols();
       List<FieldSchema> newFields = new ArrayList<FieldSchema>();
 
-      for(HowlFieldSchema field : partitionSchema.getHowlFieldSchemas()) {
-        FieldSchema tableField = tableMap.get(field.getName().toLowerCase());
+      for(int i = 0;i <  partitionSchema.getHowlFieldSchemas().size();i++) {
+
+        HowlFieldSchema field = partitionSchema.getHowlFieldSchemas().get(i);
+
+        FieldSchema tableField;
+        if( i < tableCols.size() ) {
+          tableField = tableCols.get(i);
+
+          if( ! tableField.getName().equalsIgnoreCase(field.getName())) {
+            throw new IOException("Expected column <" + tableField.getName() +
+                "> at position " + (i + 1) + ", found column <" + field.getName() + ">");
+          }
+        } else {
+          tableField = partitionKeyMap.get(field.getName().toLowerCase());
+        }
 
         if( tableField == null ) {
           //field present in partition but not in table
           newFields.add(field);
         } else {
-          //field present in both. valid type has not changed
+          //field present in both. validate type has not changed
           TypeInfo partitionType = TypeInfoUtils.getTypeInfoFromTypeString(field.getType());
           TypeInfo tableType = TypeInfoUtils.getTypeInfoFromTypeString(tableField.getType());
 

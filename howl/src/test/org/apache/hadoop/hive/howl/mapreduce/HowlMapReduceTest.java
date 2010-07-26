@@ -111,7 +111,7 @@ public abstract class HowlMapReduceTest extends TestCase {
   @Override
   protected void tearDown() throws Exception {
     try {
-      client.dropTable(dbName, tableName);
+      //client.dropTable(dbName, tableName);
     } catch(Exception e) {
       e.printStackTrace();
       throw e;
