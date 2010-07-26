@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hive.howl.drivers;
+package org.apache.hadoop.hive.howl.pig;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -97,8 +97,10 @@ public class HowlStorer extends StoreFunc {
   public void checkSchema(ResourceSchema resourceSchema) throws IOException {
 
     Schema runtimeSchema = Schema.getPigSchema(resourceSchema);
-    assert Schema.equals(runtimeSchema, pigSchema, false, true) : "Schema provided in store statement doesn't match with the Schema" +
-    "returned by Pig run-time. Schema provided in HowlStorer: "+pigSchema.toString()+ " Schema received from Pig runtime: "+runtimeSchema.toString();
+    if(! Schema.equals(runtimeSchema, pigSchema, false, true) ){
+      throw new FrontendException("Schema provided in store statement doesn't match with the Schema" +
+    "returned by Pig run-time. Schema provided in HowlStorer: "+pigSchema.toString()+ " Schema received from Pig runtime: "+runtimeSchema.toString());
+    }
   }
 
   private HowlSchema convertPigSchemaToHowlSchema(Schema pigSchema, HowlSchema tableSchema) throws FrontendException{
@@ -107,22 +109,24 @@ public class HowlStorer extends StoreFunc {
     for(FieldSchema fSchema : pigSchema.getFields()){
       byte type = fSchema.type;
       HowlFieldSchema howlFSchema;
+      String alias = fSchema.alias;
       if(type == org.apache.pig.data.DataType.BAG){
 
         if(removeTupleFromBag(tableSchema, fSchema)){
-          howlFSchema = new HowlFieldSchema(fSchema.alias,HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(fSchema.schema.getFields().get(0))).getTypeString(),"");
+          howlFSchema = new HowlFieldSchema(alias,HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(fSchema.schema.getFields().get(0))).getTypeString(),"");
         } else {
-          howlFSchema = new HowlFieldSchema(fSchema.alias,getTypeInfoFrom(fSchema).getTypeString(),"");
+          howlFSchema = new HowlFieldSchema(alias,getTypeInfoFrom(fSchema).getTypeString(),"");
         }
       }
       else if(type == org.apache.pig.data.DataType.TUPLE ){
-        howlFSchema = new HowlFieldSchema(fSchema.alias,getTypeInfoFrom(fSchema).getTypeString(),"");
+        howlFSchema = new HowlFieldSchema(alias,getTypeInfoFrom(fSchema).getTypeString(),"");
       }
       if( type == DataType.MAP){
-        howlFSchema = new HowlFieldSchema(fSchema.alias,getTypeInfoFrom(fSchema).getTypeString(),"");
+        HowlFieldSchema mapField = getTableCol(alias, tableSchema);
+        howlFSchema = new HowlFieldSchema(alias,getTypeInfoFrom(fSchema).getTypeString(),"");
       }
       else{
-        howlFSchema = new HowlFieldSchema(fSchema.alias,getHiveTypeString(fSchema.type),"");
+        howlFSchema = new HowlFieldSchema(alias,getHiveTypeString(type),"");
       }
       fieldSchemas.add(howlFSchema);
     }
@@ -179,13 +183,19 @@ public class HowlStorer extends StoreFunc {
 
   }
 
-  private String getHiveTypeString(byte type){
+  private String getHiveTypeString(byte type) throws FrontendException{
 
     switch(type){
 
     case DataType.CHARARRAY:
     case DataType.BIGCHARARRAY:
       return "string";
+    case DataType.LONG:
+      return "bigint";
+    case DataType.BYTE:
+      return "tinyint";
+    case DataType.BYTEARRAY:
+      throw new FrontendException("HowlStorer expects typed data. Cannot write bytearray.");
     default:
       return DataType.findTypeName(type);
     }
@@ -295,19 +305,31 @@ public class HowlStorer extends StoreFunc {
           }
           break;
         case DataType.BAG:
-          validateUnNested(pigField.schema);
+          for(FieldSchema innerField : pigField.schema.getFields()){
+            if(innerField.type == DataType.BAG || innerField.type == DataType.TUPLE) {
+              throw new FrontendException("Complex types cannot be nested.");
+            }
+          }
           if(howlField != null){
             HowlTypeInfo listTypeInfo = howlField.getHowlTypeInfo().getListElementTypeInfo();
             HowlType hType = listTypeInfo.getType();
             if(hType == HowlType.STRUCT){
               for(HowlTypeInfo structTypeInfo : listTypeInfo.getAllStructFieldTypeInfos()){
-                if(HowlTypeInfoUtils.isComplex(structTypeInfo.getType())){
+                if(structTypeInfo.getType() == HowlType.STRUCT || structTypeInfo.getType() == HowlType.ARRAY){
                   throw new FrontendException("Nested Complex types not allowed");
                 }
               }
             }
-             if(hType == HowlType.MAP || hType == HowlType.ARRAY) {
-              throw new FrontendException("Arrays can only contain either primitive or structs.");
+            if(hType == HowlType.MAP){
+              if(listTypeInfo.getMapKeyTypeInfo().getType() != HowlType.STRING){
+                throw new FrontendException("Key Type of map must be String");
+              }
+              if(HowlTypeInfoUtils.isComplex(listTypeInfo.getMapValueTypeInfo().getType())){
+                throw new FrontendException("Value type of map cannot be complex");
+              }
+            }
+             if(hType == HowlType.ARRAY) {
+              throw new FrontendException("Arrays cannot contain array within it.");
             }
           }
           break;
