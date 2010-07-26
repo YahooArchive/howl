@@ -95,7 +95,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
         //Serialize the output info into the configuration
         OutputJobInfo jobInfo = new OutputJobInfo(outputInfo,
-                tableSchema, tableSchema, storerInfo, location);
+                tableSchema, tableSchema, storerInfo, location, table);
         job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
 
       } catch(Exception e) {
@@ -161,7 +161,10 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      * @param schema the schema for the data
      */
     public static void setSchema(Job job, HowlSchema schema) throws IOException {
+
         OutputJobInfo jobInfo = getJobInfo(job);
+        HowlOutputCommitter.validatePartitionSchema(jobInfo.getTable(), schema);
+
         jobInfo.setOutputSchema(schema);
         job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
     }
