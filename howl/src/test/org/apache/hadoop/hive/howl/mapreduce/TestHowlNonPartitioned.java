@@ -32,8 +32,13 @@ import org.apache.hadoop.hive.serde.Constants;
 
 public class TestHowlNonPartitioned extends HowlMapReduceTest {
 
+  private List<HowlRecord> writeRecords;
+  List<HowlFieldSchema> partitionColumns;
+
   @Override
   protected void initialize() {
+
+    tableName = "testHowlNonPartitionedTable";
 
     writeRecords = new ArrayList<HowlRecord>();
 
@@ -44,15 +49,10 @@ public class TestHowlNonPartitioned extends HowlMapReduceTest {
       objList.add("strvalue" + i);
       writeRecords.add(new DefaultHowlRecord(objList));
     }
-  }
 
-
-  @Override
-  protected List<HowlFieldSchema> getPartitionColumns() {
-    List<HowlFieldSchema> fields = new ArrayList<HowlFieldSchema>();
-    fields.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
-    fields.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
-    return fields;
+    partitionColumns = new ArrayList<HowlFieldSchema>();
+    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
   }
 
   @Override
@@ -74,12 +74,12 @@ public class TestHowlNonPartitioned extends HowlMapReduceTest {
   public void testHowlNonPartitionedTable() throws Exception {
 
     Map<String, String> partitionMap = new HashMap<String, String>();
-    runMRCreate(null, 10);
+    runMRCreate(null, partitionColumns, writeRecords, 10);
 
     //Test for duplicate publish
     IOException exc = null;
     try {
-      runMRCreate(null, 20);
+      runMRCreate(null,  partitionColumns, writeRecords, 20);
     } catch(IOException e) {
       exc = e;
     }
@@ -94,7 +94,7 @@ public class TestHowlNonPartitioned extends HowlMapReduceTest {
     partitionMap.put("px", "p1value2");
 
     try {
-      runMRCreate(partitionMap, 20);
+      runMRCreate(partitionMap, partitionColumns, writeRecords, 20);
     } catch(IOException e) {
       exc = e;
     }
