@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -100,7 +101,7 @@ class HowlOutputCommitter extends OutputCommitter {
         Partition partition = new Partition();
         partition.setDbName(tableInfo.getDatabaseName());
         partition.setTableName(tableInfo.getTableName());
-        partition.setSd(table.getSd());
+        partition.setSd(new StorageDescriptor(table.getSd()));
         partition.getSd().setLocation(jobInfo.getLocation());
 
         updateTableSchema(client, table, jobInfo.getOutputSchema());
