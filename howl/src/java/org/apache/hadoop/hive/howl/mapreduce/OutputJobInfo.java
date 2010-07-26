@@ -21,6 +21,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.Serializable;
 
 import org.apache.hadoop.hive.howl.data.HowlSchema;
+import org.apache.hadoop.hive.metastore.api.Table;
 
 /** The class used to serialize and store the output related information  */
 class OutputJobInfo implements Serializable {
@@ -43,14 +44,18 @@ class OutputJobInfo implements Serializable {
     /** The location of the partition being written */
     private String location;
 
+    /** The table being written to */
+    private Table table;
+
     public OutputJobInfo(HowlTableInfo tableInfo, HowlSchema outputSchema, HowlSchema tableSchema,
-        StorerInfo storerInfo, String location) {
+        StorerInfo storerInfo, String location, Table table) {
       super();
       this.tableInfo = tableInfo;
       this.outputSchema = outputSchema;
       this.tableSchema = tableSchema;
       this.storerInfo = storerInfo;
       this.location = location;
+      this.setTable(table);
     }
 
     /**
@@ -121,6 +126,22 @@ class OutputJobInfo implements Serializable {
      */
     public String getLocation() {
       return location;
+    }
+
+    /**
+     * Set the value of table
+     * @param table the table to set
+     */
+    public void setTable(Table table) {
+      this.table = table;
+    }
+
+    /**
+     * Gets the value of table
+     * @return the table
+     */
+    public Table getTable() {
+      return table;
     }
 
 }

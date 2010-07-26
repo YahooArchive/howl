@@ -46,6 +46,7 @@ import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
+import org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -68,17 +69,16 @@ public abstract class HowlMapReduceTest extends TestCase {
   protected String outputFormat = RCFileOutputFormat.class.getName();
   protected String inputSD = RCFileInputStorageDriver.class.getName();
   protected String outputSD = RCFileOutputStorageDriver.class.getName();
+  protected String serdeClass = ColumnarSerDe.class.getName();
 
-  protected static List<HowlRecord> writeRecords = new ArrayList<HowlRecord>();
-  protected static List<HowlRecord> readRecords = new ArrayList<HowlRecord>();
+  private static List<HowlRecord> writeRecords = new ArrayList<HowlRecord>();
+  private static List<HowlRecord> readRecords = new ArrayList<HowlRecord>();
 
   protected abstract void initialize();
 
   protected abstract List<FieldSchema> getPartitionKeys();
 
   protected abstract List<FieldSchema> getTableColumns();
-
-  protected abstract List<HowlFieldSchema> getPartitionColumns();
 
   private HiveMetaStoreClient client;
   private HiveConf hiveConf;
@@ -90,9 +90,11 @@ public abstract class HowlMapReduceTest extends TestCase {
   protected void setUp() throws Exception {
     hiveConf = new HiveConf(this.getClass());
 
-    thriftUri = System.getProperty("HOWL_THRIFT_URI", null);
+    thriftUri = System.getenv("HOWL_METASTORE_URI");
 
     if( thriftUri != null ) {
+      System.out.println("Using URI " + thriftUri);
+
       hiveConf.set("hive.metastore.local", "false");
       hiveConf.set(HiveConf.ConfVars.METASTOREURIS.varname, thriftUri);
     }
@@ -100,15 +102,20 @@ public abstract class HowlMapReduceTest extends TestCase {
     fs = new LocalFileSystem();
     fs.initialize(fs.getWorkingDirectory().toUri(), new Configuration());
 
+    initialize();
+
     client = new HiveMetaStoreClient(hiveConf, null);
     initTable();
-
-    initialize();
   }
 
   @Override
   protected void tearDown() throws Exception {
-    client.dropTable(dbName, tableName);
+    try {
+      client.dropTable(dbName, tableName);
+    } catch(Exception e) {
+      e.printStackTrace();
+      throw e;
+    }
     //client.dropDatabase(dbName);
 
     client.close();
@@ -120,7 +127,8 @@ public abstract class HowlMapReduceTest extends TestCase {
 
     try {
       client.dropTable(dbName, tableName);
-    } catch(Exception e) {} //can fail with NoSuchObjectException
+    } catch(Exception e) {
+    } //can fail with NoSuchObjectException
 
     //client.dropDatabase(dbName);
     //boolean ret = client.createDatabase(dbName, "howlTest_loc");
@@ -128,7 +136,7 @@ public abstract class HowlMapReduceTest extends TestCase {
     Table tbl = new Table();
     tbl.setDbName(dbName);
     tbl.setTableName(tableName);
-    tbl.setTableType("EXTERNAL_TABLE");
+    tbl.setTableType("MANAGED_TABLE");
     StorageDescriptor sd = new StorageDescriptor();
 
     sd.setCols(getTableColumns());
@@ -142,8 +150,7 @@ public abstract class HowlMapReduceTest extends TestCase {
     sd.getSerdeInfo().setParameters(new HashMap<String, String>());
     sd.getSerdeInfo().getParameters().put(
         org.apache.hadoop.hive.serde.Constants.SERIALIZATION_FORMAT, "1");
-    sd.getSerdeInfo().setSerializationLib(
-        org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.class.getName());
+    sd.getSerdeInfo().setSerializationLib(serdeClass);
     sd.setInputFormat(inputFormat);
     sd.setOutputFormat(outputFormat);
 
@@ -208,12 +215,17 @@ public abstract class HowlMapReduceTest extends TestCase {
           readCount++;
         } catch(Exception e) {
           e.printStackTrace(); //print since otherwise exception is lost
-          throw new IOException(e);        }
+          throw new IOException(e);
+        }
       }
     }
   }
 
-  void runMRCreate(Map<String, String> partitionValues, int writeCount) throws Exception {
+  void runMRCreate(Map<String, String> partitionValues,
+        List<HowlFieldSchema> partitionColumns, List<HowlRecord> records,
+        int writeCount) throws Exception {
+
+    writeRecords = records;
     MapCreate.writeCount = 0;
 
     Configuration conf = new Configuration();
@@ -239,7 +251,7 @@ public abstract class HowlMapReduceTest extends TestCase {
 
     job.setNumReduceTasks(0);
 
-    HowlOutputFormat.setSchema(job, new HowlSchema(getPartitionColumns()));
+    HowlOutputFormat.setSchema(job, new HowlSchema(partitionColumns));
 
     //new HowlOutputCommitter(null).setupJob(job);
     job.waitForCompletion(true);
@@ -249,7 +261,7 @@ public abstract class HowlMapReduceTest extends TestCase {
   }
 
 
-  void runMRRead(int readCount) throws Exception {
+  List<HowlRecord> runMRRead(int readCount) throws Exception {
 
     MapRead.readCount = 0;
     readRecords.clear();
@@ -279,10 +291,27 @@ public abstract class HowlMapReduceTest extends TestCase {
     TextOutputFormat.setOutputPath(job, path);
 
     job.waitForCompletion(true);
-
     Assert.assertEquals(readCount, MapRead.readCount);
+
+    return readRecords;
   }
 
+
+  protected HowlSchema getTableSchema() throws Exception {
+
+    Configuration conf = new Configuration();
+    Job job = new Job(conf, "howl mapreduce read schema test");
+    job.setJarByClass(this.getClass());
+
+    // input/output settings
+    job.setInputFormatClass(HowlInputFormat.class);
+    job.setOutputFormatClass(TextOutputFormat.class);
+
+    HowlTableInfo inputInfo = HowlTableInfo.getInputTableInfo(thriftUri, dbName, tableName);
+    HowlInputFormat.setInput(job, inputInfo);
+
+    return HowlInputFormat.getTableSchema(job);
+  }
 
 }
 

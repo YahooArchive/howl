@@ -24,13 +24,19 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.thrift.TException;
 
 class HowlOutputCommitter extends OutputCommitter {
 
@@ -97,6 +103,8 @@ class HowlOutputCommitter extends OutputCommitter {
         partition.setSd(table.getSd());
         partition.getSd().setLocation(jobInfo.getLocation());
 
+        updateTableSchema(client, table, jobInfo.getOutputSchema());
+
         List<FieldSchema> fields = new ArrayList<FieldSchema>();
         for(HowlFieldSchema fieldSchema : jobInfo.getOutputSchema().getHowlFieldSchemas()) {
           fields.add(fieldSchema);
@@ -122,11 +130,85 @@ class HowlOutputCommitter extends OutputCommitter {
         client.add_partition(partition);
 
       } catch (Exception e) {
-        throw new IOException("Error adding partition to metastore", e);
+        if( e instanceof IOException ) {
+          throw (IOException) e;
+        } else {
+          throw new IOException("Error adding partition to metastore", e);
+        }
       } finally {
         if( client != null ) {
           client.close();
         }
+      }
+    }
+
+
+    /**
+     * Validate partition schema, checks if the column types match between the partition
+     * and the existing table schema. Returns the list of columns present in the partition
+     * but not in the table.
+     * @param table the table
+     * @param partitionSchema the partition schema
+     * @return the list of newly added fields
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    static List<FieldSchema> validatePartitionSchema(Table table, HowlSchema partitionSchema) throws IOException {
+      Map<String, FieldSchema> tableMap = new HashMap<String, FieldSchema>();
+
+      for(FieldSchema field :  table.getSd().getCols()) {
+        tableMap.put(field.getName().toLowerCase(), field);
+      }
+
+      for(FieldSchema field : table.getPartitionKeys()) {
+        tableMap.put(field.getName().toLowerCase(), field);
+      }
+
+      List<FieldSchema> newFields = new ArrayList<FieldSchema>();
+
+      for(HowlFieldSchema field : partitionSchema.getHowlFieldSchemas()) {
+        FieldSchema tableField = tableMap.get(field.getName().toLowerCase());
+
+        if( tableField == null ) {
+          //field present in partition but not in table
+          newFields.add(field);
+        } else {
+          //field present in both. valid type has not changed
+          TypeInfo partitionType = TypeInfoUtils.getTypeInfoFromTypeString(field.getType());
+          TypeInfo tableType = TypeInfoUtils.getTypeInfoFromTypeString(tableField.getType());
+
+          if( ! partitionType.equals(tableType) ) {
+            throw new IOException("Invalid type for column <" + field.getName() + ">, expected <" +
+                tableType.getTypeName() + ">, got <" + partitionType.getTypeName() + ">");
+          }
+        }
+      }
+
+      return newFields;
+    }
+
+
+    /**
+     * Update table schema, adding new columns as added for the partition.
+     * @param client the client
+     * @param table the table
+     * @param partitionSchema the schema of the partition
+     * @throws IOException Signals that an I/O exception has occurred.
+     * @throws InvalidOperationException the invalid operation exception
+     * @throws MetaException the meta exception
+     * @throws TException the t exception
+     */
+    private void updateTableSchema(HiveMetaStoreClient client, Table table,
+        HowlSchema partitionSchema) throws IOException, InvalidOperationException, MetaException, TException {
+
+      List<FieldSchema> newColumns = validatePartitionSchema(table, partitionSchema);
+
+      if( newColumns.size() != 0 ) {
+        List<FieldSchema> tableColumns = new ArrayList<FieldSchema>(table.getSd().getCols());
+        tableColumns.addAll(newColumns);
+
+        //Update table schema to add the newly added columns
+        table.getSd().setCols(tableColumns);
+        client.alter_table(table.getDbName(), table.getTableName(), table);
       }
     }
 
@@ -148,7 +230,7 @@ class HowlOutputCommitter extends OutputCommitter {
       List<String> values = new ArrayList<String>();
 
       for(FieldSchema schema : table.getPartitionKeys()) {
-        String value = valueMap.get(schema.getName());
+        String value = valueMap.get(schema.getName().toLowerCase());
 
         if( value == null ) {
           throw new IOException("No partition key value provided for key " +
