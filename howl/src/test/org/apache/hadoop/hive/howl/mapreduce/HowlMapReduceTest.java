@@ -74,14 +74,14 @@ public abstract class HowlMapReduceTest extends TestCase {
   private static List<HowlRecord> writeRecords = new ArrayList<HowlRecord>();
   private static List<HowlRecord> readRecords = new ArrayList<HowlRecord>();
 
-  protected abstract void initialize();
+  protected abstract void initialize() throws Exception;
 
   protected abstract List<FieldSchema> getPartitionKeys();
 
   protected abstract List<FieldSchema> getTableColumns();
 
   private HiveMetaStoreClient client;
-  private HiveConf hiveConf;
+  protected HiveConf hiveConf;
 
   private FileSystem fs;
   private String thriftUri = null;

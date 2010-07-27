@@ -24,11 +24,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.serde.Constants;
 
 public class TestHowlPartitioned extends HowlMapReduceTest {
@@ -36,11 +38,20 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
   private List<HowlRecord> writeRecords;
   private List<HowlFieldSchema> partitionColumns;
 
+  Driver driver;
+
   @Override
-  protected void initialize() {
+  protected void initialize() throws Exception {
 
     tableName = "testHowlPartitionedTable";
     writeRecords = new ArrayList<HowlRecord>();
+
+    //The default org.apache.hadoop.hive.ql.hooks.PreExecutePrinter hook
+    //is present only in the ql/test directory
+    hiveConf.set(HiveConf.ConfVars.PREEXECHOOKS.varname, "");
+    hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
+
+    driver = new Driver(hiveConf);
 
     for(int i = 0;i < 20;i++) {
       List<Object> objList = new ArrayList<Object>();
@@ -129,6 +140,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     tableSchemaTest();
     columnOrderChangeTest();
+    hiveReadTest();
   }
 
 
@@ -138,9 +150,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     HowlSchema tableSchema = getTableSchema();
     assertTrue(tableSchema.getHowlFieldSchemas().size() == 2 );
 
-    //Update partition schema to have 4 fields, one same as partition key
+    //Update partition schema to have 3 fields
     partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("p1", Constants.STRING_TYPE_NAME, ""));
 
     writeRecords = new ArrayList<HowlRecord>();
 
@@ -150,7 +161,6 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
       objList.add(i);
       objList.add("strvalue" + i);
       objList.add("str2value" + i);
-      objList.add("p1value5");
 
       writeRecords.add(new DefaultHowlRecord(objList));
     }
@@ -187,7 +197,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     assertTrue(exc.getMessage().indexOf(
         "Invalid type for column <c2>") != -1);
 
-    //Test that changing partition data type fails
+    //Test that partition key is not allowed in data
     partitionColumns = new ArrayList<HowlFieldSchema>();
     partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
     partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
@@ -203,7 +213,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     assertTrue(exc != null);
     assertTrue(exc.getMessage().indexOf(
-        "Invalid type for column <p1>") != -1);
+        "Partition key <p1> cannot be present in the partition data") != -1);
   }
 
   //check behavior while change the order of columns
@@ -264,5 +274,20 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     //Read should get 10 + 20 + 10 + 10 rows
     runMRRead(50);
+  }
+
+  //Test that data inserted through howloutputformat is readable from hive
+  private void hiveReadTest() throws Exception {
+
+    String query = "select * from " + tableName;
+    int retCode = driver.run(query).getResponseCode();
+
+    if( retCode != 0 ) {
+      throw new Exception("Error " + retCode + " running query " + query);
+    }
+
+    ArrayList<String> res = new ArrayList<String>();
+    driver.getResults(res);
+    assertEquals(50, res.size());
   }
 }

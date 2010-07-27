@@ -177,6 +177,10 @@ class HowlOutputCommitter extends OutputCommitter {
           }
         } else {
           tableField = partitionKeyMap.get(field.getName().toLowerCase());
+
+          if( tableField != null ) {
+            throw new IOException("Partition key <" + field.getName() + "> cannot be present in the partition data");
+          }
         }
 
         if( tableField == null ) {
