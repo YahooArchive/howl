@@ -31,9 +31,22 @@ Trunk -  Unreleased
     case
     (Siying Dong via Ning Zhang)
 
+    HIVE-1469. replace isArray() calls and remove LOG.isInfoEnabled() in
+    Operator.forward()
+    (Yongqiang He via Ning Zhang)
+
+    HIVE-1463. Hive output file names are unnecessarily large
+    (Joydeep Sen Sarma via Ning Zhang)
+
+    HIVE-1229. Replace dependencies on HBase deprecated API.
+    (Basab Maulik via jvs)
+
   OPTIMIZATIONS
 
   BUG FIXES
+
+    HIVE-1471. CTAS should unescape column names in select-clause
+    (Ning Zhang via jssarma)
 
     HIVE-1440. Bug in RCFiles with local work (map-join or sort-merge join)
     (He Yongqiang via namit)
@@ -57,6 +70,25 @@ Trunk -  Unreleased
 
     HIVE-1385. UDF field() doesn't work
     (Siying Dong via He Yongqiang)
+
+    HIVE-1455. lateral view does not work with column pruning
+    (Paul Yang via He Yongqiang)
+
+    HIVE-1470. percentile_approx() fails with more than 1 reducer
+    (Mayank Lahiri via jvs)
+
+  TESTS
+
+    HIVE-1464. improve  test query performance
+    (Joydeep Sen Sarma via Ning Zhang)
+
+    HIVE-1475. .gitignore files being placed in test warehouse directories
+    causing build failure
+    (Joydeep Sen Sarma via Ning Zhang)
+
+    HIVE-1489. TestCliDriver -Doverwrite=true does not put the file in
+    the correct directory
+    (Ning Zhang via jvs)
 
 Release 0.6.0 -  Unreleased
 
