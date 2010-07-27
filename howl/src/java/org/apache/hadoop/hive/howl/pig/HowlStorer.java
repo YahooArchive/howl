@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -112,17 +111,14 @@ public class HowlStorer extends StoreFunc {
       String alias = fSchema.alias;
       if(type == org.apache.pig.data.DataType.BAG){
 
-        if(removeTupleFromBag(tableSchema, fSchema)){
-          howlFSchema = new HowlFieldSchema(alias,HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(fSchema.schema.getFields().get(0))).getTypeString(),"");
-        } else {
-          howlFSchema = new HowlFieldSchema(alias,getTypeInfoFrom(fSchema).getTypeString(),"");
-        }
+        HowlTypeInfo typeInfo = removeTupleFromBag(tableSchema, fSchema) ?
+            HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(fSchema.schema.getField(0).schema.getField(0))) : getTypeInfoFrom(fSchema);
+        howlFSchema = new HowlFieldSchema(alias,typeInfo.getTypeString(),"");
       }
       else if(type == org.apache.pig.data.DataType.TUPLE ){
         howlFSchema = new HowlFieldSchema(alias,getTypeInfoFrom(fSchema).getTypeString(),"");
       }
-      if( type == DataType.MAP){
-        HowlFieldSchema mapField = getTableCol(alias, tableSchema);
+      else if( type == DataType.MAP){
         howlFSchema = new HowlFieldSchema(alias,getTypeInfoFrom(fSchema).getTypeString(),"");
       }
       else{
@@ -130,6 +126,7 @@ public class HowlStorer extends StoreFunc {
       }
       fieldSchemas.add(howlFSchema);
     }
+
     return new HowlSchema(fieldSchemas);
   }
 
@@ -176,6 +173,33 @@ public class HowlStorer extends StoreFunc {
       return HowlTypeInfoUtils.getStructHowlTypeInfo(fieldNames, typeInfos);
 
     case DataType.MAP:
+
+      HowlFieldSchema mapField = getTableCol(fSchema.alias, howlTblSchema);
+      if(mapField != null){
+        HowlType mapValType = mapField.getHowlTypeInfo().getMapValueTypeInfo().getType();
+        Class<?> clazz;
+        switch(mapValType){
+        case STRING:
+          clazz = String.class;
+          break;
+        case BIGINT:
+          clazz = Long.class;
+          break;
+        case INT:
+          clazz = Integer.class;
+          break;
+        case FLOAT:
+          clazz = Float.class;
+          break;
+        case DOUBLE:
+          clazz = Double.class;
+          break;
+          default:
+            throw new FrontendException("Only pig primitive types are supported as map value types.");
+        }
+        return HowlTypeInfoUtils.getMapHowlTypeInfo(HowlTypeInfoUtils.getPrimitiveTypeInfo(String.class), HowlTypeInfoUtils.getPrimitiveTypeInfo(clazz));
+      }
+
       return HowlTypeInfoUtils.getMapHowlTypeInfo(HowlTypeInfoUtils.getPrimitiveTypeInfo(String.class), HowlTypeInfoUtils.getPrimitiveTypeInfo(String.class));
     default:
       return HowlTypeInfoUtils.getHowlTypeInfo(getHiveTypeString(type));
@@ -235,16 +259,7 @@ public class HowlStorer extends StoreFunc {
     HowlType type = typeInfo.getType();
 
     switch(type){
-    case MAP:
-      typeInfo.getMapValueTypeInfo();
-      Map<String,Object> incoming = (Map<String,Object>)pigObj;
-      Map<String, Object> typedMap = new HashMap<String, Object>(incoming.size());
-      for(Entry<String, Object> untyped : incoming.entrySet()){
-        typedMap.put(untyped.getKey(), untyped.getValue().toString());
-      }
-      return typedMap;
-
-    case STRUCT:
+      case STRUCT:
       Tuple innerTup = (Tuple)pigObj;
       List<Object> innerList = new ArrayList<Object>(innerTup.size());
       int i = 0;
@@ -268,6 +283,13 @@ public class HowlStorer extends StoreFunc {
       }
       return bagContents;
 
+//    case MAP:
+//     Map<String,DataByteArray> pigMap = (Map<String,DataByteArray>)pigObj;
+//     Map<String,Long> typeMap = new HashMap<String, Long>();
+//     for(Entry<String, DataByteArray> entry: pigMap.entrySet()){
+//       typeMap.put(entry.getKey(), new Long(entry.getValue().toString()));
+//     }
+//     return typeMap;
     default:
       return pigObj;
     }
@@ -305,9 +327,10 @@ public class HowlStorer extends StoreFunc {
           }
           break;
         case DataType.BAG:
-          for(FieldSchema innerField : pigField.schema.getFields()){
+
+          for(FieldSchema innerField : pigField.schema.getField(0).schema.getFields()){
             if(innerField.type == DataType.BAG || innerField.type == DataType.TUPLE) {
-              throw new FrontendException("Complex types cannot be nested.");
+              throw new FrontendException("Complex types cannot be nested. "+innerField);
             }
           }
           if(howlField != null){
@@ -361,6 +384,8 @@ public class HowlStorer extends StoreFunc {
     // Its a new column
     return null;
   }
+  HowlSchema howlTblSchema;
+
   @Override
   public void setStoreLocation(String location, Job job) throws IOException {
 
@@ -378,9 +403,9 @@ public class HowlStorer extends StoreFunc {
     if(!HowlUtil.checkJobContextIfRunningFromBackend(job)){
 
       HowlOutputFormat.setOutput(job, tblInfo);
-      HowlSchema tblSchema = HowlOutputFormat.getTableSchema(job);
-      doSchemaValidations(pigSchema, tblSchema);
-      computedSchema = convertPigSchemaToHowlSchema(pigSchema,tblSchema);
+      howlTblSchema = HowlOutputFormat.getTableSchema(job);
+      doSchemaValidations(pigSchema, howlTblSchema);
+      computedSchema = convertPigSchemaToHowlSchema(pigSchema,howlTblSchema);
       HowlOutputFormat.setSchema(job, computedSchema);
       p.setProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, config.get(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
       if(config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
