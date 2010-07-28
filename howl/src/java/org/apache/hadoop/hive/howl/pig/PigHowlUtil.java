@@ -290,12 +290,10 @@ public class PigHowlUtil {
         && (itemType != org.apache.hadoop.hive.howl.data.DataType.STRUCT)
         && (itemType != org.apache.hadoop.hive.howl.data.DataType.MAP)){
       // primitive type.
-      if (itemType != org.apache.hadoop.hive.howl.data.DataType.SHORT){
-        // return new Integer(((Short)o).intValue());
-        return o; // we seem to be getting a runtime Integer here anyway.
-      } else if (itemType != org.apache.hadoop.hive.howl.data.DataType.BYTE){
-        // return new Integer(((Byte)o).intValue());
-        return new Integer(((Short)o).intValue()); // we're getting a runtime Short here.
+      if (itemType == org.apache.hadoop.hive.howl.data.DataType.SHORT){
+        return new Integer(((Short)o).intValue());
+      } else if (itemType == org.apache.hadoop.hive.howl.data.DataType.BYTE){
+        return new Integer(((Byte)o).intValue());
       }else{
         return o;
       }
