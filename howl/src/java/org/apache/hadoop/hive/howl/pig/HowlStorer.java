@@ -69,7 +69,6 @@ public class HowlStorer extends StoreFunc {
   /**
    *
    */
-  private static final String HOWL_METASTORE_URI = "howl.metastore.uri";
   private static final String COMPUTED_OUTPUT_SCHEMA = "howl.output.schema";
 
   private final Map<String,String> partitions;
@@ -95,13 +94,19 @@ public class HowlStorer extends StoreFunc {
   @Override
   public void checkSchema(ResourceSchema resourceSchema) throws IOException {
 
+    /*  Schema provided by user and the schema computed by Pig
+     * at the time of calling store must match.
+     */
     Schema runtimeSchema = Schema.getPigSchema(resourceSchema);
-    if(! Schema.equals(runtimeSchema, pigSchema, false, true) ){
+    if(! Schema.equals(runtimeSchema, pigSchema, false, false) ){
       throw new FrontendException("Schema provided in store statement doesn't match with the Schema" +
     "returned by Pig run-time. Schema provided in HowlStorer: "+pigSchema.toString()+ " Schema received from Pig runtime: "+runtimeSchema.toString());
     }
   }
 
+  /** Constructs HowlSchema from pigSchema. Passed tableSchema is the existing
+   * schema of the table in metastore.
+   */
   private HowlSchema convertPigSchemaToHowlSchema(Schema pigSchema, HowlSchema tableSchema) throws FrontendException{
 
     List<HowlFieldSchema> fieldSchemas = new ArrayList<HowlFieldSchema>(pigSchema.size());
@@ -111,6 +116,7 @@ public class HowlStorer extends StoreFunc {
       String alias = fSchema.alias;
       if(type == org.apache.pig.data.DataType.BAG){
 
+        // Find out if we need to throw away the tuple or not.
         HowlTypeInfo typeInfo = removeTupleFromBag(tableSchema, fSchema) ?
             HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(fSchema.schema.getField(0).schema.getField(0))) : getTypeInfoFrom(fSchema);
         howlFSchema = new HowlFieldSchema(alias,typeInfo.getTypeString(),"");
@@ -173,7 +179,9 @@ public class HowlStorer extends StoreFunc {
       return HowlTypeInfoUtils.getStructHowlTypeInfo(fieldNames, typeInfos);
 
     case DataType.MAP:
-
+      // Pig's schema contain no type information about map's keys and
+      // values. So, if its a new column assume <string,string> if its existing
+      // return whatever is contained in the existing column.
       HowlFieldSchema mapField = getTableCol(fSchema.alias, howlTblSchema);
       if(mapField != null){
         HowlType mapValType = mapField.getHowlTypeInfo().getMapValueTypeInfo().getType();
@@ -216,8 +224,6 @@ public class HowlStorer extends StoreFunc {
       return "string";
     case DataType.LONG:
       return "bigint";
-    case DataType.BYTE:
-      return "tinyint";
     case DataType.BYTEARRAY:
       throw new FrontendException("HowlStorer expects typed data. Cannot write bytearray.");
     default:
@@ -256,10 +262,13 @@ public class HowlStorer extends StoreFunc {
 
   private Object getJavaObj(Object pigObj, HowlTypeInfo typeInfo) throws ExecException{
 
+    // The real work-horse. Spend time and energy in this method if there is
+    // need to keep HowlStorer lean and go fast.
     HowlType type = typeInfo.getType();
 
     switch(type){
       case STRUCT:
+        // Unwrap the tuple.
       Tuple innerTup = (Tuple)pigObj;
       List<Object> innerList = new ArrayList<Object>(innerTup.size());
       int i = 0;
@@ -268,6 +277,7 @@ public class HowlStorer extends StoreFunc {
       }
       return innerList;
     case ARRAY:
+      // Unwrap the bag.
       DataBag pigBag = (DataBag)pigObj;
       HowlTypeInfo tupTypeInfo = typeInfo.getListElementTypeInfo();
       List<Object> bagContents = new ArrayList<Object>((int)pigBag.size());
@@ -298,7 +308,8 @@ public class HowlStorer extends StoreFunc {
   @Override
   public String relToAbsPathForStoreLocation(String location, Path curDir) throws IOException {
 
-    // Dont muck around with db name and table name.
+    // Need to necessarily override this method since default impl assumes HDFS
+    // based location string.
     return location;
   }
 
@@ -310,12 +321,16 @@ public class HowlStorer extends StoreFunc {
 
   private void doSchemaValidations(Schema pigSchema, HowlSchema tblSchema) throws FrontendException{
 
+    // Iterate through all the elements in Pig Schema and do validations as
+    // dictated by semantics, consult HowlSchema of table when need be.
+
     for(FieldSchema pigField : pigSchema.getFields()){
       byte type = pigField.type;
       String alias = pigField.alias;
       HowlFieldSchema howlField = getTableCol(alias, tblSchema);
       if(DataType.isComplex(type)){
         switch(type){
+
         case DataType.MAP:
           if(howlField != null){
             if(howlField.getHowlTypeInfo().getMapKeyTypeInfo().getType() != HowlType.STRING){
@@ -326,14 +341,16 @@ public class HowlStorer extends StoreFunc {
             }
           }
           break;
-        case DataType.BAG:
 
+        case DataType.BAG:
+          // Only map is allowed as complex type in tuples inside bag.
           for(FieldSchema innerField : pigField.schema.getField(0).schema.getFields()){
             if(innerField.type == DataType.BAG || innerField.type == DataType.TUPLE) {
               throw new FrontendException("Complex types cannot be nested. "+innerField);
             }
           }
           if(howlField != null){
+            // Do the same validation for HowlSchema.
             HowlTypeInfo listTypeInfo = howlField.getHowlTypeInfo().getListElementTypeInfo();
             HowlType hType = listTypeInfo.getType();
             if(hType == HowlType.STRUCT){
@@ -356,6 +373,7 @@ public class HowlStorer extends StoreFunc {
             }
           }
           break;
+
         case DataType.TUPLE:
           validateUnNested(pigField.schema);
           if(howlField != null){
@@ -366,14 +384,28 @@ public class HowlStorer extends StoreFunc {
             }
           }
           break;
+
         default:
           throw new FrontendException("Internal Error.");
         }
       }
     }
+
+    for(HowlFieldSchema howlField : tblSchema.getHowlFieldSchemas()){
+
+      // We dont do type promotion/demotion.
+      HowlType hType = howlField.getHowlTypeInfo().getType();
+      switch(hType){
+      case SMALLINT:
+      case TINYINT:
+      case BOOLEAN:
+        throw new FrontendException("Incompatible found in howl table schema: "+hType);
+      }
+    }
   }
 
 
+  // Finds column by name in HowlSchema, if not found returns null.
   private HowlFieldSchema getTableCol(String alias, HowlSchema tblSchema){
 
     for(HowlFieldSchema howlField : tblSchema.getHowlFieldSchemas()){
@@ -395,7 +427,7 @@ public class HowlStorer extends StoreFunc {
     if(userStr.length != 2) {
       throw new IOException("Incorrect store location. Please, specify the store location as dbname.tblname");
     }
-    HowlTableInfo tblInfo = HowlTableInfo.getOutputTableInfo(UDFContext.getUDFContext().getClientSystemProps().getProperty(HOWL_METASTORE_URI),
+    HowlTableInfo tblInfo = HowlTableInfo.getOutputTableInfo(PigHowlUtil.getHowlServerUri(),
         userStr[0],userStr[1],partitions);
 
 
