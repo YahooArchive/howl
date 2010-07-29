@@ -26,6 +26,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.howl.data.Pair;
+import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
+import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat;
 import org.apache.hadoop.hive.howl.mapreduce.HowlTableInfo;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
@@ -66,6 +68,8 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   private String partitionFilterString;
   private final PigHowlUtil phutil = new PigHowlUtil();
 
+  HowlTypeInfo outputTypeInfo = null;
+
   @Override
   public InputFormat<?,?> getInputFormat() throws IOException {
     if(howlInputFormat == null) {
@@ -78,7 +82,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   public Tuple getNext() throws IOException {
     try {
       HowlRecord hr =  (HowlRecord) (reader.nextKeyValue() ? reader.getCurrentValue() : null);
-      Tuple t = PigHowlUtil.transformToTuple(hr);
+      Tuple t = PigHowlUtil.transformToTuple(hr,outputTypeInfo);
       // TODO : we were discussing an iter interface, and also a LazyTuple
       // change this when plans for that solidifies.
       return t;
@@ -146,25 +150,25 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     if(requiredFieldsInfo != null) {
       // convert to owlschema and pass to OwlInputFormat
       try {
-        HowlInputFormat.setOutputSchema(job, getHowlSchema(requiredFieldsInfo));
+        HowlSchema outputSchema = getHowlSchema(requiredFieldsInfo);
+        HowlInputFormat.setOutputSchema(job, outputSchema);
+        outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(outputSchema);
       } catch (Exception e) {
         throw new IOException(e);
       }
-    } // else - this means pig's optimizer never invoked the pushProjection
-    // method - so we need all fields and hence we should not call the
-    // setOutputSchema on OwlInputFormat
-  }
-
-  /**
-   * @return
-   */
-  private String getPartitionFilterString() {
-    if(partitionFilterString == null) {
-      Properties props = UDFContext.getUDFContext().getUDFProperties(
-          this.getClass(), new String[] {signature});
-      partitionFilterString = props.getProperty(PARTITION_FILTER);
+    } else{
+      // else - this means pig's optimizer never invoked the pushProjection
+      // method - so we need all fields and hence we should not call the
+      // setOutputSchema on OwlInputFormat
+      if (HowlUtil.checkJobContextIfRunningFromBackend(job)){
+        try {
+          HowlSchema howlTableSchema = (HowlSchema) props.get(PigHowlUtil.HOWL_TABLE_SCHEMA);
+          outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
+        } catch (Exception e) {
+          throw new IOException(e);
+        }
+      }
     }
-    return partitionFilterString;
   }
 
   /**
@@ -202,9 +206,10 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   @Override
   public ResourceSchema getSchema(String location, Job job) throws IOException {
     Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:phutil.getHowlServerUri());;
-    HowlSchema howlSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
-    storeInUDFContext(signature, PigHowlUtil.HOWL_TABLE_SCHEMA, howlSchema);
-    return PigHowlUtil.getResourceSchema(howlSchema);
+    HowlSchema howlTableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
+    storeInUDFContext(signature, PigHowlUtil.HOWL_TABLE_SCHEMA, howlTableSchema);
+    outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
+    return PigHowlUtil.getResourceSchema(howlTableSchema);
   }
 
   @Override
