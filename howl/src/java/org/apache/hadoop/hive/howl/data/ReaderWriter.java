@@ -72,7 +72,7 @@ public abstract class ReaderWriter {
   }
 
   public static void writeDatum(DataOutput out, Object val) throws IOException {
-    // Read the data type
+    // write the data type
     byte type = DataType.findType(val);
     switch (type) {
     case DataType.LIST:
