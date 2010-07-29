@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.howl.data.type;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
@@ -68,6 +69,10 @@ public class HowlTypeInfoUtils {
 
   public static HowlTypeInfo getHowlTypeInfo(Schema s){
     return getHowlTypeInfo(s.getFieldSchemas());
+  }
+
+  public static HowlTypeInfo getHowlTypeInfo(HowlSchema s){
+    return getHowlTypeInfo(s.getHowlFieldSchemas());
   }
 
   public static HowlTypeInfo getHowlTypeInfo(List<? extends FieldSchema> fslist){
