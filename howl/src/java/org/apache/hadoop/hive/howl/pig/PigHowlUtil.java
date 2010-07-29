@@ -35,6 +35,7 @@ import org.apache.hadoop.hive.howl.data.type.HowlType;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
@@ -45,15 +46,18 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
+
+import com.sun.corba.se.impl.io.TypeMismatchException;
 
 public class PigHowlUtil {
 
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
   public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
-
-  static final int HowlExceptionCode = 4010;
+  static final int HowlExceptionCode = 4010; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
+  private static final int NONEXISTANT_TABLE_PIG_ERRORCODE = 1115; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
 
   private final  Map<Pair<String,String>, Table> howlTableCache =
     new HashMap<Pair<String,String>, Table>();
@@ -97,7 +101,7 @@ public class PigHowlUtil {
       hiveConf.set("hive.metastore.uris", serverUri);
     }
     try {
-    client = new HiveMetaStoreClient(hiveConf,null);
+      client = new HiveMetaStoreClient(hiveConf,null);
     } catch (Exception e){
       throw new Exception("Could not instantiate a HiveMetaStoreClient connecting to server uri:["+serverUri+"]");
     }
@@ -174,6 +178,8 @@ public class PigHowlUtil {
     try {
       client = createHiveMetaClient(howlServerUri, PigHowlUtil.class);
       table = client.getTable(dbName, tableName);
+    } catch (NoSuchObjectException nsoe){
+      throw new FrontendException(nsoe.getMessage(),NONEXISTANT_TABLE_PIG_ERRORCODE); // prettier error messages to frontend
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -189,17 +195,11 @@ public class PigHowlUtil {
     List<ResourceFieldSchema> rfSchemaList = new ArrayList<ResourceFieldSchema>();
     for (HowlFieldSchema hfs : howlSchema.getHowlFieldSchemas()){
       ResourceFieldSchema rfSchema;
-//      try {
       rfSchema = new ResourceFieldSchema()
                   .setName(hfs.getName())
                   .setDescription(hfs.getComment())
                   .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType()) ))
                   .setSchema(null); // TODO: see if we need to munge inner schemas for these
-//      } catch (NullPointerException e){
-//        throw new IOException("RFSchema translation error from hfs:{ name:"+nullProtectedPrint(hfs.getName())
-//            +",type:"+nullProtectedPrint(hfs.getType())
-//            +",comment:"+nullProtectedPrint(hfs.getComment())+"}",e);
-//      }
       rfSchemaList.add(rfSchema);
     }
     ResourceSchema rSchema = new ResourceSchema();
@@ -207,10 +207,6 @@ public class PigHowlUtil {
     return rSchema;
 
   }
-
-//  static public String nullProtectedPrint(String s) {
-//    return (s == null ? "null" : s);
-//  }
 
   /**
    * @param type owl column type
@@ -267,72 +263,113 @@ public class PigHowlUtil {
     throw new PigException(errMsg, HowlExceptionCode);
   }
 
-  @SuppressWarnings("unchecked")
-  public static Tuple transformToTuple(HowlRecord hr) throws Exception{
+
+  public static Tuple transformToTuple(HowlRecord hr, HowlTypeInfo hti) throws Exception {
     if (hr == null){
       return null;
     }
+    return transformToTuple(hr.getAll(),hti);
+  }
+
+  public static Tuple transformToTuple(List<? extends Object> objList, HowlTypeInfo hti) throws Exception {
+    if (objList == null){
+      return null;
+    }
     Tuple t = new DefaultTuple();
-    for (int i = 0; i< hr.size(); i++){
-      t.append(extractPigObject(hr.get(i),org.apache.hadoop.hive.howl.data.DataType.findType(hr.get(i))));
+    List<HowlTypeInfo> subtypes;
+    try {
+      subtypes = hti.getAllStructFieldTypeInfos();
+    } catch (Exception e){
+      if (hti.getType() != HowlType.STRUCT){
+        throw new TypeMismatchException("Expected Struct type, got "+hti.getType());
+      } else {
+        throw e;
+      }
+    }
+    for (int i = 0; i < subtypes.size(); i++){
+      t.append(
+            extractPigObject(objList.get(i), subtypes.get(i))
+          );
     }
     return t;
   }
 
-  public static Object extractPigObject(Object o) throws Exception{
-    return extractPigObject(o,org.apache.hadoop.hive.howl.data.DataType.findType(o));
-  }
-
   @SuppressWarnings("unchecked")
-  public static Object extractPigObject(Object o, byte itemType) throws Exception{
+  public static Object extractPigObject(Object o, HowlTypeInfo hti) throws Exception{
+    HowlType itemType = hti.getType();
     if (
-        (itemType != org.apache.hadoop.hive.howl.data.DataType.LIST)
-        && (itemType != org.apache.hadoop.hive.howl.data.DataType.STRUCT)
-        && (itemType != org.apache.hadoop.hive.howl.data.DataType.MAP)){
+        (itemType != HowlType.ARRAY)
+        && (itemType != HowlType.STRUCT)
+        && (itemType != HowlType.MAP)){
       // primitive type.
-      if (itemType != org.apache.hadoop.hive.howl.data.DataType.SHORT){
-        // return new Integer(((Short)o).intValue());
-        return o; // we seem to be getting a runtime Integer here anyway.
-      } else if (itemType != org.apache.hadoop.hive.howl.data.DataType.BYTE){
-        // return new Integer(((Byte)o).intValue());
-        return new Integer(((Short)o).intValue()); // we're getting a runtime Short here.
+
+      if (itemType == HowlType.SMALLINT){
+        return new Integer(((Short)o).intValue());
+      } else if (itemType == HowlType.TINYINT){
+        return new Integer(((Byte)o).intValue());
       }else{
         return o;
       }
-    } else  if (itemType == org.apache.hadoop.hive.howl.data.DataType.STRUCT) {
-      return transformToTuple((HowlRecord) o);
-    } else  if (itemType == org.apache.hadoop.hive.howl.data.DataType.LIST) {
-      return transformToBag((List<? extends Object>) o);
-    } else  if (itemType == org.apache.hadoop.hive.howl.data.DataType.MAP) {
-      return transformToPigMap((Map<String, Object>)o);
+    } else  if (itemType == HowlType.STRUCT) {
+      return transformToTuple((List<Object>)o,hti);
+    } else  if (itemType == HowlType.ARRAY) {
+      return transformToBag((List<? extends Object>) o,hti);
+    } else  if (itemType == HowlType.MAP) {
+      return transformToPigMap((Map<String, Object>)o,hti);
     }
     return null; // never invoked.
   }
 
-  public static Map<String,Object> transformToPigMap(Map<String,Object> map) throws Exception {
+  public static Map<String,Object> transformToPigMap(Map<String,Object> map, HowlTypeInfo hti) throws Exception {
+    if (map == null){
+      return null;
+    }
     Map<String,Object> txmap = new HashMap<String,Object>();
+    HowlTypeInfo mapValueTypeInfo;
+    try {
+      mapValueTypeInfo = hti.getMapValueTypeInfo();
+    } catch (Exception e){
+      if (hti.getType() != HowlType.MAP){
+        throw new TypeMismatchException("Expected Map type, got "+hti.getType());
+      }else{
+        throw e;
+      }
+    }
     for (Entry<String,Object> e : map.entrySet()){
-      txmap.put(e.getKey(), extractPigObject(e.getValue()));
+      txmap.put(e.getKey(), extractPigObject(e.getValue(),mapValueTypeInfo));
     }
     return txmap;
   }
+  public static DataBag transformToBag(List<? extends Object> list, HowlTypeInfo hti) throws Exception {
+    if (list == null){
+      return null;
+    }
 
-  public static DataBag transformToBag(List<? extends Object> list) throws Exception {
     DataBag db = new DefaultDataBag();
     if (list.isEmpty()){
       return db;
     }
-    byte itemType = org.apache.hadoop.hive.howl.data.DataType.findType(list.get(0));
-    if (itemType != org.apache.hadoop.hive.howl.data.DataType.STRUCT){
+    HowlTypeInfo elementTypeInfo;
+    try {
+      elementTypeInfo = hti.getListElementTypeInfo();
+    } catch (Exception e){
+      if (hti.getType() != HowlType.ARRAY){
+        throw new TypeMismatchException("Expected Array type, got "+hti.getType());
+      }else{
+        throw e;
+      }
+    }
+    if (elementTypeInfo.getType() != HowlType.STRUCT) {
       // for items inside a bag that are not directly tuples themselves, we need to wrap inside a tuple
       for (Object o : list){
         Tuple innerTuple = new DefaultTuple();
-        innerTuple.append(extractPigObject(o,itemType));
+        innerTuple.append(extractPigObject(o,elementTypeInfo));
         db.add(innerTuple);
       }
     }else{
       for (Object o : list){
-        db.add(transformToTuple((HowlRecord) o));
+        // each object is a STRUCT type - so we expect that to be a List<Object>
+        db.add(transformToTuple((List<Object>)o,elementTypeInfo)); // FIXME : verify that it is indeed List<Object> and not a HowlRecord
       }
     }
     return db;
