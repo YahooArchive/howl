@@ -63,10 +63,9 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   @Override
   public void setInputPath(JobContext jobContext, String location) throws IOException {
 
-    // ideally we should just call ps.setLocation() here - but that won't
-    // work since ps.setLocation() calls FileInputFormat.setInputPaths()
-    // which needs a Job object instead of a JobContext which we are handed
-    // here
+    // ideally we should just call FileInputFormat.setInputPaths() here - but
+    // that won't work since FileInputFormat.setInputPaths() which needs
+    // a Job object instead of a JobContext which we are handed here
 
     int length = location.length();
     int curlyOpen = 0;
@@ -127,6 +126,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   @Override
   public void setOutputSchema(JobContext jobContext, HowlSchema hiveSchema) throws IOException {
 
+    // Finds out which column ids needs to be projected and set them up for RCFile.
     List<HowlFieldSchema> fSchemasOfPrj = hiveSchema.getHowlFieldSchemas();
     Set<String> prjColNames = new HashSet<String>(fSchemasOfPrj.size());
 
@@ -155,6 +155,8 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   @Override
   public HowlRecord convertToHowlRecord(WritableComparable ignored, Writable bytesRefArray) throws IOException {
 
+    // Deserialize bytesRefArray into struct and then convert that struct to
+    // HowlRecord.
      ColumnarStruct struct;
     try {
       struct = (ColumnarStruct)serde.deserialize(bytesRefArray);
@@ -179,6 +181,10 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
 
   private Object getTypedObj(Object data, ObjectInspector oi) throws IOException{
 
+    // The real work-horse method. We are gobbling up all the laziness benefits
+    // of Hive-RCFile by deserializing everything and creating crisp  HowlRecord
+    // with crisp Java objects inside it. We have to do it because higher layer
+    // may not how to do it.
 
     switch(oi.getCategory()){
 
@@ -228,12 +234,15 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   throws IOException {
 
     super.initialize(context, howlProperties);
+
+    // Columnar Serde needs to know names and types of columns it needs to read.
     List<FieldSchema> fields = HowlUtil.getFieldSchemaList(fSchemasOfAll);
     howlProperties.setProperty(Constants.LIST_COLUMNS,MetaStoreUtils.
             getColumnNamesFromFieldSchema(fields));
     howlProperties.setProperty(Constants.LIST_COLUMN_TYPES, MetaStoreUtils.
             getColumnTypesFromFieldSchema(fields));
 
+    // It seems RCFIle reads and writes nulls differently as compared to default hive.
     howlProperties.setProperty(Constants.SERIALIZATION_NULL_FORMAT, "NULL");
     howlProperties.setProperty(Constants.SERIALIZATION_FORMAT, "9");
 

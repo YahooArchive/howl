@@ -20,6 +20,11 @@ public class RCFileMapReduceRecordReader<K extends LongWritable, V extends Bytes
   private long start;
   private long end;
   private boolean more = true;
+
+  // key and value objects are created once in initialize() and then reused
+  // for every getCurrentKey() and getCurrentValue() call. This is important
+  // since RCFile makes an assumption of this fact.
+
   private LongWritable key;
   private BytesRefArrayWritable value;
 
