@@ -98,7 +98,7 @@ public class HowlStorer extends StoreFunc {
      * at the time of calling store must match.
      */
     Schema runtimeSchema = Schema.getPigSchema(resourceSchema);
-    if(! Schema.equals(runtimeSchema, pigSchema, false, false) ){
+    if(! Schema.equals(runtimeSchema, pigSchema, false, true) ){
       throw new FrontendException("Schema provided in store statement doesn't match with the Schema" +
     "returned by Pig run-time. Schema provided in HowlStorer: "+pigSchema.toString()+ " Schema received from Pig runtime: "+runtimeSchema.toString());
     }
