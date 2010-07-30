@@ -189,7 +189,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     HowlSchema howlTableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
     storeInUDFContext(signature, PigHowlUtil.HOWL_TABLE_SCHEMA, howlTableSchema);
     outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
-    return PigHowlUtil.getResourceSchema(howlTableSchema);
+    return phutil.getResourceSchema(howlTableSchema,location);
   }
 
   @Override
