@@ -187,7 +187,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
    * @return
    */
   private HowlSchema getHowlSchema(List<RequiredField> fields) throws IOException {
-    return phutil.getHowlSchema(fields, false,signature);
+    return phutil.getHowlSchema(fields, false,signature, this.getClass());
   }
 
 

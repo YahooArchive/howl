@@ -142,12 +142,12 @@ public class PigHowlUtil {
   //    return new HowlFieldSchema(colName,hti.getTypeString(),null);
   //  }
 
-  HowlSchema getHowlSchema(List<RequiredField> fields, boolean isSubFields,String signature) throws IOException {
+  HowlSchema getHowlSchema(List<RequiredField> fields, boolean isSubFields,String signature, Class<?> classForUDFCLookup) throws IOException {
     if(fields == null) {
       return null;
     }
     Properties props = UDFContext.getUDFContext().getUDFProperties(
-        this.getClass(), new String[] {signature});
+        classForUDFCLookup, new String[] {signature});
     HowlSchema howlTableSchema = (HowlSchema) props.get(HOWL_TABLE_SCHEMA);
     ArrayList<HowlFieldSchema> fcols = new ArrayList<HowlFieldSchema>();
     for(RequiredField rf: fields) {
