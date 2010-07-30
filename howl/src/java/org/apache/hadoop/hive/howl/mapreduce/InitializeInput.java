@@ -26,8 +26,10 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -98,11 +100,19 @@ public class InitializeInput {
       //Partitioned table
       List<Partition> parts = client.listPartitions(inputInfo.getDatabaseName(), inputInfo.getTableName(), MAX_PARTS);
 
+      // populate partition info
       for (Partition ptn : parts){
         PartInfo partInfo = extractPartInfo(ptn.getSd(),ptn.getParameters());
         partInfo.setPartitionValues(ptn.getParameters());
         partInfoList.add(partInfo);
       }
+
+      // add partition keys to table schema
+      // NOTE : this assumes that we do not ever have ptn keys as columns inside the table schema as well!
+      for (FieldSchema fs : table.getPartitionKeys()){
+          tableSchema.getHowlFieldSchemas().add(new HowlFieldSchema(fs));
+      }
+
     }else{
       //Non partitioned table
       PartInfo partInfo = extractPartInfo(table.getSd(),table.getParameters());

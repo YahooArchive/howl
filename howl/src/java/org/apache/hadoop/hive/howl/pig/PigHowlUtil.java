@@ -55,7 +55,8 @@ public class PigHowlUtil {
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
   public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
-  public static final boolean INJECT_TABLE_COLUMNS_INTO_SCHEMA = true;
+  public static final boolean INJECT_TABLE_COLUMNS_INTO_SCHEMA = false;
+  public static final boolean PTNKEYS_CAN_EXIST_IN_TABLESCHEMA = false;
 
   static final int HowlExceptionCode = 4010; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
 
@@ -173,7 +174,8 @@ public class PigHowlUtil {
       rfSchemaList.add(rfSchema);
       // if one of the specified schema columns has the same name as a ptn key,
       // remove it from the list of columns to be added after this
-      if (INJECT_TABLE_COLUMNS_INTO_SCHEMA && (mapOfPartitionKeyFieldSchemasByName.containsKey(hfs.getName()))){
+      if (INJECT_TABLE_COLUMNS_INTO_SCHEMA && PTNKEYS_CAN_EXIST_IN_TABLESCHEMA &&
+          (mapOfPartitionKeyFieldSchemasByName.containsKey(hfs.getName()))){
         mapOfPartitionKeyFieldSchemasByName.remove(hfs.getName());
       }
     }
