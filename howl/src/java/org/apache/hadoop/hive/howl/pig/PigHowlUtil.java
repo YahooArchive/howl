@@ -35,6 +35,7 @@ import org.apache.hadoop.hive.howl.data.type.HowlType;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.pig.PigException;
@@ -53,6 +54,8 @@ public class PigHowlUtil {
 
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
   public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
+
+  public static final boolean INJECT_TABLE_COLUMNS_INTO_SCHEMA = true;
 
   static final int HowlExceptionCode = 4010; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
 
@@ -122,6 +125,10 @@ public class PigHowlUtil {
     return new HowlSchema(fcols);
   }
 
+  public Table getTable(String location) throws IOException {
+    return getTable(location,getHowlServerUri());
+  }
+
   public Table getTable(String location, String howlServerUri) throws IOException{
     Pair<String, String> loc_server = new Pair<String,String>(location, howlServerUri);
     Table howlTable = howlTableCache.get(loc_server);
@@ -145,25 +152,54 @@ public class PigHowlUtil {
     return table;
   }
 
-  static public ResourceSchema getResourceSchema(HowlSchema howlSchema) throws IOException {
+  public ResourceSchema getResourceSchema(HowlSchema howlSchema, String location) throws IOException {
     if(howlSchema == null) {
       return null;
     }
-    //    return getResourceSchema(HowlTypeInfoUtils.getHowlTypeInfo(howlSchema.getHowlFieldSchemas()));
+
+    Map<String,FieldSchema> mapOfPartitionKeyFieldSchemasByName = new HashMap<String,FieldSchema>();
+    if (INJECT_TABLE_COLUMNS_INTO_SCHEMA){
+      Table tbl = getTable(location);
+      List<FieldSchema> tablePartitionKeysFieldSchemas = tbl.getPartitionKeys();
+      for (FieldSchema ptnKeyFieldSchema : tablePartitionKeysFieldSchemas){
+        mapOfPartitionKeyFieldSchemasByName.put(ptnKeyFieldSchema.getName(),ptnKeyFieldSchema);
+      }
+    }
+
     List<ResourceFieldSchema> rfSchemaList = new ArrayList<ResourceFieldSchema>();
     for (HowlFieldSchema hfs : howlSchema.getHowlFieldSchemas()){
       ResourceFieldSchema rfSchema;
-      rfSchema = new ResourceFieldSchema()
-                  .setName(hfs.getName())
-                  .setDescription(hfs.getComment())
-                  .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType()) ))
-                  .setSchema(null); // TODO: see if we need to munge inner schemas for these
+      rfSchema = getResourceSchemaFromFieldSchema(hfs);
       rfSchemaList.add(rfSchema);
+      // if one of the specified schema columns has the same name as a ptn key,
+      // remove it from the list of columns to be added after this
+      if (INJECT_TABLE_COLUMNS_INTO_SCHEMA && (mapOfPartitionKeyFieldSchemasByName.containsKey(hfs.getName()))){
+        mapOfPartitionKeyFieldSchemasByName.remove(hfs.getName());
+      }
+    }
+    // now we add in any partition column names that weren't added previously
+    if (INJECT_TABLE_COLUMNS_INTO_SCHEMA && (!mapOfPartitionKeyFieldSchemasByName.isEmpty())){
+      for (FieldSchema fs : mapOfPartitionKeyFieldSchemasByName.values()){
+        ResourceFieldSchema rfSchema;
+        rfSchema = getResourceSchemaFromFieldSchema(fs);
+        rfSchemaList.add(rfSchema);
+      }
     }
     ResourceSchema rSchema = new ResourceSchema();
     rSchema.setFields(rfSchemaList.toArray(new ResourceFieldSchema[0]));
     return rSchema;
 
+  }
+
+  private ResourceFieldSchema getResourceSchemaFromFieldSchema(FieldSchema fs)
+      throws IOException {
+    ResourceFieldSchema rfSchema;
+    rfSchema = new ResourceFieldSchema()
+                .setName(fs.getName())
+                .setDescription(fs.getComment())
+                .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(fs.getType()) ))
+                .setSchema(null); // no munging inner-schemas
+    return rfSchema;
   }
 
   /**
