@@ -150,7 +150,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     if(requiredFieldsInfo != null) {
       // convert to owlschema and pass to OwlInputFormat
       try {
-        HowlSchema outputSchema = phutil.getHowlSchema(requiredFieldsInfo.getFields(),signature);
+        HowlSchema outputSchema = phutil.getHowlSchema(requiredFieldsInfo.getFields(),signature,this.getClass());
         HowlInputFormat.setOutputSchema(job, outputSchema);
         outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(outputSchema);
       } catch (Exception e) {
@@ -170,7 +170,6 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
       }
     }
   }
-
 
   @Override
   public String[] getPartitionKeys(String location, Job job)
