@@ -57,7 +57,7 @@ import org.apache.pig.impl.util.UDFContext;
 public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
 
   private static final String PRUNE_PROJECTION_INFO = "prune.projection.info";
-  private static final String PARTITION_FILTER = "partition.filter";
+  private static final String PARTITION_FILTER = "partition.filter"; // for future use
 
   private HowlInputFormat howlInputFormat = null;
   private RecordReader<?, ?> reader;
@@ -150,7 +150,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     if(requiredFieldsInfo != null) {
       // convert to owlschema and pass to OwlInputFormat
       try {
-        HowlSchema outputSchema = getHowlSchema(requiredFieldsInfo);
+        HowlSchema outputSchema = phutil.getHowlSchema(requiredFieldsInfo.getFields(),signature,this.getClass());
         HowlInputFormat.setOutputSchema(job, outputSchema);
         outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(outputSchema);
       } catch (Exception e) {
@@ -171,26 +171,6 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     }
   }
 
-  /**
-   * @param requiredFieldsInfo
-   * @return
-   * @throws IOException
-   * @throws OwlException
-   */
-  private HowlSchema getHowlSchema(RequiredFieldList requiredFieldsInfo)
-  throws IOException {
-    return getHowlSchema(requiredFieldsInfo.getFields());
-  }
-
-  /**
-   * @param fields
-   * @return
-   */
-  private HowlSchema getHowlSchema(List<RequiredField> fields) throws IOException {
-    return phutil.getHowlSchema(fields, false,signature);
-  }
-
-
   @Override
   public String[] getPartitionKeys(String location, Job job)
   throws IOException {
@@ -205,11 +185,11 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
 
   @Override
   public ResourceSchema getSchema(String location, Job job) throws IOException {
-    Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:phutil.getHowlServerUri());;
+    Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());;
     HowlSchema howlTableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
     storeInUDFContext(signature, PigHowlUtil.HOWL_TABLE_SCHEMA, howlTableSchema);
     outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
-    return PigHowlUtil.getResourceSchema(howlTableSchema);
+    return phutil.getResourceSchema(howlTableSchema,location);
   }
 
   @Override
