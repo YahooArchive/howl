@@ -49,15 +49,12 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
 
-import com.sun.corba.se.impl.io.TypeMismatchException;
-
 public class PigHowlUtil {
 
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
   public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
   static final int HowlExceptionCode = 4010; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
-  private static final int NONEXISTANT_TABLE_PIG_ERRORCODE = 1115; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
 
   private final  Map<Pair<String,String>, Table> howlTableCache =
     new HashMap<Pair<String,String>, Table>();
@@ -108,39 +105,6 @@ public class PigHowlUtil {
     return client;
   }
 
-  //  HowlFieldSchema getHowlColumnSchema( RequiredField rf) throws IOException{
-  //    return getHowlColumnSchema(null,rf);
-  //  }
-
-  //  HowlFieldSchema getHowlColumnSchema(String columnName, RequiredField rf) throws IOException{
-  //    String colName = (columnName != null) ? columnName : rf.getAlias() ;
-  //
-  //    HowlTypeInfo hti = null;
-  //    if (rf.getType() == DataType.UNKNOWN){
-  //      hti = HowlTypeInfoUtils.getPrimitiveTypeInfo(String.class);
-  //    } else if (rf.getType() == DataType.BAG){
-  //      hti = HowlTypeInfoUtils.getListHowlTypeInfo(
-  //          HowlTypeInfoUtils.getHowlTypeInfo(
-  //              getHowlColumnSchema(rf.getSubFields().get(1)).getType()
-  //          ));
-  //    } else if (rf.getType() == DataType.TUPLE){
-  //      StructBuilder htiBuilder = HowlTypeInfoUtils.getStructHowlTypeInfoBuilder();
-  //      for ( RequiredField subfield : rf.getSubFields()){
-  //        htiBuilder.addField(subfield.getAlias(), getHowlColumnSchema(rf).getType());
-  //      }
-  //      hti = htiBuilder.build();
-  //    } else if (rf.getType() == DataType.MAP){
-  //      hti = HowlTypeInfoUtils.getMapHowlTypeInfoBuilder()
-  //              .withKeyType(HowlTypeInfoUtils.getPrimitiveTypeInfo(String.class))
-  //              .withValueType(HowlTypeInfoUtils.getPrimitiveTypeInfo( /* determine map value type here*/))
-  //              .build();
-  //    } else {
-  //      // a primitive
-  //      hti = HowlTypeInfoUtils.getPrimitiveTypeInfo(/* find primitive type here from rf.getType*/);
-  //    }
-  //
-  //    return new HowlFieldSchema(colName,hti.getTypeString(),null);
-  //  }
 
   HowlSchema getHowlSchema(List<RequiredField> fields, boolean isSubFields,String signature, Class<?> classForUDFCLookup) throws IOException {
     if(fields == null) {
@@ -179,7 +143,7 @@ public class PigHowlUtil {
       client = createHiveMetaClient(howlServerUri, PigHowlUtil.class);
       table = client.getTable(dbName, tableName);
     } catch (NoSuchObjectException nsoe){
-      throw new FrontendException(nsoe.getMessage(),NONEXISTANT_TABLE_PIG_ERRORCODE); // prettier error messages to frontend
+      throw new FrontendException("Table not found :" + nsoe.getMessage()); // prettier error messages to frontend
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -281,7 +245,7 @@ public class PigHowlUtil {
       subtypes = hti.getAllStructFieldTypeInfos();
     } catch (Exception e){
       if (hti.getType() != HowlType.STRUCT){
-        throw new TypeMismatchException("Expected Struct type, got "+hti.getType());
+        throw new Exception("Expected Struct type, got "+hti.getType());
       } else {
         throw e;
       }
@@ -330,7 +294,7 @@ public class PigHowlUtil {
       mapValueTypeInfo = hti.getMapValueTypeInfo();
     } catch (Exception e){
       if (hti.getType() != HowlType.MAP){
-        throw new TypeMismatchException("Expected Map type, got "+hti.getType());
+        throw new Exception("Expected Map type, got "+hti.getType());
       }else{
         throw e;
       }
@@ -354,7 +318,7 @@ public class PigHowlUtil {
       elementTypeInfo = hti.getListElementTypeInfo();
     } catch (Exception e){
       if (hti.getType() != HowlType.ARRAY){
-        throw new TypeMismatchException("Expected Array type, got "+hti.getType());
+        throw new Exception("Expected Array type, got "+hti.getType());
       }else{
         throw e;
       }
