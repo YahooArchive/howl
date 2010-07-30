@@ -80,7 +80,7 @@ public class PigHowlUtil {
     howlServerUri = props.getProperty(HOWL_METASTORE_URI);
     //    if(howlServerUri == null) {
     //      String msg = "Please provide uri to the metadata server using" +
-    //      " -Dmetadata.uri system property";
+    //      " -Dhowl.metastore.uri system property";
     //      throw new PigException(msg, HowlExceptionCode);
     //    }
     return howlServerUri;
@@ -106,30 +106,24 @@ public class PigHowlUtil {
   }
 
 
-  HowlSchema getHowlSchema(List<RequiredField> fields, boolean isSubFields,String signature) throws IOException {
+  HowlSchema getHowlSchema(List<RequiredField> fields, String signature) throws IOException {
     if(fields == null) {
       return null;
     }
+
     Properties props = UDFContext.getUDFContext().getUDFProperties(
         this.getClass(), new String[] {signature});
     HowlSchema howlTableSchema = (HowlSchema) props.get(HOWL_TABLE_SCHEMA);
+
     ArrayList<HowlFieldSchema> fcols = new ArrayList<HowlFieldSchema>();
     for(RequiredField rf: fields) {
-      //        String colName = null;
-      //        if(isSubFields){
-      //            // for subfields, use the column alias, not index
-      //            colName = rf.getAlias();
-      //        }else {
-      //            colName = howlTableSchema.getHowlFieldSchemas().get(rf.getIndex()).getName();
-      //        }
-      //        fcols.add(getHowlColumnSchema(colName = howlTableSchema.getHowlFieldSchemas().get(rf.getIndex()).getName(), rf));
       fcols.add(howlTableSchema.getHowlFieldSchemas().get(rf.getIndex()));
     }
     return new HowlSchema(fcols);
   }
 
   public Table getTable(String location, String howlServerUri) throws IOException{
-    Pair<String, String> loc_server = new Pair(location, howlServerUri);
+    Pair<String, String> loc_server = new Pair<String,String>(location, howlServerUri);
     Table howlTable = howlTableCache.get(loc_server);
     if(howlTable != null){
       return howlTable;
