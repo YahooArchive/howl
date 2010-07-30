@@ -70,10 +70,10 @@ public class HowlStorer extends StoreFunc {
    *
    */
   private static final String COMPUTED_OUTPUT_SCHEMA = "howl.output.schema";
-
   private final Map<String,String> partitions;
-  private final Schema pigSchema;
+  private Schema pigSchema;
   private static final Log log = LogFactory.getLog(HowlStorer.class);
+  private RecordWriter<WritableComparable<?>, HowlRecord> writer;
 
   public HowlStorer(String partSpecs, String schema) throws ParseException {
 
@@ -86,10 +86,14 @@ public class HowlStorer extends StoreFunc {
       }
     }
 
-    pigSchema = Utils.getSchemaFromString(schema);
+    if(schema != null) {
+      pigSchema = Utils.getSchemaFromString(schema);
+    }
   }
 
-  private RecordWriter<WritableComparable<?>, HowlRecord> writer;
+  public HowlStorer(String partSpecs) throws ParseException {
+   this(partSpecs, null);
+  }
 
   @Override
   public void checkSchema(ResourceSchema resourceSchema) throws IOException {
@@ -98,9 +102,13 @@ public class HowlStorer extends StoreFunc {
      * at the time of calling store must match.
      */
     Schema runtimeSchema = Schema.getPigSchema(resourceSchema);
-    if(! Schema.equals(runtimeSchema, pigSchema, false, false) ){
-      throw new FrontendException("Schema provided in store statement doesn't match with the Schema" +
-    "returned by Pig run-time. Schema provided in HowlStorer: "+pigSchema.toString()+ " Schema received from Pig runtime: "+runtimeSchema.toString());
+    if(pigSchema != null){
+      if(! Schema.equals(runtimeSchema, pigSchema, false, false) ){
+        throw new FrontendException("Schema provided in store statement doesn't match with the Schema" +
+      "returned by Pig run-time. Schema provided in HowlStorer: "+pigSchema.toString()+ " Schema received from Pig runtime: "+runtimeSchema.toString());
+      }
+    } else {
+      pigSchema = runtimeSchema;
     }
   }
 
