@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
@@ -51,9 +49,12 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
 
   private SerDe serde;
   private static final Log LOG = LogFactory.getLog(RCFileInputStorageDriver.class);
-  private List<HowlFieldSchema> fSchemasOfAll;
+  private List<HowlFieldSchema> colsInData;
   private StructObjectInspector oi;
-  private Set<Integer> prjColumnPos;
+  private Map<String,String> partValues;
+  private List<HowlFieldSchema> outCols;
+  private List<? extends StructField> structFields;
+  private Map<String,Integer> namePosMapping;
 
   @Override
   public InputFormat<? extends WritableComparable, ? extends Writable> getInputFormat(Properties howlProperties) {
@@ -118,30 +119,30 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   }
 
   @Override
-  public void setOriginalSchema(JobContext jobContext, HowlSchema hiveSchema) throws IOException {
+  public void setOriginalSchema(JobContext jobContext, HowlSchema dataSchema) throws IOException {
 
-    fSchemasOfAll = hiveSchema.getHowlFieldSchemas();
+    colsInData = dataSchema.getHowlFieldSchemas();
+    namePosMapping = new HashMap<String, Integer>(colsInData.size());
+    int index =0;
+    for(FieldSchema field : dataSchema.getHowlFieldSchemas()){
+      namePosMapping.put(field.getName(), index++);
+    }
   }
 
   @Override
-  public void setOutputSchema(JobContext jobContext, HowlSchema hiveSchema) throws IOException {
+  public void setOutputSchema(JobContext jobContext, HowlSchema desiredSchema) throws IOException {
 
     // Finds out which column ids needs to be projected and set them up for RCFile.
-    List<HowlFieldSchema> fSchemasOfPrj = hiveSchema.getHowlFieldSchemas();
-    Set<String> prjColNames = new HashSet<String>(fSchemasOfPrj.size());
-
-    for(FieldSchema fs : fSchemasOfPrj){
-      prjColNames.add(fs.getName());
-    }
+    outCols = desiredSchema.getHowlFieldSchemas();
 
     ArrayList<Integer> prjColumns = new ArrayList<Integer>();
-    for(int index = 0; index < fSchemasOfAll.size(); index++){
-      if(prjColNames.contains(fSchemasOfAll.get(index).getName())) {
-        prjColumns.add(index);
+    for(FieldSchema prjCol : outCols){
+      Integer pos = namePosMapping.get(prjCol.getName());
+      if(pos != null) {
+        prjColumns.add(pos);
       }
     }
 
-    prjColumnPos = new HashSet<Integer>(prjColumns);
     Collections.sort(prjColumns);
     ColumnProjectionUtils.setReadColumnIDs(jobContext.getConfiguration(), prjColumns);
   }
@@ -149,7 +150,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   @Override
   public void setPartitionValues(JobContext jobContext, Map<String, String> partitionValues)
   throws IOException {
-
+    partValues = partitionValues;
   }
 
   @Override
@@ -157,7 +158,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
 
     // Deserialize bytesRefArray into struct and then convert that struct to
     // HowlRecord.
-     ColumnarStruct struct;
+    ColumnarStruct struct;
     try {
       struct = (ColumnarStruct)serde.deserialize(bytesRefArray);
     } catch (SerDeException e) {
@@ -165,26 +166,34 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
       throw new IOException(e);
     }
 
-    List<? extends StructField> fields = oi.getAllStructFieldRefs();
-    List<Object> outList = new ArrayList<Object>(prjColumnPos.size());
+    List<Object> outList = new ArrayList<Object>(outCols.size());
 
-    int index = 0;
-    for(StructField field : fields){
-      if(prjColumnPos.contains(index++)) {
-        outList.add(getTypedObj(oi.getStructFieldData(struct, field), field.getFieldObjectInspector()));
+    String colName;
+    Integer index;
+
+    for(HowlFieldSchema col : outCols){
+
+      colName = col.getName();
+      index = namePosMapping.get(colName);
+
+      if(index != null){
+        StructField field = structFields.get(index);
+        outList.add( getTypedObj(oi.getStructFieldData(struct, field), field.getFieldObjectInspector()));
+      }
+
+      else {
+        outList.add(partValues.get(colName));
       }
     }
-
     return new DefaultHowlRecord(outList);
   }
-
 
   private Object getTypedObj(Object data, ObjectInspector oi) throws IOException{
 
     // The real work-horse method. We are gobbling up all the laziness benefits
     // of Hive-RCFile by deserializing everything and creating crisp  HowlRecord
     // with crisp Java objects inside it. We have to do it because higher layer
-    // may not how to do it.
+    // may not know how to do it.
 
     switch(oi.getCategory()){
 
@@ -236,11 +245,11 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
     super.initialize(context, howlProperties);
 
     // Columnar Serde needs to know names and types of columns it needs to read.
-    List<FieldSchema> fields = HowlUtil.getFieldSchemaList(fSchemasOfAll);
+    List<FieldSchema> fields = HowlUtil.getFieldSchemaList(colsInData);
     howlProperties.setProperty(Constants.LIST_COLUMNS,MetaStoreUtils.
-            getColumnNamesFromFieldSchema(fields));
+        getColumnNamesFromFieldSchema(fields));
     howlProperties.setProperty(Constants.LIST_COLUMN_TYPES, MetaStoreUtils.
-            getColumnTypesFromFieldSchema(fields));
+        getColumnTypesFromFieldSchema(fields));
 
     // It seems RCFIle reads and writes nulls differently as compared to default hive.
     howlProperties.setProperty(Constants.SERIALIZATION_NULL_FORMAT, "NULL");
@@ -250,6 +259,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
       serde = new ColumnarSerDe();
       serde.initialize(context.getConfiguration(), howlProperties);
       oi = (StructObjectInspector) serde.getObjectInspector();
+      structFields = oi.getAllStructFieldRefs();
 
     } catch (SerDeException e) {
       throw new IOException(e);
