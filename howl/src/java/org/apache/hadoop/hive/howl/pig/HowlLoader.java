@@ -171,7 +171,6 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     }
   }
 
-
   @Override
   public String[] getPartitionKeys(String location, Job job)
   throws IOException {
