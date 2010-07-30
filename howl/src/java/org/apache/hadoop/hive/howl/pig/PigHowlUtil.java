@@ -55,9 +55,6 @@ public class PigHowlUtil {
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
   public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
-  public static final boolean INJECT_TABLE_COLUMNS_INTO_SCHEMA = false;
-  public static final boolean PTNKEYS_CAN_EXIST_IN_TABLESCHEMA = false;
-
   static final int HowlExceptionCode = 4010; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
 
   private final  Map<Pair<String,String>, Table> howlTableCache =
@@ -158,34 +155,11 @@ public class PigHowlUtil {
       return null;
     }
 
-    Map<String,FieldSchema> mapOfPartitionKeyFieldSchemasByName = new HashMap<String,FieldSchema>();
-    if (INJECT_TABLE_COLUMNS_INTO_SCHEMA){
-      Table tbl = getTable(location);
-      List<FieldSchema> tablePartitionKeysFieldSchemas = tbl.getPartitionKeys();
-      for (FieldSchema ptnKeyFieldSchema : tablePartitionKeysFieldSchemas){
-        mapOfPartitionKeyFieldSchemasByName.put(ptnKeyFieldSchema.getName(),ptnKeyFieldSchema);
-      }
-    }
-
     List<ResourceFieldSchema> rfSchemaList = new ArrayList<ResourceFieldSchema>();
     for (HowlFieldSchema hfs : howlSchema.getHowlFieldSchemas()){
       ResourceFieldSchema rfSchema;
       rfSchema = getResourceSchemaFromFieldSchema(hfs);
       rfSchemaList.add(rfSchema);
-      // if one of the specified schema columns has the same name as a ptn key,
-      // remove it from the list of columns to be added after this
-      if (INJECT_TABLE_COLUMNS_INTO_SCHEMA && PTNKEYS_CAN_EXIST_IN_TABLESCHEMA &&
-          (mapOfPartitionKeyFieldSchemasByName.containsKey(hfs.getName()))){
-        mapOfPartitionKeyFieldSchemasByName.remove(hfs.getName());
-      }
-    }
-    // now we add in any partition column names that weren't added previously
-    if (INJECT_TABLE_COLUMNS_INTO_SCHEMA && (!mapOfPartitionKeyFieldSchemasByName.isEmpty())){
-      for (FieldSchema fs : mapOfPartitionKeyFieldSchemasByName.values()){
-        ResourceFieldSchema rfSchema;
-        rfSchema = getResourceSchemaFromFieldSchema(fs);
-        rfSchemaList.add(rfSchema);
-      }
     }
     ResourceSchema rSchema = new ResourceSchema();
     rSchema.setFields(rfSchemaList.toArray(new ResourceFieldSchema[0]));
