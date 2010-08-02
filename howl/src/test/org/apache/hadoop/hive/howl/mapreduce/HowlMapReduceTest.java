@@ -62,7 +62,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
  */
 public abstract class HowlMapReduceTest extends TestCase {
 
-  protected final String dbName = "default";
+  protected String dbName = "default";
   protected String tableName = "testHowlMapReduceTable";
 
   protected String inputFormat = RCFileInputFormat.class.getName();

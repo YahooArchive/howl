@@ -38,6 +38,7 @@ public class TestHowlNonPartitioned extends HowlMapReduceTest {
   @Override
   protected void initialize() {
 
+    dbName = null; //test if null dbName works ("default" is used)
     tableName = "testHowlNonPartitionedTable";
 
     writeRecords = new ArrayList<HowlRecord>();
