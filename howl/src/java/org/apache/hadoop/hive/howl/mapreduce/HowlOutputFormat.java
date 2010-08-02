@@ -46,14 +46,18 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.thrift.TException;
 
-/** The OutputFormat to use to write data to Howl */
+/** The OutputFormat to use to write data to Howl. The key value is ignored and
+ * and should be given as null. The value is the HowlRecord to write.*/
 public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRecord> {
 
-    //The keys used to store info into the job Configuration
+    //The keys used to store info into the job Configuration.
+    //If any new keys are added, the HowlStorer needs to be updated. The HowlStorer
+    //updates the job configuration in the backend to insert these keys to avoid
+    //having to call setOutput from the backend (which would cause a metastore call
+    //from the map jobs)
     public static final String HOWL_KEY_OUTPUT_BASE = "mapreduce.lib.howloutput";
     public static final String HOWL_KEY_OUTPUT_INFO = HOWL_KEY_OUTPUT_BASE + ".info";
     public static final String HOWL_KEY_HIVE_CONF = HOWL_KEY_OUTPUT_BASE + ".hive.conf";
-
 
     /**
      * Set the info about the output to write for the Job. This queries the metadata server
@@ -182,7 +186,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     }
 
     /**
-     * Get the record writer for the job. Uses the OwlTable's default OutputStorageDriver
+     * Get the record writer for the job. Uses the Table's default OutputStorageDriver
      * to get the record writer.
      * @param context the information about the current task.
      * @return a RecordWriter to write the output for the job.
@@ -192,12 +196,12 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     public RecordWriter<WritableComparable<?>, HowlRecord>
       getRecordWriter(TaskAttemptContext context
                       ) throws IOException, InterruptedException {
+      OutputJobInfo jobInfo = getJobInfo(context);
+      HowlOutputStorageDriver  driver = getOutputDriverInstance(context, jobInfo);
 
-        OutputJobInfo jobInfo = getJobInfo(context);
-        HowlOutputStorageDriver driver = getOutputDriverInstance(context, jobInfo);
-
-        OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat = driver.getOutputFormat();
-        return new HowlRecordWriter(driver, outputFormat.getRecordWriter(context));
+      OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat
+            = driver.getOutputFormat();
+      return new HowlRecordWriter(driver, outputFormat.getRecordWriter(context));
     }
 
     /**
@@ -230,13 +234,13 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
     /**
      * Gets the output format instance.
-     * @param storerInfo the storer info
-     * @return the output driver instance
-     * @throws OwlException
+     * @param context the job context
+     * @return the output format instance
+     * @throws IOException
      */
     private OutputFormat<? super WritableComparable<?>, ? super Writable> getOutputFormat(JobContext context) throws IOException {
         OutputJobInfo jobInfo = getJobInfo(context);
-        HowlOutputStorageDriver driver = getOutputDriverInstance(context, jobInfo);
+        HowlOutputStorageDriver  driver = getOutputDriverInstance(context, jobInfo);
 
         OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat =
               driver.getOutputFormat();
@@ -248,8 +252,8 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      * the string. If JobInfo is not present in the configuration, throws an
      * exception since that means HowlOutputFormat.setOutput has not been called.
      * @param jobContext the job context
-     * @return the HowlOutputJobInfo object
-     * @throws OwlException the owl exception
+     * @return the OutputJobInfo object
+     * @throws IOException the IO exception
      */
     static OutputJobInfo getJobInfo(JobContext jobContext) throws IOException {
         String jobString = jobContext.getConfiguration().get(HOWL_KEY_OUTPUT_INFO);
@@ -262,9 +266,10 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
     /**
      * Gets the output storage driver instance.
-     * @param storerInfo the storer info
+     * @param jobContext the job context
+     * @param jobInfo the output job info
      * @return the output driver instance
-     * @throws OwlException
+     * @throws IOException
      */
     @SuppressWarnings("unchecked")
     static HowlOutputStorageDriver getOutputDriverInstance(

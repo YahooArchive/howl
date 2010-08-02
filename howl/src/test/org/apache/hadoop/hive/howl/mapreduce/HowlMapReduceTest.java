@@ -40,6 +40,7 @@ import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver;
 import org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
@@ -111,12 +112,13 @@ public abstract class HowlMapReduceTest extends TestCase {
   @Override
   protected void tearDown() throws Exception {
     try {
-      //client.dropTable(dbName, tableName);
+      String databaseName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : dbName;
+
+      client.dropTable(databaseName, tableName);
     } catch(Exception e) {
       e.printStackTrace();
       throw e;
     }
-    //client.dropDatabase(dbName);
 
     client.close();
   }
@@ -125,16 +127,16 @@ public abstract class HowlMapReduceTest extends TestCase {
 
   private void initTable() throws Exception {
 
+    String databaseName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : dbName;
+
     try {
-      client.dropTable(dbName, tableName);
+      client.dropTable(databaseName, tableName);
     } catch(Exception e) {
     } //can fail with NoSuchObjectException
 
-    //client.dropDatabase(dbName);
-    //boolean ret = client.createDatabase(dbName, "howlTest_loc");
 
     Table tbl = new Table();
-    tbl.setDbName(dbName);
+    tbl.setDbName(databaseName);
     tbl.setTableName(tableName);
     tbl.setTableType("MANAGED_TABLE");
     StorageDescriptor sd = new StorageDescriptor();
