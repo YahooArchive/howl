@@ -77,11 +77,16 @@ class HowlOutputCommitter extends OutputCommitter {
 
     @Override
     public void cleanupJob(JobContext context) throws IOException {
-      if( baseCommitter != null ) { //TODO : remove after adding output storage driver
-        baseCommitter.cleanupJob(context);
+      OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(context);
+      if( jobInfo.getTable().getPartitionKeys().size() == 0 ) {
+        if( baseCommitter != null ) {
+          baseCommitter.cleanupJob(context);
+        }
+
+        //non partitioned table
+        return;
       }
 
-      OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(context);
       HiveMetaStoreClient client = null;
 
       try {
@@ -90,12 +95,6 @@ class HowlOutputCommitter extends OutputCommitter {
             jobInfo.getTableInfo().getServerUri(), context.getConfiguration());
 
         Table table = client.getTable(tableInfo.getDatabaseName(), tableInfo.getTableName());
-
-        if( table.getPartitionKeys().size() == 0 ) {
-          //non partitioned table
-          return;
-        }
-
         StorerInfo storer = InitializeInput.extractStorerInfo(table.getParameters());
 
         Partition partition = new Partition();
@@ -130,6 +129,9 @@ class HowlOutputCommitter extends OutputCommitter {
         partition.setParameters(params);
         client.add_partition(partition);
 
+        if( baseCommitter != null ) {
+          baseCommitter.cleanupJob(context);
+        }
       } catch (Exception e) {
         if( e instanceof IOException ) {
           throw (IOException) e;

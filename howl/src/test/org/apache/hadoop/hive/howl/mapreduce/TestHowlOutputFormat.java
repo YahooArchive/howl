@@ -108,7 +108,7 @@ public class TestHowlOutputFormat extends TestCase {
     tbl.setPartitionKeys(fields);
 
     Map<String, String> tableParams = new HashMap<String, String>();
-    tableParams.put(InitializeInput.HOWL_OSD_CLASS, OutputSDTest.class.getName());
+    tableParams.put(InitializeInput.HOWL_OSD_CLASS, RCFileOuputStorageDriver.class.getName());
     tableParams.put(InitializeInput.HOWL_ISD_CLASS, "testInputClass");
     tableParams.put("howl.testarg", "testArgValue");
 
@@ -136,7 +136,7 @@ public class TestHowlOutputFormat extends TestCase {
     assertEquals("colname", jobInfo.getTableSchema().getHowlFieldSchemas().get(0).getName());
 
     StorerInfo storer = jobInfo.getStorerInfo();
-    assertEquals(OutputSDTest.class.getName(), storer.getOutputSDClass());
+    assertEquals(RCFileOuputStorageDriver.class.getName(), storer.getOutputSDClass());
 
     publishTest(job);
   }
