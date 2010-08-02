@@ -72,7 +72,7 @@ public class HowlStorer extends StoreFunc {
   private Schema pigSchema;
   private RecordWriter<WritableComparable<?>, HowlRecord> writer;
   private HowlSchema computedSchema;
-
+  private static final String PIG_SCHEMA = "howl.pig.store.schema";
 
   public HowlStorer(String partSpecs, String schema) throws ParseException, FrontendException {
 
@@ -92,6 +92,7 @@ public class HowlStorer extends StoreFunc {
     if(schema != null) {
       pigSchema = Utils.getSchemaFromString(schema);
     }
+
   }
 
   public HowlStorer(String partSpecs) throws ParseException, FrontendException {
@@ -117,6 +118,7 @@ public class HowlStorer extends StoreFunc {
     } else {
       pigSchema = runtimeSchema;
     }
+    UDFContext.getUDFContext().getUDFProperties(this.getClass()).setProperty(PIG_SCHEMA,ObjectSerializer.serialize(pigSchema));
   }
 
   /** Constructs HowlSchema from pigSchema. Passed tableSchema is the existing
@@ -460,9 +462,7 @@ public class HowlStorer extends StoreFunc {
     Configuration config = job.getConfiguration();
     if(!HowlUtil.checkJobContextIfRunningFromBackend(job)){
 
-      if(pigSchema == null) {
-        throw new FrontendException("Failed to determine schema. Please provide schema in store statement.");
-      }
+      pigSchema = (Schema)ObjectSerializer.deserialize(p.getProperty(PIG_SCHEMA));
       HowlOutputFormat.setOutput(job, tblInfo);
       howlTblSchema = HowlOutputFormat.getTableSchema(job);
       doSchemaValidations(pigSchema, howlTblSchema);
