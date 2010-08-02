@@ -132,7 +132,7 @@ public class TestHowlStorer extends TestCase {
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
     server.registerQuery("A = load '"+fileName+"' as (a:int, b:chararray);");
-    server.registerQuery("store A into 'default.junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
+    server.registerQuery("store A into 'junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
     server.executeBatch();
     MiniCluster.deleteFile(cluster, fileName);
 
