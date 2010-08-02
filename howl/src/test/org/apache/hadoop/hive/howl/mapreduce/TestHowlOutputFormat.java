@@ -28,6 +28,7 @@ import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -108,7 +109,7 @@ public class TestHowlOutputFormat extends TestCase {
     tbl.setPartitionKeys(fields);
 
     Map<String, String> tableParams = new HashMap<String, String>();
-    tableParams.put(InitializeInput.HOWL_OSD_CLASS, RCFileOuputStorageDriver.class.getName());
+    tableParams.put(InitializeInput.HOWL_OSD_CLASS, RCFileOutputStorageDriver.class.getName());
     tableParams.put(InitializeInput.HOWL_ISD_CLASS, "testInputClass");
     tableParams.put("howl.testarg", "testArgValue");
 
@@ -136,7 +137,7 @@ public class TestHowlOutputFormat extends TestCase {
     assertEquals("colname", jobInfo.getTableSchema().getHowlFieldSchemas().get(0).getName());
 
     StorerInfo storer = jobInfo.getStorerInfo();
-    assertEquals(RCFileOuputStorageDriver.class.getName(), storer.getOutputSDClass());
+    assertEquals(RCFileOutputStorageDriver.class.getName(), storer.getOutputSDClass());
 
     publishTest(job);
   }
