@@ -359,16 +359,21 @@ public class PigHowlUtil {
   }
 
   public static void validateHowlTableSchemaFollowsPigRules(HowlSchema howlTableSchema) throws IOException {
-    HowlTypeInfo hti = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
-    HowlType htype = hti.getType();
-    if (htype == HowlType.ARRAY){
-      validateIsPigCompatibleArrayWithPrimitivesOrSimpleComplexTypes(hti);
-    }else if (htype == HowlType.STRUCT){
-      validateIsPigCompatibleStructWithPrimitives(hti);
-    }else if (htype == HowlType.MAP){
-      validateIsPigCompatibleMapWithPrimitives(hti);
-    }else {
-      validateIsPigCompatiblePrimitive(hti);
+    HowlTypeInfo tableTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
+    if (tableTypeInfo.getType() != HowlType.STRUCT){
+      throw new PigException("Table level schema was not a struct type schema!");
+    }
+    for (HowlTypeInfo hti : tableTypeInfo.getAllStructFieldTypeInfos()){
+      HowlType htype = hti.getType();
+      if (htype == HowlType.ARRAY){
+        validateIsPigCompatibleArrayWithPrimitivesOrSimpleComplexTypes(hti);
+      }else if (htype == HowlType.STRUCT){
+        validateIsPigCompatibleStructWithPrimitives(hti);
+      }else if (htype == HowlType.MAP){
+        validateIsPigCompatibleMapWithPrimitives(hti);
+      }else {
+        validateIsPigCompatiblePrimitive(hti);
+      }
     }
   }
 
