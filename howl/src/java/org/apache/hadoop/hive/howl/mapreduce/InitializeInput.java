@@ -74,20 +74,15 @@ public class InitializeInput {
   }
   /**
    * Set the input to use for the Job. This queries the metadata server with the specified partition predicates,
-   * gets the matching partitions, puts the information in the configuration object. The inputInfo object is
-   * updated with information needed in the client process context.
+   * gets the matching partitions, puts the information in the configuration object.
    * @param job the job object
-   * @param inputInfo the owl table input info
+   * @param inputInfo the howl table input info
    * @throws Exception
    */
   public static void setInput(Job job, HowlTableInfo inputInfo) throws Exception {
 
-    //* Create a OwlDriver instance with specified uri
-    //* Call OwlDriver.getOwlTable to get the table schema
-    //* Call OwlDriver.getPartitions to get list of partitions satisfying the given partition filter
-    //* Create and initialize an OwlJobInfo object
-    //* Save the OwlJobInfo object in the OwlTableInputInfo instance
-    //* Serialize the OwlJobInfo and save in the Job's Configuration object
+    //* Create and initialize an JobInfo object
+    //* Serialize the JobInfo and save in the Job's Configuration object
 
     createHiveMetaClient(job.getConfiguration(),inputInfo);
 
