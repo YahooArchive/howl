@@ -148,6 +148,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
   private void tableSchemaTest() throws Exception {
 
     HowlSchema tableSchema = getTableSchema();
+
     assertEquals(3, tableSchema.getHowlFieldSchemas().size());
 
     //Update partition schema to have 3 fields
@@ -221,6 +222,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
   private void columnOrderChangeTest() throws Exception {
 
     HowlSchema tableSchema = getTableSchema();
+
     assertEquals(4, tableSchema.getHowlFieldSchemas().size());
 
     partitionColumns = new ArrayList<HowlFieldSchema>();

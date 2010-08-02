@@ -452,7 +452,7 @@ public class HowlStorer extends StoreFunc {
           userStr[0],userStr[1],partitions);
     } else {
       tblInfo = HowlTableInfo.getOutputTableInfo(PigHowlUtil.getHowlServerUri(),
-          null,userStr[1],partitions);
+          null,userStr[0],partitions);
     }
 
 
