@@ -21,6 +21,8 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.Serializable;
 import java.util.Map;
 
+import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+
 public class HowlTableInfo implements Serializable {
 
 
@@ -63,7 +65,7 @@ public class HowlTableInfo implements Serializable {
 
   private HowlTableInfo(String serverUri, String dbName, String tableName) {
       this.serverUri = serverUri;
-      this.dbName = dbName;
+      this.dbName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : dbName;
       this.tableName = tableName;
       this.partitionPredicates = null;
       this.partitionValues = null;
@@ -86,7 +88,7 @@ public class HowlTableInfo implements Serializable {
 
   private HowlTableInfo(String serverUri, String dbName, String tableName, Map<String, String> partitionValues){
     this.serverUri = serverUri;
-    this.dbName = dbName;
+    this.dbName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : dbName;
     this.tableName = tableName;
     this.partitionPredicates = null;
     this.partitionValues = partitionValues;
@@ -161,3 +163,4 @@ public class HowlTableInfo implements Serializable {
     this.partitionValues = partitionValues;
   }
 }
+

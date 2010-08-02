@@ -65,6 +65,9 @@ import org.apache.hadoop.mapreduce.OutputFormat;
    /** The schema for the output data */
    private HowlSchema outputSchema;
 
+   /** The cached RCFile output format instance */
+   private OutputFormat outputFormat = null;
+
   /* (non-Javadoc)
    * @see org.apache.hadoop.hive.howl.mapreduce.HowlOutputStorageDriver#convertValue(org.apache.hadoop.hive.howl.data.HowlRecord)
    */
@@ -92,7 +95,11 @@ import org.apache.hadoop.mapreduce.OutputFormat;
   @SuppressWarnings("unchecked")
   @Override
   public OutputFormat<? super WritableComparable<?>, ? super Writable> getOutputFormat() throws IOException {
-    return (OutputFormat) new RCFileMapReduceOutputFormat();
+    if( outputFormat == null ) {
+      outputFormat = new RCFileMapReduceOutputFormat();
+    }
+
+    return outputFormat;
   }
 
   /* (non-Javadoc)

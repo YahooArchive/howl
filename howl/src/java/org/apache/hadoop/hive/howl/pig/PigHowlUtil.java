@@ -35,7 +35,6 @@ import org.apache.hadoop.hive.howl.data.type.HowlType;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.pig.PigException;
@@ -167,18 +166,75 @@ public class PigHowlUtil {
 
   }
 
-  private ResourceFieldSchema getResourceSchemaFromFieldSchema(FieldSchema fs)
+  private ResourceFieldSchema getResourceSchemaFromFieldSchema(HowlFieldSchema hfs)
       throws IOException {
     ResourceFieldSchema rfSchema;
-    rfSchema = new ResourceFieldSchema()
-                .setName(fs.getName())
-                .setDescription(fs.getComment())
-                .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(fs.getType()) ))
+    // if we are dealing with a bag or tuple column - need to worry about subschema
+    if(hfs.getHowlTypeInfo().getType() == HowlType.STRUCT) {
+        rfSchema = new ResourceFieldSchema()
+          .setName(hfs.getName())
+          .setDescription(hfs.getComment())
+          .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType())))
+          .setSchema(getTupleSubSchema(hfs.getHowlTypeInfo()));
+    } else if(hfs.getHowlTypeInfo().getType() == HowlType.ARRAY) {
+      rfSchema = new ResourceFieldSchema()
+      .setName(hfs.getName())
+      .setDescription(hfs.getComment())
+      .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType())))
+      .setSchema(getBagSubSchema(hfs.getHowlTypeInfo()));
+    } else {
+      rfSchema = new ResourceFieldSchema()
+                .setName(hfs.getName())
+                .setDescription(hfs.getComment())
+                .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType()) ))
                 .setSchema(null); // no munging inner-schemas
+    } 
+    
     return rfSchema;
   }
 
-  /**
+  private ResourceSchema getBagSubSchema(HowlTypeInfo howlTypeInfo) throws IOException {
+    // there are two cases - array<Type> and array<struct<...>>
+    // in either case the element type of the array is represented in a 
+    // tuple field schema in the bag's field schema - the second case (struct)
+    // more naturally translates to the tuple - in the first case (array<Type>) 
+    // we simulate the tuple by putting the single field in a tuple
+    ResourceFieldSchema[] bagSubFieldSchemas = new ResourceFieldSchema[1];
+    bagSubFieldSchemas[0] = new ResourceFieldSchema().setName("innerTuple")
+      .setDescription("The tuple in the bag")
+      .setType(DataType.TUPLE);
+    HowlTypeInfo arrayElementTypeInfo = howlTypeInfo.getListElementTypeInfo();
+    if(arrayElementTypeInfo.getType() == HowlType.STRUCT) {
+      bagSubFieldSchemas[0].setSchema(getTupleSubSchema(arrayElementTypeInfo));
+    } else {
+      ResourceFieldSchema[] innerTupleFieldSchemas = new ResourceFieldSchema[1];
+      innerTupleFieldSchemas[0] = new ResourceFieldSchema().setName("innerField")
+        .setDescription("The inner field in the tuple in the bag")
+        .setType(getPigType(arrayElementTypeInfo))
+        .setSchema(null); // the element type is not a tuple - so no subschema
+      bagSubFieldSchemas[0].setSchema(new ResourceSchema().setFields(innerTupleFieldSchemas));
+    }
+    return new ResourceSchema().setFields(bagSubFieldSchemas);
+    
+  }
+
+  private ResourceSchema getTupleSubSchema(HowlTypeInfo structTypeInfo) throws IOException {
+    // for each struct subfield, create equivalent HowlFieldSchema corresponding 
+    // to the relevant HowlTypeInfo and then create equivalent ResourceFieldSchema
+    ResourceSchema s = new ResourceSchema();
+    List<ResourceFieldSchema> lrfs = new ArrayList<ResourceFieldSchema>();
+    List<HowlTypeInfo> structFieldTypeInfos = structTypeInfo.getAllStructFieldTypeInfos();
+    List<String> structFieldNames = HowlTypeInfoUtils.getStructFieldNames(structTypeInfo);
+    for(int i = 0; i < structFieldTypeInfos.size(); i++) {
+      HowlFieldSchema hfs = new HowlFieldSchema(structFieldNames.get(i), 
+          structFieldTypeInfos.get(i).getTypeString(), "");
+      lrfs.add(getResourceSchemaFromFieldSchema(hfs));
+    }
+    s.setFields(lrfs.toArray(new ResourceFieldSchema[0]));
+    return s;
+  }
+
+/**
    * @param type owl column type
    * @return corresponding pig type
    * @throws IOException
