@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
+import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -91,6 +92,16 @@ public class HowlTypeInfoUtils {
     return type == HowlType.ARRAY || type == HowlType.MAP || type == HowlType.STRUCT;
   }
 
+  public static List<String> getStructFieldNames(HowlTypeInfo structTypeInfo) {
+    if(structTypeInfo.type != HowlType.STRUCT) {
+      throw new IllegalArgumentException("Expected struct, got non struct type " +
+          "info");
+    }
+    
+    return ((StructTypeInfo)structTypeInfo.getTypeInfo()).getAllStructFieldNames();
+    
+  }
+  
   public abstract class HowlTypeInfoBuilder {
     public abstract HowlTypeInfo build();
   }
@@ -154,7 +165,7 @@ public class HowlTypeInfoUtils {
     public HowlTypeInfo build() {
       return new HowlTypeInfo(TypeInfoFactory.getStructTypeInfo(fieldNames, fieldTypeInfos));
     }
-
+    
   }
 }
 
