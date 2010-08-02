@@ -188,7 +188,14 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   public ResourceSchema getSchema(String location, Job job) throws IOException {
     Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());;
     HowlSchema howlTableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
-    PigHowlUtil.validateHowlTableSchemaFollowsPigRules(howlTableSchema);
+    try {
+      PigHowlUtil.validateHowlTableSchemaFollowsPigRules(howlTableSchema);
+    } catch (IOException e){
+      throw new PigException(
+          "Table schema incompatible for reading through HowlLoader :" + e.getMessage()
+          + " Table schema was ["+ howlTableSchema.toString() +"]"
+          ,e);
+    }
     storeInUDFContext(signature, PigHowlUtil.HOWL_TABLE_SCHEMA, howlTableSchema);
     outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
     return phutil.getResourceSchema(howlTableSchema,location);
