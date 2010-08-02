@@ -148,7 +148,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
   private void tableSchemaTest() throws Exception {
 
     HowlSchema tableSchema = getTableSchema();
-    assertTrue(tableSchema.getHowlFieldSchemas().size() == 2 );
+    assertEquals(3, tableSchema.getHowlFieldSchemas().size());
 
     //Update partition schema to have 3 fields
     partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
@@ -172,11 +172,12 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     tableSchema = getTableSchema();
 
-    //assert that c3 has got added to table schema, p1 has not
-    assertEquals(3, tableSchema.getHowlFieldSchemas().size());
+    //assert that c3 has got added to table schema
+    assertEquals(4, tableSchema.getHowlFieldSchemas().size());
     assertEquals("c1", tableSchema.getHowlFieldSchemas().get(0).getName());
     assertEquals("c2", tableSchema.getHowlFieldSchemas().get(1).getName());
     assertEquals("c3", tableSchema.getHowlFieldSchemas().get(2).getName());
+    assertEquals("p1", tableSchema.getHowlFieldSchemas().get(3).getName());
 
     //Test that changing column data type fails
     partitionMap.clear();
@@ -220,12 +221,13 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
   private void columnOrderChangeTest() throws Exception {
 
     HowlSchema tableSchema = getTableSchema();
-    assertTrue(tableSchema.getHowlFieldSchemas().size() == 3 );
+    assertEquals(4, tableSchema.getHowlFieldSchemas().size());
 
     partitionColumns = new ArrayList<HowlFieldSchema>();
     partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
     partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
     partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
+
 
     writeRecords = new ArrayList<HowlRecord>();
 
