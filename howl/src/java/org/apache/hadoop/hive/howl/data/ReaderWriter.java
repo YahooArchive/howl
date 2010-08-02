@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.io.VIntWritable;
+import org.apache.hadoop.io.VLongWritable;
+
 
 public abstract class ReaderWriter {
 
@@ -26,10 +29,14 @@ public abstract class ReaderWriter {
       return new String(buffer,UTF8);
 
     case DataType.INTEGER:
-      return in.readInt();
+      VIntWritable vint = new VIntWritable();
+      vint.readFields(in);
+      return vint.get();
 
     case DataType.LONG:
-      return in.readLong();
+      VLongWritable vlong = new VLongWritable();
+      vlong.readFields(in);
+      return vlong.get();
 
     case DataType.FLOAT:
       return in.readFloat();
@@ -100,12 +107,12 @@ public abstract class ReaderWriter {
 
     case DataType.INTEGER:
       out.writeByte(DataType.INTEGER);
-      out.writeInt((Integer)val);
+      new VIntWritable((Integer)val).write(out);
       return;
 
     case DataType.LONG:
       out.writeByte(DataType.LONG);
-      out.writeLong((Long)val);
+      new VLongWritable((Long)val).write(out);
       return;
 
     case DataType.FLOAT:
