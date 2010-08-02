@@ -114,7 +114,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
         storageDriver.getInputFormat(partitionInfo.getInputStorageDriverProperties());
 
       //Call getSplit on the storage drivers InputFormat, create an
-      //OwlSplit for each underlying split
+      //HowlSplit for each underlying split
       List<InputSplit> baseSplits = inputFormat.getSplits(localJob);
 
       for(InputSplit split : baseSplits) {
@@ -196,7 +196,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
   private static JobInfo getJobInfo(JobContext jobContext) throws Exception {
     String jobString = jobContext.getConfiguration().get(HOWL_KEY_JOB_INFO);
     if( jobString == null ) {
-      throw new Exception("Input not initialized from jobContext");
+      throw new Exception("job information not found in JobContext. HowlInputFormat.setInput() not called?");
     }
 
     return (JobInfo) HowlUtil.deserialize(jobString);
