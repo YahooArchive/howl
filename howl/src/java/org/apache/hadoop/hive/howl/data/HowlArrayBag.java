@@ -13,7 +13,7 @@ import org.apache.pig.data.Tuple;
 
 public class HowlArrayBag<T> implements DataBag {
 
-  private static final long DUMMY_SIZE = 100;
+  private static final long DUMMY_SIZE = 40;
   List<T>  rawItemList = null;
   DataBag convertedBag = null;
 //  List<Tuple> tupleList = null;
@@ -43,6 +43,10 @@ public class HowlArrayBag<T> implements DataBag {
       iter.remove();
     }
 
+  }
+
+  public HowlArrayBag(List<T> list) {
+    rawItemList = list;
   }
 
   private void convertFromRawToTupleForm(){
@@ -116,7 +120,11 @@ public class HowlArrayBag<T> implements DataBag {
   @Override
   public long getMemorySize() {
     // FIXME: put in actual impl
-    return DUMMY_SIZE;
+    if (convertedBag != null){
+      return convertedBag.getMemorySize() + DUMMY_SIZE;
+    }else {
+      return DUMMY_SIZE;
+    }
   }
 
   @Override
@@ -139,8 +147,8 @@ public class HowlArrayBag<T> implements DataBag {
 
   @Override
   public int compareTo(Object arg0) {
-    // TODO Auto-generated method stub
-    return 0;
+    // TODO Auto-generated method stub - really need to put in a better implementation here, also, equality case not considered yet
+    return arg0.hashCode() < this.hashCode() ? -1 : 1;
   }
 
 }
