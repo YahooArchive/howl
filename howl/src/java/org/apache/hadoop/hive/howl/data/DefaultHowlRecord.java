@@ -103,4 +103,14 @@ public class DefaultHowlRecord implements HowlRecord {
     }
     return hash;
   }
+
+  @Override
+  public String toString() {
+
+    StringBuilder sb = new StringBuilder();
+    for(Object o : contents) {
+      sb.append(o+"\t");
+    }
+    return sb.toString();
+  }
 }

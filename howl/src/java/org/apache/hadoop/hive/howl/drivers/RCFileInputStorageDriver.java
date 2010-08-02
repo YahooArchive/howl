@@ -65,7 +65,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   public void setInputPath(JobContext jobContext, String location) throws IOException {
 
     // ideally we should just call FileInputFormat.setInputPaths() here - but
-    // that won't work since FileInputFormat.setInputPaths() which needs
+    // that won't work since FileInputFormat.setInputPaths() needs
     // a Job object instead of a JobContext which we are handed here
 
     int length = location.length();
@@ -184,6 +184,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
       else {
         outList.add(partValues.get(colName));
       }
+
     }
     return new DefaultHowlRecord(outList);
   }
