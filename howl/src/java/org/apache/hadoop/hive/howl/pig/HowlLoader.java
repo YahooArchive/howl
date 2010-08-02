@@ -128,7 +128,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     if (!HowlUtil.checkJobContextIfRunningFromBackend(job)){
 
       HowlInputFormat.setInput(job, HowlTableInfo.getInputTableInfo(
-          howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri(),
+          howlServerUri!=null?howlServerUri:(howlServerUri = PigHowlUtil.getHowlServerUri()),
               dbName,
               tableName));
     }
@@ -142,6 +142,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     // OwlInputFormat needs to know about pruned projections - so doing it
     // here will ensure we communicate to OwlInputFormat about pruned
     // projections at getSplits() and createRecordReader() time
+
     UDFContext udfContext = UDFContext.getUDFContext();
     Properties props = udfContext.getUDFProperties(this.getClass(),
         new String[]{signature});
@@ -187,6 +188,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   public ResourceSchema getSchema(String location, Job job) throws IOException {
     Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());;
     HowlSchema howlTableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
+    PigHowlUtil.validateHowlTableSchemaFollowsPigRules(howlTableSchema);
     storeInUDFContext(signature, PigHowlUtil.HOWL_TABLE_SCHEMA, howlTableSchema);
     outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
     return phutil.getResourceSchema(howlTableSchema,location);
