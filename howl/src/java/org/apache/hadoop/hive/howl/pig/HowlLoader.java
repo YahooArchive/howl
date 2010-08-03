@@ -31,7 +31,6 @@ import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat;
 import org.apache.hadoop.hive.howl.mapreduce.HowlTableInfo;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
-import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -187,7 +186,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   @Override
   public ResourceSchema getSchema(String location, Job job) throws IOException {
     Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());;
-    HowlSchema howlTableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
+    HowlSchema howlTableSchema = HowlUtil.getTableSchemaWithPtnCols(table);
     try {
       PigHowlUtil.validateHowlTableSchemaFollowsPigRules(howlTableSchema);
     } catch (IOException e){
