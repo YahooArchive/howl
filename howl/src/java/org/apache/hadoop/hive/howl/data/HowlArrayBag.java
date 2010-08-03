@@ -3,10 +3,12 @@ package org.apache.hadoop.hive.howl.data;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
@@ -51,12 +53,13 @@ public class HowlArrayBag<T> implements DataBag {
 
   private void convertFromRawToTupleForm(){
     if (convertedBag == null){
-      convertedBag = new DefaultDataBag();
+      List<Tuple> ltuples = new ArrayList<Tuple>();
       for (T item : rawItemList){
         Tuple t = new DefaultTuple();
         t.append(item);
-        convertedBag.add(t);
+        ltuples.add(t);
       }
+      convertedBag = DefaultBagFactory.getInstance().newDefaultBag(ltuples);
     }else{
       // TODO : throw exception or be silent? Currently going with silence, but needs revisiting.
     }
@@ -129,7 +132,10 @@ public class HowlArrayBag<T> implements DataBag {
 
   @Override
   public long spill() {
-    // FIXME: put in actual spill impl
+    // FIXME: put in actual spill impl even for the list case
+    if (convertedBag != null){
+      return convertedBag.spill();
+    }
     return 0;
   }
 
