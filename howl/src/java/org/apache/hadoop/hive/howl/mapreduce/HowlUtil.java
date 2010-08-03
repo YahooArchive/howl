@@ -28,7 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
+import org.apache.hadoop.hive.howl.data.HowlSchema;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
+import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.JobContext;
 
 public class HowlUtil {
@@ -89,7 +93,7 @@ public class HowlUtil {
     }
     return bytes;
   }
-  
+
   public static List<HowlFieldSchema> getHowlFieldSchemaList(List<FieldSchema> fields) {
       if(fields == null) {
           return null;
@@ -101,7 +105,15 @@ public class HowlUtil {
           return result;
       }
   }
-  
+
+  public static HowlSchema extractSchemaFromStorageDescriptor(StorageDescriptor sd) throws IOException {
+    if (sd == null){
+      throw new IOException("Cannot construct partition info from an empty storage descriptor.");
+    }
+    HowlSchema schema = new HowlSchema(HowlUtil.getHowlFieldSchemaList(sd.getCols()));
+    return schema;
+  }
+
   public static List<FieldSchema> getFieldSchemaList(List<HowlFieldSchema> howlFields) {
       if(howlFields == null) {
           return null;
@@ -113,4 +125,24 @@ public class HowlUtil {
           return result;
       }
   }
+
+
+  public static Table getTable(HiveMetaStoreClient client, String dbName, String tableName) throws Exception{
+    return client.getTable(dbName,tableName);
+  }
+
+  public static HowlSchema getTableSchemaWithPtnCols(Table table) throws IOException{
+    HowlSchema tableSchema = extractSchemaFromStorageDescriptor(table.getSd());
+
+    if( table.getPartitionKeys().size() != 0 ) {
+
+      // add partition keys to table schema
+      // NOTE : this assumes that we do not ever have ptn keys as columns inside the table schema as well!
+      for (FieldSchema fs : table.getPartitionKeys()){
+          tableSchema.getHowlFieldSchemas().add(new HowlFieldSchema(fs));
+      }
+    }
+    return tableSchema;
+  }
+
 }
