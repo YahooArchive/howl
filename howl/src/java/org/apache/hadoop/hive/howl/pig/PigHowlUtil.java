@@ -46,7 +46,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
 
 public class PigHowlUtil {
@@ -54,7 +53,7 @@ public class PigHowlUtil {
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
   public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
-  static final int HowlExceptionCode = 4010; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
+  static final int PIG_EXCEPTION_CODE = 1115; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
 
   private final  Map<Pair<String,String>, Table> howlTableCache =
     new HashMap<Pair<String,String>, Table>();
@@ -69,7 +68,7 @@ public class PigHowlUtil {
       String locationErrMsg = "The input location in load statement " +
       "should be of the form " +
       "<databasename>.<table name>";
-      throw new PigException(locationErrMsg, HowlExceptionCode);
+      throw new PigException(locationErrMsg, PIG_EXCEPTION_CODE);
     }
     return new Pair<String, String>(dbTableNametokens[0], dbTableNametokens[1]);
   }
@@ -141,7 +140,7 @@ public class PigHowlUtil {
       client = createHiveMetaClient(howlServerUri, PigHowlUtil.class);
       table = client.getTable(dbName, tableName);
     } catch (NoSuchObjectException nsoe){
-      throw new FrontendException("Table not found :" + nsoe.getMessage()); // prettier error messages to frontend
+      throw new PigException("Table not found :" + nsoe.getMessage(), PIG_EXCEPTION_CODE); // prettier error messages to frontend
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -282,11 +281,11 @@ public class PigHowlUtil {
     if (type == HowlType.BOOLEAN){
       errMsg = "Howl column type 'BOOLEAN' is not supported in " +
       "Pig as a column type";
-      throw new IOException(errMsg);
+      throw new PigException(errMsg, PIG_EXCEPTION_CODE);
     }
 
     errMsg = "Howl column type '"+ type.toString() +"' is not supported in Pig as a column type";
-    throw new PigException(errMsg, HowlExceptionCode);
+    throw new PigException(errMsg, PIG_EXCEPTION_CODE);
   }
 
 

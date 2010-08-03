@@ -73,6 +73,7 @@ public class HowlStorer extends StoreFunc {
   private RecordWriter<WritableComparable<?>, HowlRecord> writer;
   private HowlSchema computedSchema;
   private static final String PIG_SCHEMA = "howl.pig.store.schema";
+  private String sign;
 
   public HowlStorer(String partSpecs, String schema) throws ParseException, FrontendException {
 
@@ -118,7 +119,7 @@ public class HowlStorer extends StoreFunc {
     } else {
       pigSchema = runtimeSchema;
     }
-    UDFContext.getUDFContext().getUDFProperties(this.getClass()).setProperty(PIG_SCHEMA,ObjectSerializer.serialize(pigSchema));
+    UDFContext.getUDFContext().getUDFProperties(this.getClass(), new String[]{sign}).setProperty(PIG_SCHEMA,ObjectSerializer.serialize(pigSchema));
   }
 
   /** Constructs HowlSchema from pigSchema. Passed tableSchema is the existing
@@ -257,7 +258,7 @@ public class HowlStorer extends StoreFunc {
   @Override
   public void prepareToWrite(RecordWriter writer) throws IOException {
     this.writer = writer;
-    computedSchema = (HowlSchema)ObjectSerializer.deserialize(UDFContext.getUDFContext().getUDFProperties(this.getClass()).getProperty(COMPUTED_OUTPUT_SCHEMA));
+    computedSchema = (HowlSchema)ObjectSerializer.deserialize(UDFContext.getUDFContext().getUDFProperties(this.getClass(), new String[]{sign}).getProperty(COMPUTED_OUTPUT_SCHEMA));
   }
 
   @Override
@@ -335,6 +336,7 @@ public class HowlStorer extends StoreFunc {
 
   @Override
   public void setStoreFuncUDFContextSignature(String signature) {
+    sign = signature;
   }
 
 
@@ -445,7 +447,7 @@ public class HowlStorer extends StoreFunc {
   @Override
   public void setStoreLocation(String location, Job job) throws IOException {
 
-    Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
+    Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(), new String[]{sign});
 
     String[] userStr = location.split("\\.");
     HowlTableInfo tblInfo;
