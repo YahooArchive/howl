@@ -65,6 +65,64 @@ public class TestHowlStorer extends TestCase {
 //
 //  }
 
+  public void testStoreMultiTables() throws IOException{
+
+    driver.run("drop table junit_unparted");
+    String createTable = "create table junit_unparted(a int, b string) stored as RCFILE " +
+        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+    int retCode = driver.run(createTable).getResponseCode();
+    if(retCode != 0) {
+      throw new IOException("Failed to create table.");
+    }
+    driver.run("drop table junit_unparted2");
+    createTable = "create table junit_unparted2(a int, b string) stored as RCFILE " +
+    "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
+    "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+    retCode = driver.run(createTable).getResponseCode();
+    if(retCode != 0) {
+      throw new IOException("Failed to create table.");
+    }
+
+    MiniCluster.deleteFile(cluster, fileName);
+    int LOOP_SIZE = 3;
+    String[] input = new String[LOOP_SIZE*LOOP_SIZE];
+    int k = 0;
+    for(int i = 1; i <= LOOP_SIZE; i++) {
+      String si = i + "";
+      for(int j=1;j<=LOOP_SIZE;j++) {
+        input[k++] = si + "\t"+j;
+      }
+    }
+    MiniCluster.createInputFile(cluster, fileName, input);
+    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    UDFContext.getUDFContext().setClientSystemProps();
+    server.setBatchOn();
+    server.registerQuery("A = load '"+fileName+"' as (a:int, b:chararray);");
+    server.registerQuery("B = filter A by a < 2;");
+    server.registerQuery("store B into 'junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
+    server.registerQuery("C = filter A by a >= 2;");
+    server.registerQuery("store C into 'junit_unparted2' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
+    server.executeBatch();
+    MiniCluster.deleteFile(cluster, fileName);
+
+    driver.run("select * from junit_unparted");
+    ArrayList<String> res = new ArrayList<String>();
+    driver.getResults(res);
+    driver.run("select * from junit_unparted2");
+    ArrayList<String> res2 = new ArrayList<String>();
+    driver.getResults(res2);
+    res.addAll(res2);
+    driver.run("drop table junit_unparted");
+    Iterator<String> itr = res.iterator();
+    for(int i = 0; i < LOOP_SIZE*LOOP_SIZE; i++) {
+      assertEquals( input[i] ,itr.next());
+    }
+
+    assertFalse(itr.hasNext());
+
+  }
+
   public void testStoreWithNoSchema() throws IOException{
 
     driver.run("drop table junit_unparted");
