@@ -26,10 +26,8 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -72,6 +70,7 @@ public class InitializeInput {
 
     return (client = new HiveMetaStoreClient(hiveConf,null));
   }
+
   /**
    * Set the input to use for the Job. This queries the metadata server with the specified partition predicates,
    * gets the matching partitions, puts the information in the configuration object.
@@ -87,7 +86,7 @@ public class InitializeInput {
     createHiveMetaClient(job.getConfiguration(),inputInfo);
 
     Table table = client.getTable(inputInfo.getDatabaseName(), inputInfo.getTableName());
-    HowlSchema tableSchema = extractSchemaFromStorageDescriptor(table.getSd());
+    HowlSchema tableSchema = HowlUtil.getTableSchemaWithPtnCols(table);
 
     List<PartInfo> partInfoList = new ArrayList<PartInfo>();
 
@@ -100,12 +99,6 @@ public class InitializeInput {
         PartInfo partInfo = extractPartInfo(ptn.getSd(),ptn.getParameters());
         partInfo.setPartitionValues(ptn.getParameters());
         partInfoList.add(partInfo);
-      }
-
-      // add partition keys to table schema
-      // NOTE : this assumes that we do not ever have ptn keys as columns inside the table schema as well!
-      for (FieldSchema fs : table.getPartitionKeys()){
-          tableSchema.getHowlFieldSchemas().add(new HowlFieldSchema(fs));
       }
 
     }else{
@@ -125,7 +118,7 @@ public class InitializeInput {
   }
 
   private static PartInfo extractPartInfo(StorageDescriptor sd, Map<String,String> parameters) throws IOException{
-    HowlSchema schema = extractSchemaFromStorageDescriptor(sd);
+    HowlSchema schema = HowlUtil.extractSchemaFromStorageDescriptor(sd);
     String inputStorageDriverClass = null;
     Properties howlProperties = new Properties();
     if (parameters.containsKey(HOWL_ISD_CLASS)){
@@ -141,13 +134,6 @@ public class InitializeInput {
     return new PartInfo(schema,inputStorageDriverClass,  sd.getLocation(), howlProperties);
   }
 
-  public static HowlSchema extractSchemaFromStorageDescriptor(StorageDescriptor sd) throws IOException {
-    if (sd == null){
-      throw new IOException("Cannot construct partition info from an empty storage descriptor.");
-    }
-    HowlSchema schema = new HowlSchema(HowlUtil.getHowlFieldSchemaList(sd.getCols()));
-    return schema;
-  }
 
 
   static StorerInfo extractStorerInfo(Map<String, String> properties) throws IOException {

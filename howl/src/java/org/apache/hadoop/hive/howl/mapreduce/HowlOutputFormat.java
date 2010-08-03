@@ -81,7 +81,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         //Handle duplicate publish
         handleDuplicatePublish(job, outputInfo, client, table);
 
-        HowlSchema tableSchema = InitializeInput.extractSchemaFromStorageDescriptor(table.getSd());
+        HowlSchema tableSchema = HowlUtil.extractSchemaFromStorageDescriptor(table.getSd());
         StorerInfo storerInfo = InitializeInput.extractStorerInfo(table.getParameters());
 
         List<String> partitionCols = new ArrayList<String>();
