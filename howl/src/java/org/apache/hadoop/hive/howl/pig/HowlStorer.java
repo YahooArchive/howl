@@ -44,6 +44,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -85,7 +86,7 @@ public class HowlStorer extends StoreFunc {
         if(partKV.length == 2) {
           partitions.put(partKV[0].trim(), partKV[1].trim());
         } else {
-          throw new FrontendException("Invalid partition column specification. "+partSpecs);
+          throw new FrontendException("Invalid partition column specification. "+partSpecs, PigHowlUtil.PIG_EXCEPTION_CODE);
         }
       }
     }
@@ -114,7 +115,7 @@ public class HowlStorer extends StoreFunc {
     if(pigSchema != null){
       if(! Schema.equals(runtimeSchema, pigSchema, false, true) ){
         throw new FrontendException("Schema provided in store statement doesn't match with the Schema" +
-            "returned by Pig run-time. Schema provided in HowlStorer: "+pigSchema.toString()+ " Schema received from Pig runtime: "+runtimeSchema.toString());
+            "returned by Pig run-time. Schema provided in HowlStorer: "+pigSchema.toString()+ " Schema received from Pig runtime: "+runtimeSchema.toString(), PigHowlUtil.PIG_EXCEPTION_CODE);
       }
     } else {
       pigSchema = runtimeSchema;
@@ -158,7 +159,7 @@ public class HowlStorer extends StoreFunc {
 
     for(FieldSchema innerField : innerSchema.getFields()){
       if(DataType.isComplex(innerField.type)) {
-        throw new FrontendException("Complex types cannot be nested. "+innerField);
+        throw new FrontendException("Complex types cannot be nested. "+innerField, PigHowlUtil.PIG_EXCEPTION_CODE);
       }
     }
   }
@@ -221,7 +222,7 @@ public class HowlStorer extends StoreFunc {
           clazz = Double.class;
           break;
         default:
-          throw new FrontendException("Only pig primitive types are supported as map value types.");
+          throw new FrontendException("Only pig primitive types are supported as map value types.", PigHowlUtil.PIG_EXCEPTION_CODE);
         }
         return HowlTypeInfoUtils.getMapHowlTypeInfo(HowlTypeInfoUtils.getPrimitiveTypeInfo(String.class), HowlTypeInfoUtils.getPrimitiveTypeInfo(clazz));
       }
@@ -243,7 +244,7 @@ public class HowlStorer extends StoreFunc {
     case DataType.LONG:
       return "bigint";
     case DataType.BYTEARRAY:
-      throw new FrontendException("HowlStorer expects typed data. Cannot write bytearray.");
+      throw new FrontendException("HowlStorer expects typed data. Cannot write bytearray.", PigHowlUtil.PIG_EXCEPTION_CODE);
     default:
       return DataType.findTypeName(type);
     }
@@ -274,7 +275,7 @@ public class HowlStorer extends StoreFunc {
     try {
       writer.write(null, new DefaultHowlRecord(outgoing));
     } catch (InterruptedException e) {
-      throw new IOException(e);
+      throw new BackendException("Error while writing tuple: "+tuple, PigHowlUtil.PIG_EXCEPTION_CODE, e);
     }
   }
 
@@ -355,10 +356,10 @@ public class HowlStorer extends StoreFunc {
         case DataType.MAP:
           if(howlField != null){
             if(howlField.getHowlTypeInfo().getMapKeyTypeInfo().getType() != HowlType.STRING){
-              throw new FrontendException("Key Type of map must be String "+howlField);
+              throw new FrontendException("Key Type of map must be String "+howlField,  PigHowlUtil.PIG_EXCEPTION_CODE);
             }
             if(HowlTypeInfoUtils.isComplex(howlField.getHowlTypeInfo().getMapValueTypeInfo().getType())){
-              throw new FrontendException("Value type of map cannot be complex" + howlField);
+              throw new FrontendException("Value type of map cannot be complex" + howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
             }
           }
           break;
@@ -367,7 +368,7 @@ public class HowlStorer extends StoreFunc {
           // Only map is allowed as complex type in tuples inside bag.
           for(FieldSchema innerField : pigField.schema.getField(0).schema.getFields()){
             if(innerField.type == DataType.BAG || innerField.type == DataType.TUPLE) {
-              throw new FrontendException("Complex types cannot be nested. "+innerField);
+              throw new FrontendException("Complex types cannot be nested. "+innerField, PigHowlUtil.PIG_EXCEPTION_CODE);
             }
           }
           if(howlField != null){
@@ -377,20 +378,20 @@ public class HowlStorer extends StoreFunc {
             if(hType == HowlType.STRUCT){
               for(HowlTypeInfo structTypeInfo : listTypeInfo.getAllStructFieldTypeInfos()){
                 if(structTypeInfo.getType() == HowlType.STRUCT || structTypeInfo.getType() == HowlType.ARRAY){
-                  throw new FrontendException("Nested Complex types not allowed "+ howlField);
+                  throw new FrontendException("Nested Complex types not allowed "+ howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
                 }
               }
             }
             if(hType == HowlType.MAP){
               if(listTypeInfo.getMapKeyTypeInfo().getType() != HowlType.STRING){
-                throw new FrontendException("Key Type of map must be String "+howlField);
+                throw new FrontendException("Key Type of map must be String "+howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
               }
               if(HowlTypeInfoUtils.isComplex(listTypeInfo.getMapValueTypeInfo().getType())){
-                throw new FrontendException("Value type of map cannot be complex "+howlField);
+                throw new FrontendException("Value type of map cannot be complex "+howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
               }
             }
             if(hType == HowlType.ARRAY) {
-              throw new FrontendException("Arrays cannot contain array within it. "+howlField);
+              throw new FrontendException("Arrays cannot contain array within it. "+howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
             }
           }
           break;
@@ -400,14 +401,14 @@ public class HowlStorer extends StoreFunc {
           if(howlField != null){
             for(HowlTypeInfo typeInfo : howlField.getHowlTypeInfo().getAllStructFieldTypeInfos()){
               if(HowlTypeInfoUtils.isComplex(typeInfo.getType())){
-                throw new FrontendException("Nested Complex types are not allowed."+howlField);
+                throw new FrontendException("Nested Complex types are not allowed."+howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
               }
             }
           }
           break;
 
         default:
-          throw new FrontendException("Internal Error.");
+          throw new FrontendException("Internal Error.", PigHowlUtil.PIG_EXCEPTION_CODE);
         }
       }
     }
@@ -420,7 +421,7 @@ public class HowlStorer extends StoreFunc {
       case SMALLINT:
       case TINYINT:
       case BOOLEAN:
-        throw new FrontendException("Incompatible type found in howl table schema: "+howlField);
+        throw new FrontendException("Incompatible type found in howl table schema: "+howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
       }
     }
   }
