@@ -45,6 +45,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
 import org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe;
@@ -87,9 +88,17 @@ public abstract class HowlMapReduceTest extends TestCase {
   private FileSystem fs;
   private String thriftUri = null;
 
+  protected Driver driver;
+
   @Override
   protected void setUp() throws Exception {
     hiveConf = new HiveConf(this.getClass());
+
+    //The default org.apache.hadoop.hive.ql.hooks.PreExecutePrinter hook
+    //is present only in the ql/test directory
+    hiveConf.set(HiveConf.ConfVars.PREEXECHOOKS.varname, "");
+    hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
+    driver = new Driver(hiveConf);
 
     thriftUri = System.getenv("HOWL_METASTORE_URI");
 
