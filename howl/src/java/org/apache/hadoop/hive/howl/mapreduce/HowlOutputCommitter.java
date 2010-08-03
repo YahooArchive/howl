@@ -18,11 +18,17 @@
 package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.howl.common.ErrorType;
+import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
@@ -79,11 +85,20 @@ class HowlOutputCommitter extends OutputCommitter {
     public void cleanupJob(JobContext context) throws IOException {
       OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(context);
       if( jobInfo.getTable().getPartitionKeys().size() == 0 ) {
+        //non partitioned table
+
         if( baseCommitter != null ) {
           baseCommitter.cleanupJob(context);
         }
 
-        //non partitioned table
+        //Move data from temp directory the actual table directory
+        //No metastore operation required.
+        Path src = new Path(jobInfo.getLocation());
+        Path dest = new Path(jobInfo.getTable().getSd().getLocation());
+        FileSystem fs = src.getFileSystem(context.getConfiguration());
+
+        moveTaskOutputs(fs, src, src, dest);
+        fs.delete(src, true);
         return;
       }
 
@@ -127,16 +142,17 @@ class HowlOutputCommitter extends OutputCommitter {
         }
 
         partition.setParameters(params);
+        //Publish the new partition
         client.add_partition(partition);
 
         if( baseCommitter != null ) {
           baseCommitter.cleanupJob(context);
         }
       } catch (Exception e) {
-        if( e instanceof IOException ) {
-          throw (IOException) e;
+        if( e instanceof HowlException ) {
+          throw (HowlException) e;
         } else {
-          throw new IOException("Error adding partition to metastore", e);
+          throw new HowlException(ErrorType.ERROR_PUBLISHING_PARTITION, e);
         }
       } finally {
         if( client != null ) {
@@ -259,4 +275,65 @@ class HowlOutputCommitter extends OutputCommitter {
 
       return values;
     }
+
+    /**
+     * Move all of the files from the temp directory to the final location
+     * @param fs the output file system
+     * @param file the file to move
+     * @param src the source directory
+     * @param dest the target directory
+     * @throws IOException
+     */
+    private void moveTaskOutputs(FileSystem fs,
+                                 Path file,
+                                 Path src,
+                                 Path dest) throws IOException {
+      if (fs.isFile(file)) {
+        Path finalOutputPath = getFinalPath(file, src, dest);
+
+        if (!fs.rename(file, finalOutputPath)) {
+          if (!fs.delete(finalOutputPath, true)) {
+            throw new HowlException("Failed to delete existing path " + finalOutputPath);
+          }
+          if (!fs.rename(file, finalOutputPath)) {
+            throw new HowlException("Failed to move output to " + dest);
+          }
+        }
+      } else if(fs.getFileStatus(file).isDir()) {
+        FileStatus[] paths = fs.listStatus(file);
+        Path finalOutputPath = getFinalPath(file, src, dest);
+        fs.mkdirs(finalOutputPath);
+
+        if (paths != null) {
+          for (FileStatus path : paths) {
+            moveTaskOutputs(fs, path.getPath(), src, dest);
+          }
+        }
+      }
+    }
+
+    /**
+     * Find the final name of a given output file, given the output directory
+     * and the work directory.
+     * @param file the file to move
+     * @param src the source directory
+     * @param dest the target directory
+     * @return the final path for the specific output file
+     * @throws IOException
+     */
+    private Path getFinalPath(Path file, Path src,
+                              Path dest) throws IOException {
+      URI taskOutputUri = file.toUri();
+      URI relativePath = src.toUri().relativize(taskOutputUri);
+      if (taskOutputUri == relativePath) {
+        throw new HowlException("Can not get the relative path: base = " +
+            src + " child = " + file);
+      }
+      if (relativePath.getPath().length() > 0) {
+        return new Path(dest, relativePath.getPath());
+      } else {
+        return dest;
+      }
+    }
+
 }

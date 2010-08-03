@@ -30,7 +30,7 @@ public class HowlException extends IOException {
   private final ErrorType errorType;
 
   /**
-   * Instantiates a new owl exception.
+   * Instantiates a new howl exception.
    * @param errorType the error type
    */
   public HowlException(ErrorType errorType) {
@@ -39,7 +39,7 @@ public class HowlException extends IOException {
 
 
   /**
-   * Instantiates a new owl exception.
+   * Instantiates a new howl exception.
    * @param errorType the error type
    * @param cause the cause
    */
@@ -48,7 +48,16 @@ public class HowlException extends IOException {
   }
 
   /**
-   * Instantiates a new owl exception.
+   * Instantiates a new howl exception.
+   * @param errorType the error type
+   * @param extraMessage extra messages to add to the message string
+   */
+  public HowlException(ErrorType errorType, String extraMessage) {
+    this(errorType, extraMessage, null);
+  }
+
+  /**
+   * Instantiates a new howl exception.
    * @param errorType the error type
    * @param extraMessage extra messages to add to the message string
    * @param cause the cause
@@ -65,7 +74,7 @@ public class HowlException extends IOException {
   //TODO : remove default error type constructors after all exceptions
   //are changed to use error types
   /**
-   * Instantiates a new owl exception.
+   * Instantiates a new howl exception.
    * @param message the error message
    */
   public HowlException(String message) {
@@ -73,7 +82,7 @@ public class HowlException extends IOException {
   }
 
   /**
-   * Instantiates a new owl exception.
+   * Instantiates a new howl exception.
    * @param message the error message
    * @param cause the cause
    */

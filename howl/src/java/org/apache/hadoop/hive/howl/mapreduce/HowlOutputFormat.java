@@ -30,6 +30,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.howl.common.ErrorType;
+import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
@@ -58,6 +60,9 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     public static final String HOWL_KEY_OUTPUT_BASE = "mapreduce.lib.howloutput";
     public static final String HOWL_KEY_OUTPUT_INFO = HOWL_KEY_OUTPUT_BASE + ".info";
     public static final String HOWL_KEY_HIVE_CONF = HOWL_KEY_OUTPUT_BASE + ".hive.conf";
+
+    /** The directory under which data is initially written for a non partitioned table */
+    protected static final String TEMP_DIR_NAME = "_TEMP";
 
     /**
      * Set the info about the output to write for the Job. This queries the metadata server
@@ -103,10 +108,10 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
 
       } catch(Exception e) {
-        if( e instanceof IOException ) {
-          throw (IOException) e;
+        if( e instanceof HowlException ) {
+          throw (HowlException) e;
         } else {
-          throw new IOException("Error setting output information", e);
+          throw new HowlException(ErrorType.ERROR_SET_OUTPUT, e);
         }
       } finally {
         if( client != null ) {
@@ -117,9 +122,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
     /**
      * Handles duplicate publish of partition. Fails if partition already exists.
-     * For non partitioned tables, fails if files are present in table directory. If
-     * no files are present in table directory, deletes the table directory so that
-     * the underlying output format can create the directory.
+     * For non partitioned tables, fails if files are present in table directory.
      * @param job the job
      * @param outputInfo the output info
      * @param client the metastore client
@@ -139,7 +142,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
             outputInfo.getTableName(), partitionValues, (short) 1);
 
         if( currentParts.size() > 0 ) {
-          throw new IOException("Partition already present with given partition key values");
+          throw new HowlException(ErrorType.ERROR_DUPLICATE_PARTITION);
         }
       } else {
         Path tablePath = new Path(table.getSd().getLocation());
@@ -149,11 +152,9 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
           FileStatus[] status = fs.globStatus(new Path(tablePath, "*"));
 
           if( status.length > 0 ) {
-            throw new IOException("Non-partitioned table " + outputInfo.getTableName() + " already contains data");
+            throw new HowlException(ErrorType.ERROR_NON_EMPTY_TABLE,
+                      table.getDbName() + "." + table.getTableName());
           }
-
-          //Delete the table level directory
-          fs.delete(tablePath, false);
         }
       }
     }
@@ -258,7 +259,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     static OutputJobInfo getJobInfo(JobContext jobContext) throws IOException {
         String jobString = jobContext.getConfiguration().get(HOWL_KEY_OUTPUT_INFO);
         if( jobString == null ) {
-            throw new IOException("HowlOutputFormat not initialized, setOutput has to be called");
+            throw new HowlException(ErrorType.ERROR_NOT_INITIALIZED);
         }
 
         return (OutputJobInfo) HowlUtil.deserialize(jobString);
@@ -289,7 +290,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
             return driver;
         } catch(Exception e) {
-            throw new IOException("Error initializing output storage driver instance", e);
+            throw new HowlException(ErrorType.ERROR_INIT_STORAGE_DRIVER, e);
         }
     }
 
@@ -329,5 +330,6 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
       return new HiveMetaStoreClient(hiveConf);
     }
+
 
 }
