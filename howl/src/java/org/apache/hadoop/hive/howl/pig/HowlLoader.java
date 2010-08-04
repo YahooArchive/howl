@@ -174,13 +174,17 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   @Override
   public String[] getPartitionKeys(String location, Job job)
   throws IOException {
-    Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());
-    List<FieldSchema> tablePartitionKeys = table.getPartitionKeys();
-    String[] partitionKeys = new String[tablePartitionKeys.size()];
-    for(int i = 0; i < tablePartitionKeys.size(); i++) {
-      partitionKeys[i] = tablePartitionKeys.get(i).getName();
-    }
-    return partitionKeys;
+    // Right now we don't have partition filtering enabled in howl - so retun null
+    // but when we do have, it the code below should be uncommented.
+    return null;
+    // TODO:UNCOMMENT LATER - see above comment
+//    Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());
+//    List<FieldSchema> tablePartitionKeys = table.getPartitionKeys();
+//    String[] partitionKeys = new String[tablePartitionKeys.size()];
+//    for(int i = 0; i < tablePartitionKeys.size(); i++) {
+//      partitionKeys[i] = tablePartitionKeys.get(i).getName();
+//    }
+//    return partitionKeys;
   }
 
   @Override
