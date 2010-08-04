@@ -106,5 +106,22 @@ public class TestHowlNonPartitioned extends HowlMapReduceTest {
 
     //Read should get 10 rows
     runMRRead(10);
+
+    hiveReadTest();
+  }
+
+  //Test that data inserted through howloutputformat is readable from hive
+  private void hiveReadTest() throws Exception {
+
+    String query = "select * from " + tableName;
+    int retCode = driver.run(query).getResponseCode();
+
+    if( retCode != 0 ) {
+      throw new Exception("Error " + retCode + " running query " + query);
+    }
+
+    ArrayList<String> res = new ArrayList<String>();
+    driver.getResults(res);
+    assertEquals(10, res.size());
   }
 }
