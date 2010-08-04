@@ -77,7 +77,7 @@ public class TestHowlLoader extends TestCase {
 //        + "current_grades map<string,string>, "
 //        + "phnos array<struct<phno:string,type:string>");
 
-    createTable(PARTITIONED_TABLE,"a int, b string","bkt int");
+//    createTable(PARTITIONED_TABLE,"a int, b string","bkt int");
 
 
     int LOOP_SIZE = 3;
@@ -95,33 +95,33 @@ public class TestHowlLoader extends TestCase {
     }
     MiniCluster.createInputFile(cluster, basicFile, input);
 
-    MiniCluster.createInputFile(cluster, complexFile,
-        new String[]{
-        "Henry Jekyll\t42\t(415-253-6367,hjekyll@contemporary.edu.uk)\t{(PHARMACOLOGY),(PSYCHIATRY)},[PHARMACOLOGY#A-,PSYCHIATRY#B+],{(415-253-6367,cell),(408-253-6367,landline)}",
-        "Edward Hyde\t1337\t(415-253-6367,anonymous@b44chan.org)\t{(CREATIVE_WRITING),(COPYRIGHT_LAW)},[CREATIVE_WRITING#A+,COPYRIGHT_LAW#D],{(415-253-6367,cell),(408-253-6367,landline)}",
-        }
-    );
+//    MiniCluster.createInputFile(cluster, complexFile,
+//        new String[]{
+//        "Henry Jekyll\t42\t(415-253-6367,hjekyll@contemporary.edu.uk)\t{(PHARMACOLOGY),(PSYCHIATRY)},[PHARMACOLOGY#A-,PSYCHIATRY#B+],{(415-253-6367,cell),(408-253-6367,landline)}",
+//        "Edward Hyde\t1337\t(415-253-6367,anonymous@b44chan.org)\t{(CREATIVE_WRITING),(COPYRIGHT_LAW)},[CREATIVE_WRITING#A+,COPYRIGHT_LAW#D],{(415-253-6367,cell),(408-253-6367,landline)}",
+//        }
+//    );
 
     PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
     server.registerQuery("A = load '"+basicFile+"' as (a:int, b:chararray);");
     server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
-    server.registerQuery("B = filter A by a < 2;");
-    server.registerQuery("store B into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
-    server.registerQuery("C = filter A by a >= 2;");
-    server.registerQuery("store C into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
+//    server.registerQuery("B = filter A by a < 2;");
+//    server.registerQuery("store B into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
+//    server.registerQuery("C = filter A by a >= 2;");
+//    server.registerQuery("store C into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
 //    server.registerQuery("D = load '"+complexFile+"' as (name:string, studentid:int, contact:tuple(phno:string,email:string), currently_registered_courses:bag{innertup:tuple(course:string)}, current_grades:map[ ] , phnos :bag{innertup:tuple(phno:string,type:string)})");
-//    server.registerQuery("store B into '"+COMPLEX_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
+//    server.registerQuery("store D into '"+COMPLEX_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
     server.executeBatch();
 
   }
   private void cleanup() throws IOException {
     MiniCluster.deleteFile(cluster, basicFile);
-    MiniCluster.deleteFile(cluster, complexFile);
+//    MiniCluster.deleteFile(cluster, complexFile);
     dropTable(BASIC_TABLE);
-    dropTable(COMPLEX_TABLE);
-    dropTable(PARTITIONED_TABLE);
+//    dropTable(COMPLEX_TABLE);
+//    dropTable(PARTITIONED_TABLE);
   }
 
   @Override
@@ -136,7 +136,7 @@ public class TestHowlLoader extends TestCase {
     // test that schema was loaded correctly
     server.registerQuery("X = load '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
     Schema dumpedXSchema = server.dumpSchema("X");
-    System.err.println("dumped schema : basic : "+dumpedXSchema.toString());
+//    System.err.println("dumped schema : basic : "+dumpedXSchema.toString());
     List<FieldSchema> Xfields = dumpedXSchema.getFields();
     assertEquals(2,Xfields.size());
     assertTrue(Xfields.get(0).alias.equalsIgnoreCase("a"));
@@ -160,7 +160,7 @@ public class TestHowlLoader extends TestCase {
       assertEquals(t.get(1),basicInputData.get(numTuplesRead).second);
       numTuplesRead++;
     }
-    assertEquals(numTuplesRead,basicInputData.size());
+    assertEquals(basicInputData.size(),numTuplesRead);
   }
 
   public void disabled_testSchemaLoadComplex() throws IOException{
@@ -170,7 +170,7 @@ public class TestHowlLoader extends TestCase {
     // test that schema was loaded correctly
     server.registerQuery("K = load '"+COMPLEX_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
     Schema dumpedKSchema = server.dumpSchema("K");
-    System.err.println("dumped schema : complex : "+dumpedKSchema.toString());
+//    System.err.println("dumped schema : complex : "+dumpedKSchema.toString());
     List<FieldSchema> Kfields = dumpedKSchema.getFields();
     assertEquals(6,Kfields.size());
 
@@ -222,6 +222,11 @@ public class TestHowlLoader extends TestCase {
   public void disabled_testReadPartitionedBasic() throws IOException {
     PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
+    driver.run("select * from "+PARTITIONED_TABLE);
+    ArrayList<String> valuesReadFromHiveDriver = new ArrayList<String>();
+    driver.getResults(valuesReadFromHiveDriver);
+    assertEquals(basicInputData.size(),valuesReadFromHiveDriver.size());
+
     server.registerQuery("W = load '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader() as (a,b,bkt);");
     Iterator<Tuple> WIter = server.openIterator("W");
     Collection<Pair<Integer,String>> valuesRead = new ArrayList<Pair<Integer,String>>();
@@ -231,7 +236,7 @@ public class TestHowlLoader extends TestCase {
       assertTrue(t.get(1).getClass() == String.class);
       valuesRead.add(new Pair<Integer,String>((Integer)t.get(0),(String)t.get(1)));
     }
-    assertEquals(basicInputData.size(),valuesRead.size());
+    assertEquals(valuesReadFromHiveDriver.size(),valuesRead.size());
     assertEquals(valuesRead,basicInputData.values());
   }
 
@@ -245,7 +250,7 @@ public class TestHowlLoader extends TestCase {
 
     server.registerQuery("Y = load '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader() as (a:int);");
     Schema dumpedYSchema = server.dumpSchema("Y");
-    System.err.println("dumped schema Y : "+dumpedYSchema.toString());
+//    System.err.println("dumped schema Y : "+dumpedYSchema.toString());
     List<FieldSchema> Yfields = dumpedYSchema.getFields();
     assertEquals(1,Yfields.size());
     assertTrue(Yfields.get(0).alias.equalsIgnoreCase("a"));
