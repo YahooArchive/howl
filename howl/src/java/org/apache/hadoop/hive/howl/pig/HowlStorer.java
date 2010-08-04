@@ -28,6 +28,8 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.howl.common.ErrorType;
+import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
@@ -42,6 +44,7 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.BackendException;
@@ -466,7 +469,15 @@ public class HowlStorer extends StoreFunc {
     if(!HowlUtil.checkJobContextIfRunningFromBackend(job)){
 
       pigSchema = (Schema)ObjectSerializer.deserialize(p.getProperty(PIG_SCHEMA));
-      HowlOutputFormat.setOutput(job, tblInfo);
+      try{
+        HowlOutputFormat.setOutput(job, tblInfo);
+      } catch(HowlException he) {
+        if(he.getErrorCode() == ErrorType.ERROR_SET_OUTPUT.getErrorCode()) {
+          // pass the message to the user - essentially something about the table
+          // information passed to HowlOutputFormat was not right
+          throw new PigException(he.getMessage(), PigHowlUtil.PIG_EXCEPTION_CODE);
+        }
+      }
       howlTblSchema = HowlOutputFormat.getTableSchema(job);
       doSchemaValidations(pigSchema, howlTblSchema);
       computedSchema = convertPigSchemaToHowlSchema(pigSchema,howlTblSchema);
