@@ -472,11 +472,9 @@ public class HowlStorer extends StoreFunc {
       try{
         HowlOutputFormat.setOutput(job, tblInfo);
       } catch(HowlException he) {
-        if(he.getErrorCode() == ErrorType.ERROR_SET_OUTPUT.getErrorCode()) {
           // pass the message to the user - essentially something about the table
           // information passed to HowlOutputFormat was not right
           throw new PigException(he.getMessage(), PigHowlUtil.PIG_EXCEPTION_CODE);
-        }
       }
       howlTblSchema = HowlOutputFormat.getTableSchema(job);
       doSchemaValidations(pigSchema, howlTblSchema);
