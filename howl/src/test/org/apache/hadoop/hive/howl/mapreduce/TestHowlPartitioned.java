@@ -24,13 +24,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.serde.Constants;
 
 public class TestHowlPartitioned extends HowlMapReduceTest {
@@ -38,20 +36,11 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
   private List<HowlRecord> writeRecords;
   private List<HowlFieldSchema> partitionColumns;
 
-  Driver driver;
-
   @Override
   protected void initialize() throws Exception {
 
     tableName = "testHowlPartitionedTable";
     writeRecords = new ArrayList<HowlRecord>();
-
-    //The default org.apache.hadoop.hive.ql.hooks.PreExecutePrinter hook
-    //is present only in the ql/test directory
-    hiveConf.set(HiveConf.ConfVars.PREEXECHOOKS.varname, "");
-    hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
-
-    driver = new Driver(hiveConf);
 
     for(int i = 0;i < 20;i++) {
       List<Object> objList = new ArrayList<Object>();
