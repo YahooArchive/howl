@@ -27,7 +27,13 @@ public enum ErrorType {
 
 
     /* Howl Output Format related errors 2000 - 2999 */
-    ERROR_INVALID_TABLE                 (2001, "Table specified does not exist"),
+    ERROR_INVALID_TABLE                 (2000, "Table specified does not exist"),
+    ERROR_SET_OUTPUT                    (2001, "Error setting output information"),
+    ERROR_DUPLICATE_PARTITION           (2002, "Partition already present with given partition key values"),
+    ERROR_NON_EMPTY_TABLE               (2003, "Non-partitioned table already contains data"),
+    ERROR_NOT_INITIALIZED               (2004, "HowlOutputFormat not initialized, setOutput has to be called"),
+    ERROR_INIT_STORAGE_DRIVER           (2005, "Error initializing output storage driver instance"),
+    ERROR_PUBLISHING_PARTITION          (2006, "Error adding partition to metastore"),
 
 
     /* Miscellaneous errors, range 9000 - 9998 */

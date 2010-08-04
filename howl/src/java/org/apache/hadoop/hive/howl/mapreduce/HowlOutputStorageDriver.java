@@ -107,7 +107,7 @@ public abstract class HowlOutputStorageDriver {
             String tableLocation, List<String> partitionCols, Map<String, String> partitionValues) throws IOException {
 
       if( partitionValues == null || partitionValues.size() == 0 ) {
-        return tableLocation;
+        return new Path(tableLocation, HowlOutputFormat.TEMP_DIR_NAME).toString();
       }
 
       List<String> values = new ArrayList<String>();
