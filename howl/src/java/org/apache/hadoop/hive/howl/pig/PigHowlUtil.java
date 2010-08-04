@@ -54,6 +54,7 @@ public class PigHowlUtil {
   public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
   static final int PIG_EXCEPTION_CODE = 1115; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
+  private static final String DEFAULT_DB = "default";
 
   private final  Map<Pair<String,String>, Table> howlTableCache =
     new HashMap<Pair<String,String>, Table>();
@@ -65,10 +66,11 @@ public class PigHowlUtil {
 
     String[] dbTableNametokens = location.split("\\.");
     if(dbTableNametokens.length != 2) {
-      String locationErrMsg = "The input location in load statement " +
-      "should be of the form " +
-      "<databasename>.<table name>";
-      throw new PigException(locationErrMsg, PIG_EXCEPTION_CODE);
+//      String locationErrMsg = "The input location in load statement " +
+//      "should be of the form " +
+//      "<databasename>.<table name>";
+//      throw new PigException(locationErrMsg, PIG_EXCEPTION_CODE);
+      return new Pair<String,String>(DEFAULT_DB,location);
     }
     return new Pair<String, String>(dbTableNametokens[0], dbTableNametokens[1]);
   }
@@ -140,7 +142,7 @@ public class PigHowlUtil {
       client = createHiveMetaClient(howlServerUri, PigHowlUtil.class);
       table = client.getTable(dbName, tableName);
     } catch (NoSuchObjectException nsoe){
-      throw new PigException("Table not found :" + nsoe.getMessage(), PIG_EXCEPTION_CODE); // prettier error messages to frontend
+      throw new PigException("Table not found : " + nsoe.getMessage(), PIG_EXCEPTION_CODE); // prettier error messages to frontend
     } catch (Exception e) {
       throw new IOException(e);
     }
