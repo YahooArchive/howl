@@ -81,6 +81,14 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
         if( outputInfo.getPartitionValues() == null ) {
           outputInfo.setPartitionValues(new HashMap<String, String>());
+        } else {
+          //Convert user specified map to have lower case key names
+          Map<String, String> valueMap = new HashMap<String, String>();
+          for(Map.Entry<String, String> entry : outputInfo.getPartitionValues().entrySet()) {
+            valueMap.put(entry.getKey().toLowerCase(), entry.getValue());
+          }
+
+          outputInfo.setPartitionValues(valueMap);
         }
 
         //Handle duplicate publish

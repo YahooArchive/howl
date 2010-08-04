@@ -137,7 +137,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
 
     ArrayList<Integer> prjColumns = new ArrayList<Integer>();
     for(FieldSchema prjCol : outCols){
-      Integer pos = namePosMapping.get(prjCol.getName());
+      Integer pos = namePosMapping.get(prjCol.getName().toLowerCase());
       if(pos != null) {
         prjColumns.add(pos);
       }
@@ -173,7 +173,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
 
     for(HowlFieldSchema col : outCols){
 
-      colName = col.getName();
+      colName = col.getName().toLowerCase();
       index = namePosMapping.get(colName);
 
       if(index != null){
