@@ -192,8 +192,8 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     } catch (IOException e){
       throw new PigException(
           "Table schema incompatible for reading through HowlLoader :" + e.getMessage()
-          + " Table schema was ["+ howlTableSchema.toString() +"]"
-          ,e);
+          + ";[Table schema was "+ howlTableSchema.toString() +"]"
+          ,PigHowlUtil.PIG_EXCEPTION_CODE, e);
     }
     storeInUDFContext(signature, PigHowlUtil.HOWL_TABLE_SCHEMA, howlTableSchema);
     outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);

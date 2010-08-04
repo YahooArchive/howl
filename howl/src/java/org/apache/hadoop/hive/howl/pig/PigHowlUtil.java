@@ -388,7 +388,8 @@ public class PigHowlUtil {
 
   private static void validateIsPigCompatibleMapWithPrimitives(HowlTypeInfo hti) throws IOException{
     if ( hti.getMapKeyTypeInfo().getType() != HowlType.STRING){
-      throw new PigException("Incompatible type in schema, found map with non-string key type in :"+hti.getTypeString());
+      throw new PigException("Incompatible type in schema, found map with " +
+      		"non-string key type in :"+hti.getTypeString(), PIG_EXCEPTION_CODE);
     }
     validateIsPigCompatiblePrimitive(hti.getMapValueTypeInfo());
   }
@@ -407,7 +408,8 @@ public class PigHowlUtil {
         (htype == HowlType.TINYINT) ||
         (htype == HowlType.SMALLINT)
         ){
-      throw new PigException("Incompatible type in schema, expected pig compatible primitive :"+hti.getTypeString());
+      throw new PigException("Incompatible type in schema, expected pig " +
+      		"compatible primitive for:" + hti.getTypeString());
     }
   }
 
