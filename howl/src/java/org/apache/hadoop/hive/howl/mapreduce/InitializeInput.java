@@ -28,6 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -97,7 +98,7 @@ public class InitializeInput {
       // populate partition info
       for (Partition ptn : parts){
         PartInfo partInfo = extractPartInfo(ptn.getSd(),ptn.getParameters());
-        partInfo.setPartitionValues(ptn.getParameters());
+        partInfo.setPartitionValues(createPtnKeyValueMap(table,ptn));
         partInfoList.add(partInfo);
       }
 
@@ -115,6 +116,27 @@ public class InitializeInput {
         HowlInputFormat.HOWL_KEY_JOB_INFO,
         HowlUtil.serialize(howlJobInfo)
     );
+  }
+
+  private static Map<String, String> createPtnKeyValueMap(Table table, Partition ptn) throws IOException{
+    List<String> values = ptn.getValues();
+    if( values.size() != table.getPartitionKeys().size() ) {
+      throw new IOException("Partition values in partition inconsistent with table definition, table "
+          + table.getTableName() + " has "
+          + table.getPartitionKeys().size()
+          + " partition keys, partition has " + values.size() + "partition values" );
+    }
+
+    Map<String,String> ptnKeyValues = new HashMap<String,String>();
+
+    int i = 0;
+    for(FieldSchema schema : table.getPartitionKeys()) {
+      // CONCERN : the way this mapping goes, the order *needs* to be preserved for table.getPartitionKeys() and ptn.getValues()
+      ptnKeyValues.put(schema.getName().toLowerCase(), values.get(i));
+      i++;
+    }
+
+    return ptnKeyValues;
   }
 
   private static PartInfo extractPartInfo(StorageDescriptor sd, Map<String,String> parameters) throws IOException{
