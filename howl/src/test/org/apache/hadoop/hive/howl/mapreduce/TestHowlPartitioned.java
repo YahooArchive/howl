@@ -59,7 +59,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
   @Override
   protected List<FieldSchema> getPartitionKeys() {
     List<FieldSchema> fields = new ArrayList<FieldSchema>();
-    fields.add(new FieldSchema("p1", Constants.STRING_TYPE_NAME, ""));
+    fields.add(new FieldSchema("PaRT1", Constants.STRING_TYPE_NAME, ""));
     return fields;
   }
 
@@ -75,12 +75,12 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
   public void testHowlPartitionedTable() throws Exception {
 
     Map<String, String> partitionMap = new HashMap<String, String>();
-    partitionMap.put("p1", "p1value1");
+    partitionMap.put("part1", "p1value1");
 
     runMRCreate(partitionMap, partitionColumns, writeRecords, 10);
 
     partitionMap.clear();
-    partitionMap.put("p1", "p1value2");
+    partitionMap.put("PART1", "p1value2");
 
     runMRCreate(partitionMap, partitionColumns, writeRecords, 20);
 
@@ -109,7 +109,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     assertTrue(exc != null);
     assertTrue(exc.getMessage().indexOf(
-        "No partition key value provided for key p1") != -1);
+        "No partition key value provided for key part1") != -1);
 
 
     //Test for null partition value map
@@ -156,7 +156,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     }
 
     Map<String, String> partitionMap = new HashMap<String, String>();
-    partitionMap.put("p1", "p1value5");
+    partitionMap.put("part1", "p1value5");
 
     runMRCreate(partitionMap, partitionColumns, writeRecords, 10);
 
@@ -167,11 +167,11 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     assertEquals("c1", tableSchema.getHowlFieldSchemas().get(0).getName());
     assertEquals("c2", tableSchema.getHowlFieldSchemas().get(1).getName());
     assertEquals("c3", tableSchema.getHowlFieldSchemas().get(2).getName());
-    assertEquals("p1", tableSchema.getHowlFieldSchemas().get(3).getName());
+    assertEquals("part1", tableSchema.getHowlFieldSchemas().get(3).getName());
 
     //Test that changing column data type fails
     partitionMap.clear();
-    partitionMap.put("p1", "p1value6");
+    partitionMap.put("part1", "p1value6");
 
     partitionColumns = new ArrayList<HowlFieldSchema>();
     partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
@@ -193,7 +193,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
     partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
     partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("p1", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(new HowlFieldSchema("part1", Constants.INT_TYPE_NAME, ""));
 
     exc = null;
     try {
@@ -204,7 +204,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     assertTrue(exc != null);
     assertTrue(exc.getMessage().indexOf(
-        "Partition key <p1> cannot be present in the partition data") != -1);
+        "Partition key <part1> cannot be present in the partition data") != -1);
   }
 
   //check behavior while change the order of columns
@@ -233,7 +233,7 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     }
 
     Map<String, String> partitionMap = new HashMap<String, String>();
-    partitionMap.put("p1", "p1value8");
+    partitionMap.put("part1", "p1value8");
 
 
     Exception exc = null;
