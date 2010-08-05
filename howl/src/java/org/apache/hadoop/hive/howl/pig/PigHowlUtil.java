@@ -65,14 +65,16 @@ public class PigHowlUtil {
     // communicate the information to HowlInputFormat
 
     String[] dbTableNametokens = location.split("\\.");
-    if(dbTableNametokens.length != 2) {
-//      String locationErrMsg = "The input location in load statement " +
-//      "should be of the form " +
-//      "<databasename>.<table name>";
-//      throw new PigException(locationErrMsg, PIG_EXCEPTION_CODE);
+    if(dbTableNametokens.length == 1) {
       return new Pair<String,String>(DEFAULT_DB,location);
+    }else if (dbTableNametokens.length == 2) {
+      return new Pair<String, String>(dbTableNametokens[0], dbTableNametokens[1]);
+    }else{
+      String locationErrMsg = "The input location in load statement " +
+      "should be of the form " +
+      "<databasename>.<table name> or <table name>. Got " + location;
+      throw new PigException(locationErrMsg, PIG_EXCEPTION_CODE);
     }
-    return new Pair<String, String>(dbTableNametokens[0], dbTableNametokens[1]);
   }
 
   static public String getHowlServerUri() {
