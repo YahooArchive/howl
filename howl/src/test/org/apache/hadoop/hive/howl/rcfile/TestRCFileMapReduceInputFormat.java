@@ -16,7 +16,7 @@
    * limitations under the License.
    */
 
-  package org.apache.hadoop.hive.io;
+  package org.apache.hadoop.hive.howl.rcfile;
 
   import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -30,6 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.howl.rcfile.RCFileMapReduceInputFormat;
 import org.apache.hadoop.hive.ql.io.RCFile;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
 import org.apache.hadoop.hive.serde.Constants;

@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.io;
+package org.apache.hadoop.hive.howl.rcfile;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,8 +16,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
-import org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.io.RCFile;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;

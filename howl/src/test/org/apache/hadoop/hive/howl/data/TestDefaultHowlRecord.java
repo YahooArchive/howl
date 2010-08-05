@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.io;
+package org.apache.hadoop.hive.howl.data;
 
 import java.io.DataInput;
 import java.io.DataInputStream;

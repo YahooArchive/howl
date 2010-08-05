@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.howl.mapreduce;
+package org.apache.hadoop.hive.howl.pig;
 
 import java.io.IOException;
 import java.util.ArrayList;

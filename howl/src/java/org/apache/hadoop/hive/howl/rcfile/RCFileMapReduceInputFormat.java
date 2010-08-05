@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.io;
+package org.apache.hadoop.hive.howl.rcfile;
 
 import java.io.IOException;
 import java.util.List;
