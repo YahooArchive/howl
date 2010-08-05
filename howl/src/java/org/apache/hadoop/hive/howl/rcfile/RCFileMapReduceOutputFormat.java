@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.io;
+package org.apache.hadoop.hive.howl.rcfile;
 
 import java.io.IOException;
 

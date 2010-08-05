@@ -288,6 +288,7 @@ public class HowlStorer extends StoreFunc {
     HowlType type = typeInfo.getType();
 
     switch(type){
+
     case STRUCT:
       // Unwrap the tuple.
       return ((Tuple)pigObj).getAll();
@@ -469,7 +470,10 @@ public class HowlStorer extends StoreFunc {
 
       Schema schema = (Schema)ObjectSerializer.deserialize(p.getProperty(PIG_SCHEMA));
       if(schema != null){
-        pigSchema = (Schema)ObjectSerializer.deserialize(p.getProperty(PIG_SCHEMA));
+        pigSchema = schema;
+      }
+      if(pigSchema == null){
+        throw new FrontendException("Schema for data cannot be determined.", PigHowlUtil.PIG_EXCEPTION_CODE);
       }
       try{
         HowlOutputFormat.setOutput(job, tblInfo);

@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.apache.hadoop.hive.howl.drivers;
+package org.apache.hadoop.hive.howl.rcfile;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -30,6 +30,8 @@ import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputStorageDriver;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputStorageDriver;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.serde2.columnar.BytesRefArrayWritable;
 import org.apache.hadoop.hive.serde2.columnar.BytesRefWritable;
