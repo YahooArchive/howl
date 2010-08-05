@@ -135,7 +135,7 @@ public class HowlStorer extends StoreFunc {
     for(FieldSchema fSchema : pigSchema.getFields()){
       byte type = fSchema.type;
       HowlFieldSchema howlFSchema;
-      String alias = fSchema.alias;
+      String alias = fSchema.alias.toLowerCase();
       if(type == org.apache.pig.data.DataType.BAG){
 
         // Find out if we need to throw away the tuple or not.
@@ -169,9 +169,9 @@ public class HowlStorer extends StoreFunc {
 
   private boolean removeTupleFromBag(HowlSchema tableSchema, FieldSchema bagFieldSchema){
 
-    String colName = bagFieldSchema.alias;
+    String colName = bagFieldSchema.alias.toLowerCase();
     for(HowlFieldSchema field : tableSchema.getHowlFieldSchemas()){
-      if(colName.equals(field.getName())){
+      if(colName.equalsIgnoreCase(field.getName())){
         List<HowlTypeInfo> tupleTypeInfo = field.getHowlTypeInfo().getListElementTypeInfo().getAllStructFieldTypeInfos();
         return (tupleTypeInfo == null || tupleTypeInfo.size() == 0) ? true : false;
       }
@@ -195,7 +195,7 @@ public class HowlStorer extends StoreFunc {
       List<String> fieldNames = new ArrayList<String>();
       List<HowlTypeInfo> typeInfos = new ArrayList<HowlTypeInfo>();
       for( FieldSchema fieldSchema : fSchema.schema.getFields()){
-        fieldNames.add( fieldSchema.alias);
+        fieldNames.add( fieldSchema.alias.toLowerCase());
         typeInfos.add(getTypeInfoFrom(fieldSchema));
       }
       return HowlTypeInfoUtils.getStructHowlTypeInfo(fieldNames, typeInfos);
@@ -204,7 +204,7 @@ public class HowlStorer extends StoreFunc {
       // Pig's schema contain no type information about map's keys and
       // values. So, if its a new column assume <string,string> if its existing
       // return whatever is contained in the existing column.
-      HowlFieldSchema mapField = getTableCol(fSchema.alias, howlTblSchema);
+      HowlFieldSchema mapField = getTableCol(fSchema.alias.toLowerCase(), howlTblSchema);
       if(mapField != null){
         HowlType mapValType = mapField.getHowlTypeInfo().getMapValueTypeInfo().getType();
         Class<?> clazz;
@@ -351,7 +351,7 @@ public class HowlStorer extends StoreFunc {
 
     for(FieldSchema pigField : pigSchema.getFields()){
       byte type = pigField.type;
-      String alias = pigField.alias;
+      String alias = pigField.alias.toLowerCase();
       HowlFieldSchema howlField = getTableCol(alias, tblSchema);
       if(DataType.isComplex(type)){
         switch(type){
@@ -434,7 +434,7 @@ public class HowlStorer extends StoreFunc {
   private HowlFieldSchema getTableCol(String alias, HowlSchema tblSchema){
 
     for(HowlFieldSchema howlField : tblSchema.getHowlFieldSchemas()){
-      if(howlField.getName().equals(alias)){
+      if(howlField.getName().equalsIgnoreCase(alias)){
         return howlField;
       }
     }
