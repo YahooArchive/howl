@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.howl.common.ErrorType;
+import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
@@ -93,8 +95,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     }
 
     assertTrue(exc != null);
-    assertTrue(exc.getMessage().indexOf(
-        "Partition already present with given partition key values") != -1);
+    assertTrue(exc instanceof HowlException);
+    assertEquals(ErrorType.ERROR_DUPLICATE_PARTITION, ((HowlException) exc).getErrorType());
 
     //Test for publish with invalid partition key name
     exc = null;
@@ -108,8 +110,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     }
 
     assertTrue(exc != null);
-    assertTrue(exc.getMessage().indexOf(
-        "No partition key value provided for key part1") != -1);
+    assertTrue(exc instanceof HowlException);
+    assertEquals(ErrorType.ERROR_MISSING_PARTITION_KEY, ((HowlException) exc).getErrorType());
 
 
     //Test for null partition value map
@@ -121,8 +123,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     }
 
     assertTrue(exc != null);
-    assertTrue(exc.getMessage().indexOf(
-        "Invalid partition values specified") != -1);
+    assertTrue(exc instanceof HowlException);
+    assertEquals(ErrorType.ERROR_INVALID_PARTITION_VALUES, ((HowlException) exc).getErrorType());
 
     //Read should get 10 + 20 rows
     runMRRead(30);
@@ -185,8 +187,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     }
 
     assertTrue(exc != null);
-    assertTrue(exc.getMessage().indexOf(
-        "Invalid type for column <c2>") != -1);
+    assertTrue(exc instanceof HowlException);
+    assertEquals(ErrorType.ERROR_SCHEMA_TYPE_MISMATCH, ((HowlException) exc).getErrorType());
 
     //Test that partition key is not allowed in data
     partitionColumns = new ArrayList<HowlFieldSchema>();
@@ -203,8 +205,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     }
 
     assertTrue(exc != null);
-    assertTrue(exc.getMessage().indexOf(
-        "Partition key <part1> cannot be present in the partition data") != -1);
+    assertTrue(exc instanceof HowlException);
+    assertEquals(ErrorType.ERROR_SCHEMA_PARTITION_KEY, ((HowlException) exc).getErrorType());
   }
 
   //check behavior while change the order of columns
@@ -244,8 +246,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     }
 
     assertTrue(exc != null);
-    assertTrue(exc.getMessage().indexOf(
-        "Expected column <c2> at position 2, found column <c3>") != -1);
+    assertTrue(exc instanceof HowlException);
+    assertEquals(ErrorType.ERROR_SCHEMA_COLUMN_MISMATCH, ((HowlException) exc).getErrorType());
 
 
     partitionColumns = new ArrayList<HowlFieldSchema>();

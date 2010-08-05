@@ -114,7 +114,7 @@ public class HowlException extends IOException {
     if( type.appendCauseMessage() ) {
       if( cause != null && cause.getMessage() != null ) {
         //Add the cause message to buffer
-        message.append(". Cause : " + cause.getMessage());
+        message.append(". Cause : " + cause.toString());
       }
     }
 
