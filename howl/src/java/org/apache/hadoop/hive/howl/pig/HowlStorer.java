@@ -28,7 +28,6 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.howl.common.ErrorType;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
@@ -468,7 +467,10 @@ public class HowlStorer extends StoreFunc {
     Configuration config = job.getConfiguration();
     if(!HowlUtil.checkJobContextIfRunningFromBackend(job)){
 
-      pigSchema = (Schema)ObjectSerializer.deserialize(p.getProperty(PIG_SCHEMA));
+      Schema schema = (Schema)ObjectSerializer.deserialize(p.getProperty(PIG_SCHEMA));
+      if(schema != null){
+        pigSchema = (Schema)ObjectSerializer.deserialize(p.getProperty(PIG_SCHEMA));
+      }
       try{
         HowlOutputFormat.setOutput(job, tblInfo);
       } catch(HowlException he) {
