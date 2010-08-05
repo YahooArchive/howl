@@ -33,7 +33,7 @@ public class TestHowlLoader extends TestCase {
   private static final String basicFile = "basic.input.data";
   private static final String complexFile = "complex.input.data";
 
-  private static int guardTestCount = 4; // ugh, instantiate using introspection in guardedSetupBeforeClass
+  private static int guardTestCount = 5; // ugh, instantiate using introspection in guardedSetupBeforeClass
   private static boolean setupHasRun = false;
 
   private static Map<Integer,Pair<Integer,String>> basicInputData;
@@ -47,8 +47,8 @@ public class TestHowlLoader extends TestCase {
     if ((partitionedBy != null)&&(!partitionedBy.trim().isEmpty())){
       createTable = createTable + "partitioned by ("+partitionedBy+") ";
     }
-    createTable = createTable + "stored as RCFILE tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-        "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+    createTable = createTable + "stored as RCFILE tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table. ["+createTable+"], return code from hive driver : ["+retCode+"]");
@@ -83,7 +83,7 @@ public class TestHowlLoader extends TestCase {
         + "current_grades map<string,string>, "
         + "phnos array<struct<phno:string,type:string>>");
 
-    createTable(PARTITIONED_TABLE,"a int, b string","bkt int");
+    createTable(PARTITIONED_TABLE,"a int, b string","bkt string");
 
 
     int LOOP_SIZE = 3;
@@ -112,11 +112,35 @@ public class TestHowlLoader extends TestCase {
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
     server.registerQuery("A = load '"+basicFile+"' as (a:int, b:chararray);");
+//    Iterator<Tuple> iter = server.openIterator("A");
+//    while(iter.hasNext()){
+//      System.err.println("BOO A" + iter.next());
+//    }
     server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
-//    server.registerQuery("B = filter A by a < 2;");
-//    server.registerQuery("store B into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
-//    server.registerQuery("C = filter A by a >= 2;");
-//    server.registerQuery("store C into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
+//    server.registerQuery("A3 = load '"+ BASIC_TABLE +"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+//    iter = server.openIterator("A3");
+//    while(iter.hasNext()){
+//      System.err.println("BOO A3" + iter.next());
+//    }
+//
+//    server.registerQuery("B = foreach A generate a,b;");
+//    server.registerQuery("B2 = filter B by a < 2;");
+//    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
+//    server.registerQuery("B3 = load '"+ PARTITIONED_TABLE +"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+//    iter = server.openIterator("B3");
+//    while(iter.hasNext()){
+//      System.err.println("BOO B3" + iter.next());
+//    }
+//
+//    server.registerQuery("C = foreach A generate a,b;");
+//    server.registerQuery("C2 = filter C by a >= 2;");
+//    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
+//    server.registerQuery("C3 = load '"+ PARTITIONED_TABLE +"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+//    iter = server.openIterator("C3");
+//    while(iter.hasNext()){
+//      System.err.println("BOO C3" + iter.next());
+//    }
+
     server.registerQuery("D = load '"+complexFile+"' as (name:chararray, studentid:int, contact:tuple(phno:chararray,email:chararray), currently_registered_courses:bag{innertup:tuple(course:chararray)}, current_grades:map[ ] , phnos :bag{innertup:tuple(phno:chararray,type:chararray)});");
     server.registerQuery("store D into '"+COMPLEX_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
     server.executeBatch();
@@ -243,7 +267,7 @@ public class TestHowlLoader extends TestCase {
 
   }
 
-  public void disabled_testReadPartitionedBasic() throws IOException {
+  public void testReadPartitionedBasic() throws IOException {
     PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
     driver.run("select * from "+PARTITIONED_TABLE);
@@ -260,7 +284,7 @@ public class TestHowlLoader extends TestCase {
     assertTrue(Wfields.get(1).alias.equalsIgnoreCase("b"));
     assertTrue(Wfields.get(1).type == DataType.CHARARRAY);
     assertTrue(Wfields.get(2).alias.equalsIgnoreCase("bkt"));
-    assertTrue(Wfields.get(2).type == DataType.INTEGER);
+    assertTrue(Wfields.get(2).type == DataType.CHARARRAY);
 
     Iterator<Tuple> WIter = server.openIterator("W");
     Collection<Pair<Integer,String>> valuesRead = new ArrayList<Pair<Integer,String>>();
@@ -269,36 +293,57 @@ public class TestHowlLoader extends TestCase {
       assertTrue(t.size() == 3);
       assertTrue(t.get(0).getClass() == Integer.class);
       assertTrue(t.get(1).getClass() == String.class);
-      assertTrue(t.get(2).getClass() == Integer.class);
+      assertTrue(t.get(2).getClass() == String.class);
       valuesRead.add(new Pair<Integer,String>((Integer)t.get(0),(String)t.get(1)));
+      if ((Integer)t.get(0) < 2){
+        assertEquals("0",t.get(2));
+      }else{
+        assertEquals("1",t.get(2));
+      }
     }
     assertEquals(valuesReadFromHiveDriver.size(),valuesRead.size());
-    assertEquals(valuesRead,basicInputData.values());
   }
 
   public void testProjectionsBasic() throws IOException {
 
     PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
-    // projections are handled by using generate
-    // TODO : attempt to reorder columns
+    // projections are handled by using generate, not "as" on the Load
 
     server.registerQuery("Y1 = load '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
     server.registerQuery("Y2 = foreach Y1 generate a;");
-    Schema dumpedYSchema = server.dumpSchema("Y2");
-//    System.err.println("dumped schema Y : "+dumpedYSchema.toString());
-    List<FieldSchema> Yfields = dumpedYSchema.getFields();
-    assertEquals(1,Yfields.size());
-    assertTrue(Yfields.get(0).alias.equalsIgnoreCase("a"));
-    assertTrue(Yfields.get(0).type == DataType.INTEGER);
+    server.registerQuery("Y3 = foreach Y1 generate b,a;");
+    Schema dumpedY2Schema = server.dumpSchema("Y2");
+    Schema dumpedY3Schema = server.dumpSchema("Y3");
+    List<FieldSchema> Y2fields = dumpedY2Schema.getFields();
+    List<FieldSchema> Y3fields = dumpedY3Schema.getFields();
+    assertEquals(1,Y2fields.size());
+    assertEquals("a",Y2fields.get(0).alias.toLowerCase());
+    assertEquals(DataType.INTEGER,Y2fields.get(0).type);
+    assertEquals(2,Y3fields.size());
+    assertEquals("b",Y3fields.get(0).alias.toLowerCase());
+    assertEquals(DataType.CHARARRAY,Y3fields.get(0).type);
+    assertEquals("a",Y3fields.get(1).alias.toLowerCase());
+    assertEquals(DataType.INTEGER,Y3fields.get(1).type);
 
     int numTuplesRead = 0;
-    Iterator<Tuple> YIter = server.openIterator("Y2");
-    while( YIter.hasNext() ){
-      Tuple t = YIter.next();
+    Iterator<Tuple> Y2Iter = server.openIterator("Y2");
+    while( Y2Iter.hasNext() ){
+      Tuple t = Y2Iter.next();
       assertEquals(t.size(),1);
       assertTrue(t.get(0).getClass() == Integer.class);
       assertEquals(t.get(0),basicInputData.get(numTuplesRead).first);
+      numTuplesRead++;
+    }
+    numTuplesRead = 0;
+    Iterator<Tuple> Y3Iter = server.openIterator("Y3");
+    while( Y3Iter.hasNext() ){
+      Tuple t = Y3Iter.next();
+      assertEquals(t.size(),2);
+      assertTrue(t.get(0).getClass() == String.class);
+      assertEquals(t.get(0),basicInputData.get(numTuplesRead).second);
+      assertTrue(t.get(1).getClass() == Integer.class);
+      assertEquals(t.get(1),basicInputData.get(numTuplesRead).first);
       numTuplesRead++;
     }
     assertEquals(basicInputData.size(),numTuplesRead);
