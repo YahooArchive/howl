@@ -33,8 +33,8 @@ public class TestHowlStorer extends TestCase {
 //
 //    driver.run("drop table junit_unparted");
 //    String createTable = "create table junit_unparted(b string,arr_of_maps array<map<string,string>>) stored as RCFILE " +
-//        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-//        "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+//        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+//        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
 //    int retCode = driver.run(createTable).getResponseCode();
 //    if(retCode != 0) {
 //      throw new IOException("Failed to create table.");
@@ -69,16 +69,16 @@ public class TestHowlStorer extends TestCase {
 
     driver.run("drop table junit_unparted");
     String createTable = "create table junit_unparted(a int, b string) stored as RCFILE " +
-        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-        "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table.");
     }
     driver.run("drop table junit_unparted2");
     createTable = "create table junit_unparted2(a int, b string) stored as RCFILE " +
-    "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-    "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+    "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+    "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
     retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table.");
@@ -127,8 +127,8 @@ public class TestHowlStorer extends TestCase {
 
     driver.run("drop table junit_unparted");
     String createTable = "create table junit_unparted(a int, b string) stored as RCFILE " +
-        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-        "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table.");
@@ -169,8 +169,8 @@ public class TestHowlStorer extends TestCase {
 
     driver.run("drop table junit_unparted");
     String createTable = "create table junit_unparted(a int, b string) stored as RCFILE " +
-        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-        "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table.");
@@ -211,8 +211,8 @@ public class TestHowlStorer extends TestCase {
 
     driver.run("drop table junit_unparted");
     String createTable = "create table junit_unparted(a int, b string) stored as RCFILE " +
-        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-        "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table.");
@@ -250,8 +250,8 @@ public class TestHowlStorer extends TestCase {
   driver.run("drop table junit_unparted");
   String createTable = "create table junit_unparted(b string,a struct<a1:int>,  arr_of_struct array<string>, " +
   		"arr_of_struct2 array<struct<s1:string,s2:string>>,  arr_of_struct3 array<struct<s3:string>>) stored as RCFILE " +
-      "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-      "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+      "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+      "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
   int retCode = driver.run(createTable).getResponseCode();
   if(retCode != 0) {
     throw new IOException("Failed to create table.");
@@ -288,8 +288,8 @@ public class TestHowlStorer extends TestCase {
 
     driver.run("drop table junit_unparted");
     String createTable = "create table junit_unparted(a int, b float, c double, d bigint, e string) stored as RCFILE " +
-        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-        "'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table.");
@@ -335,8 +335,8 @@ public class TestHowlStorer extends TestCase {
 
     driver.run("drop table junit_unparted");
     String createTable = "create table junit_unparted(a int, b string) stored as RCFILE " +
-    		"tblproperties('howl.isd'='org.apache.hadoop.hive.howl.drivers.RCFileInputStorageDriver'," +
-    		"'howl.osd'='org.apache.hadoop.hive.howl.drivers.RCFileOutputStorageDriver') ";
+    		"tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+    		"'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table.");

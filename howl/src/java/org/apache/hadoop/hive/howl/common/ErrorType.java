@@ -34,6 +34,12 @@ public enum ErrorType {
     ERROR_NOT_INITIALIZED               (2004, "HowlOutputFormat not initialized, setOutput has to be called"),
     ERROR_INIT_STORAGE_DRIVER           (2005, "Error initializing output storage driver instance"),
     ERROR_PUBLISHING_PARTITION          (2006, "Error adding partition to metastore"),
+    ERROR_SCHEMA_COLUMN_MISMATCH        (2007, "Invalid column position in partition schema"),
+    ERROR_SCHEMA_PARTITION_KEY          (2008, "Partition key cannot be present in the partition data"),
+    ERROR_SCHEMA_TYPE_MISMATCH          (2009, "Invalid column type in partition schema"),
+    ERROR_INVALID_PARTITION_VALUES      (2010, "Invalid partition values specified"),
+    ERROR_MISSING_PARTITION_KEY         (2011, "Partition key value not provided for publish"),
+    ERROR_MOVE_FAILED                   (2012, "Moving of data failed during commit"),
 
 
     /* Miscellaneous errors, range 9000 - 9998 */

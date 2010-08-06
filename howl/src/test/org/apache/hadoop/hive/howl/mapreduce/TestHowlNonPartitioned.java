@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.howl.common.ErrorType;
+import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
@@ -86,8 +88,8 @@ public class TestHowlNonPartitioned extends HowlMapReduceTest {
     }
 
     assertTrue(exc != null);
-    assertTrue(exc.getMessage().indexOf(
-        "already contains data") != -1);
+    assertTrue(exc instanceof HowlException);
+    assertEquals(ErrorType.ERROR_NON_EMPTY_TABLE, ((HowlException) exc).getErrorType());
 
     //Test for publish with invalid partition key name
     exc = null;
@@ -101,8 +103,8 @@ public class TestHowlNonPartitioned extends HowlMapReduceTest {
     }
 
     assertTrue(exc != null);
-    assertTrue(exc.getMessage().indexOf(
-        "Invalid partition values specified") != -1);
+    assertTrue(exc instanceof HowlException);
+    assertEquals(ErrorType.ERROR_INVALID_PARTITION_VALUES, ((HowlException) exc).getErrorType());
 
     //Read should get 10 rows
     runMRRead(10);
