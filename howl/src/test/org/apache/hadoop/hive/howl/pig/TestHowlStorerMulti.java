@@ -47,15 +47,14 @@ public class TestHowlStorerMulti extends TestCase {
     createTable(tablename,schema,null);
   }
 
-
-
   @Override
   protected void setUp() throws Exception {
-    HiveConf hiveConf = new HiveConf(this.getClass());
-    hiveConf.set(HiveConf.ConfVars.PREEXECHOOKS.varname, "");
-    hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
-    driver = new Driver(hiveConf);
-
+    if (driver == null){
+      HiveConf hiveConf = new HiveConf(this.getClass());
+      hiveConf.set(HiveConf.ConfVars.PREEXECHOOKS.varname, "");
+      hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
+      driver = new Driver(hiveConf);
+    }
     cleanup();
   }
 
@@ -64,27 +63,69 @@ public class TestHowlStorerMulti extends TestCase {
     cleanup();
   }
 
+  public void testStoreBasicTable() throws Exception {
+
+
+    createTable(BASIC_TABLE,"a int, b string");
+
+    populateBasicFile();
+
+    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    UDFContext.getUDFContext().setClientSystemProps();
+    server.setBatchOn();
+    server.registerQuery("A = load '"+basicFile+"' as (a:int, b:chararray);");
+    server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
+
+    server.executeBatch();
+
+    driver.run("select * from "+BASIC_TABLE);
+    ArrayList<String> unpartitionedTableValuesReadFromHiveDriver = new ArrayList<String>();
+    driver.getResults(unpartitionedTableValuesReadFromHiveDriver);
+    for(String line : unpartitionedTableValuesReadFromHiveDriver){
+      System.err.println("basic : " + line);
+    }
+
+    assertEquals(basicInputData.size(),unpartitionedTableValuesReadFromHiveDriver.size());
+
+
+
+  }
+
+  public void testStorePartitionedTable() throws Exception {
+    createTable(PARTITIONED_TABLE,"a int, b string","bkt string");
+
+    populateBasicFile();
+
+    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    UDFContext.getUDFContext().setClientSystemProps();
+    server.setBatchOn();
+    server.registerQuery("A = load '"+basicFile+"' as (a:int, b:chararray);");
+
+    server.registerQuery("B2 = filter A by a < 2;");
+    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
+    server.registerQuery("C2 = filter A by a >= 2;");
+    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
+
+    server.executeBatch();
+
+    driver.run("select * from "+PARTITIONED_TABLE);
+    ArrayList<String> partitionedTableValuesReadFromHiveDriver = new ArrayList<String>();
+    driver.getResults(partitionedTableValuesReadFromHiveDriver);
+    for(String line : partitionedTableValuesReadFromHiveDriver){
+      System.err.println("ptned : " + line);
+    }
+
+    assertEquals(basicInputData.size(),partitionedTableValuesReadFromHiveDriver.size());
+
+  }
+
   public void testStoreTableMulti() throws Exception {
 
 
     createTable(BASIC_TABLE,"a int, b string");
     createTable(PARTITIONED_TABLE,"a int, b string","bkt string");
 
-
-    int LOOP_SIZE = 3;
-    String[] input = new String[LOOP_SIZE*LOOP_SIZE];
-    basicInputData = new HashMap<Integer,Pair<Integer,String>>();
-    int k = 0;
-    for(int i = 1; i <= LOOP_SIZE; i++) {
-      String si = i + "";
-      for(int j=1;j<=LOOP_SIZE;j++) {
-        String sj = "S"+j+"S";
-        input[k] = si + "\t" + sj;
-        basicInputData.put(k, new Pair<Integer,String>(i,sj));
-        k++;
-      }
-    }
-    MiniCluster.createInputFile(cluster, basicFile, input);
+    populateBasicFile();
 
     PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     UDFContext.getUDFContext().setClientSystemProps();
@@ -124,6 +165,22 @@ public class TestHowlStorerMulti extends TestCase {
     assertEquals(basicInputData.size(),unpartitionedTableValuesReadFromHiveDriver.size());
     assertEquals(basicInputData.size(),partitionedTableValuesReadFromHiveDriver.size());
 
+  }
+  private void populateBasicFile() throws IOException {
+    int LOOP_SIZE = 3;
+    String[] input = new String[LOOP_SIZE*LOOP_SIZE];
+    basicInputData = new HashMap<Integer,Pair<Integer,String>>();
+    int k = 0;
+    for(int i = 1; i <= LOOP_SIZE; i++) {
+      String si = i + "";
+      for(int j=1;j<=LOOP_SIZE;j++) {
+        String sj = "S"+j+"S";
+        input[k] = si + "\t" + sj;
+        basicInputData.put(k, new Pair<Integer,String>(i,sj));
+        k++;
+      }
+    }
+    MiniCluster.createInputFile(cluster, basicFile, input);
   }
   private void cleanup() throws IOException {
     MiniCluster.deleteFile(cluster, basicFile);
