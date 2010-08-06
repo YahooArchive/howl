@@ -103,9 +103,11 @@ class HowlOutputCommitter extends OutputCommitter {
       }
 
       HiveMetaStoreClient client = null;
+      List<String> values = null;
+      boolean partitionAdded = false;
+      HowlTableInfo tableInfo = jobInfo.getTableInfo();
 
       try {
-        HowlTableInfo tableInfo = jobInfo.getTableInfo();
         client = HowlOutputFormat.createHiveClient(
             jobInfo.getTableInfo().getServerUri(), context.getConfiguration());
 
@@ -128,7 +130,7 @@ class HowlOutputCommitter extends OutputCommitter {
         partition.getSd().setCols(fields);
 
         //Get partition value list
-        List<String> values = getPartitionValueList(table,
+        values = getPartitionValueList(table,
             jobInfo.getTableInfo().getPartitionValues());
         partition.setValues(values);
 
@@ -144,11 +146,24 @@ class HowlOutputCommitter extends OutputCommitter {
         partition.setParameters(params);
         //Publish the new partition
         client.add_partition(partition);
+        partitionAdded = true; //publish to metastore done
 
         if( baseCommitter != null ) {
           baseCommitter.cleanupJob(context);
         }
       } catch (Exception e) {
+
+        if( partitionAdded ) {
+          try {
+            //baseCommitter.cleanupJob failed, try to clean up the metastore
+            client.dropPartition(tableInfo.getDatabaseName(),
+                    tableInfo.getTableName(), values);
+          } catch(Exception te) {
+            //Keep cause as the original exception
+            throw new HowlException(ErrorType.ERROR_PUBLISHING_PARTITION, e);
+          }
+        }
+
         if( e instanceof HowlException ) {
           throw (HowlException) e;
         } else {
@@ -190,14 +205,14 @@ class HowlOutputCommitter extends OutputCommitter {
           tableField = tableCols.get(i);
 
           if( ! tableField.getName().equalsIgnoreCase(field.getName())) {
-            throw new IOException("Expected column <" + tableField.getName() +
+            throw new HowlException(ErrorType.ERROR_SCHEMA_COLUMN_MISMATCH, "Expected column <" + tableField.getName() +
                 "> at position " + (i + 1) + ", found column <" + field.getName() + ">");
           }
         } else {
           tableField = partitionKeyMap.get(field.getName().toLowerCase());
 
           if( tableField != null ) {
-            throw new IOException("Partition key <" + field.getName() + "> cannot be present in the partition data");
+            throw new HowlException(ErrorType.ERROR_SCHEMA_PARTITION_KEY, "Key <" +  field.getName() + ">");
           }
         }
 
@@ -210,7 +225,7 @@ class HowlOutputCommitter extends OutputCommitter {
           TypeInfo tableType = TypeInfoUtils.getTypeInfoFromTypeString(tableField.getType());
 
           if( ! partitionType.equals(tableType) ) {
-            throw new IOException("Invalid type for column <" + field.getName() + ">, expected <" +
+            throw new HowlException(ErrorType.ERROR_SCHEMA_TYPE_MISMATCH, "Column <" + field.getName() + ">, expected <" +
                 tableType.getTypeName() + ">, got <" + partitionType.getTypeName() + ">");
           }
         }
@@ -255,9 +270,11 @@ class HowlOutputCommitter extends OutputCommitter {
     static List<String> getPartitionValueList(Table table, Map<String, String> valueMap) throws IOException {
 
       if( valueMap.size() != table.getPartitionKeys().size() ) {
-          throw new IOException("Invalid partition values specified, table "
+          throw new HowlException(ErrorType.ERROR_INVALID_PARTITION_VALUES,
+              "Table "
               + table.getTableName() + " has " +
-              table.getPartitionKeys().size() + " partition keys)");
+              table.getPartitionKeys().size() + " partition keys, got "+
+              valueMap.size());
       }
 
       List<String> values = new ArrayList<String>();
@@ -266,8 +283,8 @@ class HowlOutputCommitter extends OutputCommitter {
         String value = valueMap.get(schema.getName().toLowerCase());
 
         if( value == null ) {
-          throw new IOException("No partition key value provided for key " +
-              schema.getName() + " of table " + table.getTableName());
+          throw new HowlException(ErrorType.ERROR_MISSING_PARTITION_KEY,
+              "Key " + schema.getName() + " of table " + table.getTableName());
         }
 
         values.add(value);
@@ -293,10 +310,10 @@ class HowlOutputCommitter extends OutputCommitter {
 
         if (!fs.rename(file, finalOutputPath)) {
           if (!fs.delete(finalOutputPath, true)) {
-            throw new HowlException("Failed to delete existing path " + finalOutputPath);
+            throw new HowlException(ErrorType.ERROR_MOVE_FAILED, "Failed to delete existing path " + finalOutputPath);
           }
           if (!fs.rename(file, finalOutputPath)) {
-            throw new HowlException("Failed to move output to " + dest);
+            throw new HowlException(ErrorType.ERROR_MOVE_FAILED, "Failed to move output to " + dest);
           }
         }
       } else if(fs.getFileStatus(file).isDir()) {
@@ -326,7 +343,7 @@ class HowlOutputCommitter extends OutputCommitter {
       URI taskOutputUri = file.toUri();
       URI relativePath = src.toUri().relativize(taskOutputUri);
       if (taskOutputUri == relativePath) {
-        throw new HowlException("Can not get the relative path: base = " +
+        throw new HowlException(ErrorType.ERROR_MOVE_FAILED, "Can not get the relative path: base = " +
             src + " child = " + file);
       }
       if (relativePath.getPath().length() > 0) {
