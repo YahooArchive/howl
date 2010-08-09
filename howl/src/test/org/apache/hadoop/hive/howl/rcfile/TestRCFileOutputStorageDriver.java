@@ -77,7 +77,7 @@ public class TestRCFileOutputStorageDriver extends TestCase {
     byte[][] bytes = {"123".getBytes("UTF-8"), "456".getBytes("UTF-8"),
         "789".getBytes("UTF-8"), "1000".getBytes("UTF-8"),
         "5.3".getBytes("UTF-8"), "howl and hadoop".getBytes("UTF-8"),
-        new byte[0], "NULL".getBytes("UTF-8") };
+        new byte[0], "\\N".getBytes("UTF-8") };
     return bytes;
   }
 

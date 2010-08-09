@@ -140,8 +140,9 @@ import org.apache.hadoop.mapreduce.OutputFormat;
     howlProperties.setProperty(Constants.LIST_COLUMN_TYPES,
           MetaStoreUtils.getColumnTypesFromFieldSchema(fields));
 
-    howlProperties.setProperty(Constants.SERIALIZATION_NULL_FORMAT, "NULL");
-    howlProperties.setProperty(Constants.SERIALIZATION_FORMAT, "9");
+    // setting these props to match LazySimpleSerde
+    howlProperties.setProperty(Constants.SERIALIZATION_NULL_FORMAT, "\\N");
+    howlProperties.setProperty(Constants.SERIALIZATION_FORMAT, "1");
 
     try {
       serde = new ColumnarSerDe();

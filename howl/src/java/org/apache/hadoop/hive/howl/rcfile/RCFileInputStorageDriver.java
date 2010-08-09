@@ -252,8 +252,9 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
         getColumnTypesFromFieldSchema(fields));
 
     // It seems RCFIle reads and writes nulls differently as compared to default hive.
-    howlProperties.setProperty(Constants.SERIALIZATION_NULL_FORMAT, "NULL");
-    howlProperties.setProperty(Constants.SERIALIZATION_FORMAT, "9");
+    // setting these props to match LazySimpleSerde
+    howlProperties.setProperty(Constants.SERIALIZATION_NULL_FORMAT, "\\N");
+    howlProperties.setProperty(Constants.SERIALIZATION_FORMAT, "1");
 
     try {
       serde = new ColumnarSerDe();
