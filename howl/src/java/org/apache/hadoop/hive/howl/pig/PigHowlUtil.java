@@ -35,6 +35,7 @@ import org.apache.hadoop.hive.howl.data.type.HowlType;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.pig.PigException;
@@ -53,8 +54,8 @@ public class PigHowlUtil {
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
   public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
-  static final int PIG_EXCEPTION_CODE = 1115; // FIXME : edit http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes to introduce
-  private static final String DEFAULT_DB = "default";
+  static final int PIG_EXCEPTION_CODE = 1115; // http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes
+  private static final String DEFAULT_DB = MetaStoreUtils.DEFAULT_DATABASE_NAME;
 
   private final  Map<Pair<String,String>, Table> howlTableCache =
     new HashMap<Pair<String,String>, Table>();
