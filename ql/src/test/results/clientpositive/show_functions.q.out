@@ -34,6 +34,7 @@ case
 ceil
 ceiling
 coalesce
+collect_set
 concat
 concat_ws
 conv
@@ -68,6 +69,7 @@ instr
 int
 isnotnull
 isnull
+json_tuple
 lcase
 length
 like
@@ -85,6 +87,7 @@ min
 minute
 month
 negative
+ngrams
 not
 or
 parse_url
@@ -157,6 +160,7 @@ case
 ceil
 ceiling
 coalesce
+collect_set
 concat
 concat_ws
 conv
@@ -172,6 +176,7 @@ double
 e
 explode
 from_unixtime
+json_tuple
 lcase
 like
 locate

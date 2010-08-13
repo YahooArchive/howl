@@ -50,12 +50,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.metastore.ProtectMode;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Order;
+import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.DriverContext;
 import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.hooks.ReadEntity;
@@ -71,12 +73,14 @@ import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.plan.AddPartitionDesc;
 import org.apache.hadoop.hive.ql.plan.AlterTableDesc;
 import org.apache.hadoop.hive.ql.plan.AlterTableSimpleDesc;
+import org.apache.hadoop.hive.ql.plan.CreateIndexDesc;
 import org.apache.hadoop.hive.ql.plan.CreateTableDesc;
 import org.apache.hadoop.hive.ql.plan.CreateTableLikeDesc;
 import org.apache.hadoop.hive.ql.plan.CreateViewDesc;
 import org.apache.hadoop.hive.ql.plan.DDLWork;
 import org.apache.hadoop.hive.ql.plan.DescFunctionDesc;
 import org.apache.hadoop.hive.ql.plan.DescTableDesc;
+import org.apache.hadoop.hive.ql.plan.DropIndexDesc;
 import org.apache.hadoop.hive.ql.plan.DropTableDesc;
 import org.apache.hadoop.hive.ql.plan.MsckDesc;
 import org.apache.hadoop.hive.ql.plan.ShowFunctionsDesc;
@@ -144,7 +148,18 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
         return createTable(db, crtTbl);
       }
 
+      CreateIndexDesc crtIndex = work.getCreateIndexDesc();
+      if (crtIndex != null) {
+        return createIndex(db, crtIndex);
+      }
+
+      DropIndexDesc dropIdx = work.getDropIdxDesc();
+      if(dropIdx != null) {
+        return dropIndex(db, dropIdx);
+      }
+
       CreateTableLikeDesc crtTblLike = work.getCreateTblLikeDesc();
+
       if (crtTblLike != null) {
         return createTableLike(db, crtTblLike);
       }
@@ -230,6 +245,30 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       return (1);
     }
     assert false;
+    return 0;
+  }
+
+  private int dropIndex(Hive db, DropIndexDesc dropIdx) throws HiveException {
+    db.dropIndex(MetaStoreUtils.DEFAULT_DATABASE_NAME, dropIdx.getTableName(),
+        dropIdx.getIndexName(), true);
+    return 0;
+  }
+
+  private int createIndex(Hive db, CreateIndexDesc crtIndex) throws HiveException {
+
+    if( crtIndex.getSerde() != null) {
+      validateSerDe(crtIndex.getSerde());
+    }
+
+    db
+        .createIndex(
+        crtIndex.getTableName(), crtIndex.getIndexName(), crtIndex.getIndexTypeHandlerClass(),
+        crtIndex.getIndexedCols(), crtIndex.getIndexTableName(), crtIndex.getDeferredRebuild(),
+        crtIndex.getInputFormat(), crtIndex.getOutputFormat(), crtIndex.getSerde(),
+        crtIndex.getStorageHandler(), crtIndex.getLocation(), crtIndex.getIdxProps(), crtIndex.getSerdeProps(),
+        crtIndex.getCollItemDelim(), crtIndex.getFieldDelim(), crtIndex.getFieldEscape(),
+        crtIndex.getLineDelim(), crtIndex.getMapKeyDelim()
+        );
     return 0;
   }
 
@@ -424,8 +463,9 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     p.setLocation(parentDir);
   }
 
-  private boolean pathExists(FileSystem fs, Path p) throws HiveException {
+  private boolean pathExists(Path p) throws HiveException {
     try {
+      FileSystem fs = p.getFileSystem(conf);
       return fs.exists(p);
     } catch (IOException e) {
       throw new HiveException(e);
@@ -477,16 +517,13 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       Path originalDir = new Path(getOriginalLocation(p));
       Path leftOverIntermediateOriginal = new Path(originalDir.getParent(),
           originalDir.getName() + INTERMEDIATE_ORIGINAL_DIR_SUFFIX);
-      try {
-        if (pathExists(leftOverIntermediateOriginal.getFileSystem(conf),
-            leftOverIntermediateOriginal)) {
-          console.printInfo("Deleting " + leftOverIntermediateOriginal +
-              " left over from a previous archiving operation");
-          deleteDir(leftOverIntermediateOriginal);
-        }
-      } catch (IOException e) {
-        throw new HiveException(e);
+
+      if (pathExists(leftOverIntermediateOriginal)) {
+        console.printInfo("Deleting " + leftOverIntermediateOriginal +
+        " left over from a previous archiving operation");
+        deleteDir(leftOverIntermediateOriginal);
       }
+
       throw new HiveException("Specified partition is already archived");
     }
 
@@ -525,12 +562,12 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     // ARCHIVE_INTERMEDIATE_DIR_SUFFIX that's the same level as the partition,
     // if it does not already exist. If it does exist, we assume the dir is good
     // to use as the move operation that created it is atomic.
-    if (!pathExists(fs, intermediateArchivedDir) &&
-        !pathExists(fs, intermediateOriginalDir)) {
+    if (!pathExists(intermediateArchivedDir) &&
+        !pathExists(intermediateOriginalDir)) {
 
       // First create the archive in a tmp dir so that if the job fails, the
       // bad files don't pollute the filesystem
-      Path tmpDir = new Path(driverContext.getCtx().getMRScratchDir(), "partlevel");
+      Path tmpDir = new Path(driverContext.getCtx().getExternalTmpFileURI(originalDir.toUri()), "partlevel");
 
       console.printInfo("Creating " + archiveName + " for " + originalDir.toString());
       console.printInfo("in " + tmpDir);
@@ -551,7 +588,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       // the partition directory. e.g. .../hr=12-intermediate-archived
       try {
         console.printInfo("Moving " + tmpDir + " to " + intermediateArchivedDir);
-        if (pathExists(fs, intermediateArchivedDir)) {
+        if (pathExists(intermediateArchivedDir)) {
           throw new HiveException("The intermediate archive directory already exists.");
         }
         fs.rename(tmpDir, intermediateArchivedDir);
@@ -559,7 +596,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
         throw new HiveException("Error while moving tmp directory");
       }
     } else {
-      if (pathExists(fs, intermediateArchivedDir)) {
+      if (pathExists(intermediateArchivedDir)) {
         console.printInfo("Intermediate archive directory " + intermediateArchivedDir +
         " already exists. Assuming it contains an archived version of the partition");
       }
@@ -571,7 +608,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
     // Move the original parent directory to the intermediate original directory
     // if the move hasn't been made already
-    if (!pathExists(fs, intermediateOriginalDir)) {
+    if (!pathExists(intermediateOriginalDir)) {
       console.printInfo("Moving " + originalDir + " to " +
           intermediateOriginalDir);
       moveDir(fs, originalDir, intermediateOriginalDir);
@@ -587,7 +624,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     // recovery
 
     // Move the intermediate archived directory to the original parent directory
-    if (!pathExists(fs, originalDir)) {
+    if (!pathExists(originalDir)) {
       console.printInfo("Moving " + intermediateArchivedDir + " to " +
           originalDir);
       moveDir(fs, intermediateArchivedDir, originalDir);
@@ -663,15 +700,12 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       Path leftOverArchiveDir = new Path(location.getParent(),
           location.getName() + INTERMEDIATE_ARCHIVED_DIR_SUFFIX);
 
-      try {
-        if (pathExists(location.getFileSystem(conf), leftOverArchiveDir)) {
-          console.printInfo("Deleting " + leftOverArchiveDir + " left over " +
-          "from a previous unarchiving operation");
-          deleteDir(leftOverArchiveDir);
-        }
-      } catch (IOException e) {
-        throw new HiveException(e);
+      if (pathExists(leftOverArchiveDir)) {
+        console.printInfo("Deleting " + leftOverArchiveDir + " left over " +
+        "from a previous unarchiving operation");
+        deleteDir(leftOverArchiveDir);
       }
+
       throw new HiveException("Specified partition is not archived");
     }
 
@@ -682,7 +716,9 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     Path intermediateExtractedDir = new Path(originalLocation.getParent(),
         originalLocation.getName() + INTERMEDIATE_EXTRACTED_DIR_SUFFIX);
 
-    Path tmpDir = new Path(driverContext.getCtx().getMRScratchDir());
+    Path tmpDir = new Path(driverContext
+          .getCtx()
+          .getExternalTmpFileURI(originalLocation.toUri()));
 
     FileSystem fs = null;
     try {
@@ -727,8 +763,8 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     // 5. Change the metadata
     // 6. Delete the archived partition files in intermediate-archive
 
-    if (!pathExists(fs, intermediateExtractedDir) &&
-        !pathExists(fs, intermediateArchiveDir)) {
+    if (!pathExists(intermediateExtractedDir) &&
+        !pathExists(intermediateArchiveDir)) {
       try {
 
         // Copy the files out of the archive into the temporary directory
@@ -765,7 +801,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     // At this point, we know that the extracted files are in the intermediate
     // extracted dir, or in the the original directory.
 
-    if (!pathExists(fs, intermediateArchiveDir)) {
+    if (!pathExists(intermediateArchiveDir)) {
       try {
         console.printInfo("Moving " + originalLocation + " to " + intermediateArchiveDir);
         fs.rename(originalLocation, intermediateArchiveDir);
@@ -783,7 +819,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     // If the original location exists here, then it must be the extracted files
     // because in the previous step, we moved the previous original location
     // (containing the archived version of the files) to intermediateArchiveDir
-    if (!pathExists(fs, originalLocation)) {
+    if (!pathExists(originalLocation)) {
       try {
         console.printInfo("Moving " + intermediateExtractedDir + " to " + originalLocation);
         fs.rename(intermediateExtractedDir, originalLocation);
@@ -1548,6 +1584,16 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     // alter the table
     Table tbl = db.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, alterTbl
         .getOldName());
+    
+    Partition part = null;
+    if(alterTbl.getPartSpec() != null) {
+      part = db.getPartition(tbl, alterTbl.getPartSpec(), false);
+      if(part == null) {
+        console.printError("Partition : " + alterTbl.getPartSpec().toString()
+            + " does not exist.");
+        return 1;
+      }
+    }
 
     validateAlterTableType(tbl, alterTbl.getOp());
 
@@ -1689,11 +1735,51 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       tbl.setFields(Hive.getFieldsFromDeserializer(tbl.getTableName(), tbl
           .getDeserializer()));
     } else if (alterTbl.getOp() == AlterTableDesc.AlterTableTypes.ADDFILEFORMAT) {
-      tbl.getTTable().getSd().setInputFormat(alterTbl.getInputFormat());
-      tbl.getTTable().getSd().setOutputFormat(alterTbl.getOutputFormat());
-      if (alterTbl.getSerdeName() != null) {
-        tbl.setSerializationLib(alterTbl.getSerdeName());
+      if(part != null) {
+        part.getTPartition().getSd().setInputFormat(alterTbl.getInputFormat());
+        part.getTPartition().getSd().setOutputFormat(alterTbl.getOutputFormat());
+        if (alterTbl.getSerdeName() != null) {
+          part.getTPartition().getSd().getSerdeInfo().setSerializationLib(
+              alterTbl.getSerdeName());
+        }
+      } else {
+        tbl.getTTable().getSd().setInputFormat(alterTbl.getInputFormat());
+        tbl.getTTable().getSd().setOutputFormat(alterTbl.getOutputFormat());
+        if (alterTbl.getSerdeName() != null) {
+          tbl.setSerializationLib(alterTbl.getSerdeName());
+        }
       }
+    } else if (alterTbl.getOp() == AlterTableDesc.AlterTableTypes.ALTERPROTECTMODE) {
+      boolean protectModeEnable = alterTbl.isProtectModeEnable();
+      AlterTableDesc.ProtectModeType protectMode = alterTbl.getProtectModeType();
+
+      ProtectMode mode = null;
+      if(part != null) {
+        mode = part.getProtectMode();
+      } else {
+        mode = tbl.getProtectMode();
+      }
+
+      if (protectModeEnable
+          && protectMode == AlterTableDesc.ProtectModeType.OFFLINE) {
+        mode.offline = true;
+      } else if (protectModeEnable
+          && protectMode == AlterTableDesc.ProtectModeType.NO_DROP) {
+        mode.noDrop = true;
+      } else if (!protectModeEnable
+          && protectMode == AlterTableDesc.ProtectModeType.OFFLINE) {
+        mode.offline = false;
+      } else if (!protectModeEnable
+          && protectMode == AlterTableDesc.ProtectModeType.NO_DROP) {
+        mode.noDrop = false;
+      }
+
+      if (part != null) {
+        part.setProtectMode(mode);
+      } else {
+        tbl.setProtectMode(mode);        
+      }
+
     } else if (alterTbl.getOp() == AlterTableDesc.AlterTableTypes.ADDCLUSTERSORTCOLUMN) {
       // validate sort columns and bucket columns
       List<String> columns = Utilities.getColumnNamesFromFieldSchema(tbl
@@ -1721,32 +1807,63 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       tbl.getTTable().getSd().setBucketCols(bucketCols);
       tbl.getTTable().getSd().setNumBuckets(numBuckets);
       tbl.getTTable().getSd().setSortCols(sortCols);
+    } else if (alterTbl.getOp() == AlterTableDesc.AlterTableTypes.ALTERLOCATION) {
+      String newLocation = alterTbl.getNewLocation();
+      try {
+        URI locURI = new URI(newLocation);
+        if (!locURI.isAbsolute() || locURI.getScheme() == null
+            || locURI.getScheme().trim().equals("")) {
+          throw new HiveException(
+              newLocation
+                  + " is not absolute or has no scheme information. "
+                  + "Please specify a complete absolute uri with scheme information.");
+        }
+        if (part != null) {
+          part.setLocation(newLocation);
+        } else {
+          tbl.setDataLocation(locURI);
+        }
+      } catch (URISyntaxException e) {
+        throw new HiveException(e);
+      }
     } else {
       console.printError("Unsupported Alter commnad");
       return 1;
     }
 
     // set last modified by properties
+    String user = null;
     try {
-      tbl.setProperty("last_modified_by", conf.getUser());
+      user = conf.getUser();
     } catch (IOException e) {
       console.printError("Unable to get current user: " + e.getMessage(),
           stringifyException(e));
       return 1;
     }
-    tbl.setProperty("last_modified_time", Long.toString(System
-        .currentTimeMillis() / 1000));
 
-    try {
-      tbl.checkValidity();
-    } catch (HiveException e) {
-      console.printError("Invalid table columns : " + e.getMessage(),
-          stringifyException(e));
-      return 1;
+    if(part == null) {
+      tbl.setProperty("last_modified_by", user);
+      tbl.setProperty("last_modified_time", Long.toString(System
+          .currentTimeMillis() / 1000));
+      try {
+        tbl.checkValidity();
+      } catch (HiveException e) {
+        console.printError("Invalid table columns : " + e.getMessage(),
+            stringifyException(e));
+        return 1;
+      }
+    } else {
+      part.getParameters().put("last_modified_by", user);
+      part.getParameters().put("last_modified_time", Long.toString(System
+          .currentTimeMillis() / 1000));
     }
-
+    
     try {
-      db.alterTable(alterTbl.getOldName(), tbl);
+      if (part == null) {
+        db.alterTable(alterTbl.getOldName(), tbl);
+      } else {
+        db.alterPartition(tbl.getTableName(), part);        
+      }
     } catch (InvalidOperationException e) {
       console.printError("Invalid alter operation: " + e.getMessage());
       LOG.info("alter table: " + stringifyException(e));
@@ -1760,8 +1877,13 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     // contains the new table. This is needed for rename - both the old and the
     // new table names are
     // passed
-    work.getInputs().add(new ReadEntity(oldTbl));
-    work.getOutputs().add(new WriteEntity(tbl));
+    if(part != null) {
+      work.getInputs().add(new ReadEntity(part));
+      work.getOutputs().add(new WriteEntity(part));
+    } else {
+      work.getInputs().add(new ReadEntity(oldTbl));
+      work.getOutputs().add(new WriteEntity(tbl));
+    }
     return 0;
   }
 
@@ -1784,6 +1906,10 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     try {
       tbl = db.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, dropTbl
           .getTableName());
+      if (!tbl.canDrop()) {
+        throw new HiveException("Table " + tbl.getTableName() +
+            " is protected from being dropped");
+      }
     } catch (InvalidTableException e) {
       // drop table is idempotent
     }
@@ -1801,6 +1927,18 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     }
 
     if (dropTbl.getPartSpecs() == null) {
+      // We should check that all the partitions of the table can be dropped
+      if (tbl != null && tbl.isPartitioned()) {
+        List<Partition> listPartitions = db.getPartitions(tbl);
+        for (Partition p: listPartitions) {
+            if (!p.canDrop()) {
+              throw new HiveException("Table " + tbl.getTableName() +
+                  " Partition" + p.getName() +
+                  " is protected from being dropped");
+            }
+        }
+      }
+
       // drop the table
       db
           .dropTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, dropTbl
@@ -1813,6 +1951,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       List<String> partitionNames = db.getPartitionNames(
           MetaStoreUtils.DEFAULT_DATABASE_NAME, dropTbl.getTableName(),
           (short) -1);
+
       Set<Map<String, String>> partitions = new HashSet<Map<String, String>>();
       for (int i = 0; i < partitionNames.size(); i++) {
         try {
@@ -1837,7 +1976,14 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
             }
           }
           if (match) {
-            partsToDelete.add(db.getPartition(tbl, part, false));
+            Partition p = db.getPartition(tbl, part, false);
+            if (!p.canDrop()) {
+              throw new HiveException("Table " + tbl.getTableName() +
+                  " Partition " + p.getName() +
+                  " is protected from being dropped");
+            }
+
+            partsToDelete.add(p);
             it.remove();
           }
         }
@@ -2124,4 +2270,8 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     return "DDL";
   }
 
+  @Override
+  protected void localizeMRTmpFilesImpl(Context ctx) {
+    // no-op
+  }
 }

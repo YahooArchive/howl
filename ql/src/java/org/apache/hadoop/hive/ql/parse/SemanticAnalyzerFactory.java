@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.ql.session.SessionState;
 public final class SemanticAnalyzerFactory {
 
   static HashMap<Integer, String> commandType = new HashMap<Integer, String>();
+  static HashMap<Integer, String[]> tablePartitionCommandType = new HashMap<Integer, String[]>(); 
 
   static {
     commandType.put(HiveParser.TOK_EXPLAIN, "EXPLAIN");
@@ -59,19 +60,29 @@ public final class SemanticAnalyzerFactory {
     commandType.put(HiveParser.TOK_DROPFUNCTION, "DROPFUNCTION");
     commandType.put(HiveParser.TOK_CREATEVIEW, "CREATEVIEW");
     commandType.put(HiveParser.TOK_DROPVIEW, "DROPVIEW");
+    commandType.put(HiveParser.TOK_CREATEINDEX, "CREATEINDEX");
+    commandType.put(HiveParser.TOK_DROPINDEX, "DROPINDEX");
+    commandType.put(HiveParser.TOK_ALTERINDEX_REBUILD, "ALTERINDEX_REBUILD");
     commandType.put(HiveParser.TOK_ALTERVIEW_PROPERTIES, "ALTERVIEW_PROPERTIES");
     commandType.put(HiveParser.TOK_QUERY, "QUERY");
   }
+  
+  static {
+    tablePartitionCommandType.put(HiveParser.TOK_ALTERTABLE_ALTERPARTS_PROTECTMODE, 
+        new String[] { "ALTERTABLE_PROTECTMODE", "ALTERPARTITION_PROTECTMODE" });
+    tablePartitionCommandType.put(HiveParser.TOK_ALTERTABLE_FILEFORMAT,
+        new String[] { "ALTERTABLE_FILEFORMAT", "ALTERPARTITION_FILEFORMAT" });
+    tablePartitionCommandType.put(HiveParser.TOK_ALTERTABLE_LOCATION,
+        new String[] { "ALTERTABLE_LOCATION", "ALTERPARTITION_LOCATION" });
+  }
+  
 
   public static BaseSemanticAnalyzer get(HiveConf conf, ASTNode tree)
       throws SemanticException {
     if (tree.getToken() == null) {
       throw new RuntimeException("Empty Syntax Tree");
     } else {
-      if (SessionState.get() != null) {
-        SessionState.get().setCommandType(
-            commandType.get(tree.getToken().getType()));
-      }
+      setSessionCommandType(commandType.get(tree.getToken().getType()));
 
       switch (tree.getToken().getType()) {
       case HiveParser.TOK_EXPLAIN:
@@ -92,16 +103,28 @@ public final class SemanticAnalyzerFactory {
       case HiveParser.TOK_ALTERTABLE_PROPERTIES:
       case HiveParser.TOK_ALTERTABLE_SERIALIZER:
       case HiveParser.TOK_ALTERTABLE_SERDEPROPERTIES:
+      case HiveParser.TOK_ALTERINDEX_REBUILD:
       case HiveParser.TOK_ALTERVIEW_PROPERTIES:
       case HiveParser.TOK_SHOWTABLES:
       case HiveParser.TOK_SHOW_TABLESTATUS:
       case HiveParser.TOK_SHOWFUNCTIONS:
       case HiveParser.TOK_SHOWPARTITIONS:
-      case HiveParser.TOK_ALTERTABLE_FILEFORMAT:
+      case HiveParser.TOK_CREATEINDEX:
+      case HiveParser.TOK_DROPINDEX:
       case HiveParser.TOK_ALTERTABLE_CLUSTER_SORT:
       case HiveParser.TOK_ALTERTABLE_TOUCH:
       case HiveParser.TOK_ALTERTABLE_ARCHIVE:
       case HiveParser.TOK_ALTERTABLE_UNARCHIVE:
+        return new DDLSemanticAnalyzer(conf);
+      case HiveParser.TOK_ALTERTABLE_PARTITION:
+        String commandType = null;
+        Integer type = ((ASTNode) tree.getChild(1)).getToken().getType();
+        if (tree.getChild(0).getChildCount() > 1) {
+          commandType = tablePartitionCommandType.get(type)[1];
+        } else {
+          commandType = tablePartitionCommandType.get(type)[0];
+        }
+        setSessionCommandType(commandType);
         return new DDLSemanticAnalyzer(conf);
       case HiveParser.TOK_CREATEFUNCTION:
       case HiveParser.TOK_DROPFUNCTION:
@@ -109,6 +132,12 @@ public final class SemanticAnalyzerFactory {
       default:
         return new SemanticAnalyzer(conf);
       }
+    }
+  }
+
+  private static void setSessionCommandType(String commandType) {
+    if (SessionState.get() != null) {
+      SessionState.get().setCommandType(commandType);
     }
   }
 

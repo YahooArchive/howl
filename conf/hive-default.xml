@@ -97,12 +97,6 @@
 </property>
 
 <property>
-  <name>datanucleus.connectionPoolingType</name>
-  <value>DBCP</value>
-  <description>Uses a DBCP connection pool for JDBC metastore</description>
-</property>
-
-<property>
   <name>javax.jdo.option.DetachAllOnCommit</name>
   <value>true</value>
   <description>detaches all objects from session so that they can be used after transaction is committed</description>
@@ -124,6 +118,12 @@
   <name>javax.jdo.option.ConnectionPassword</name>
   <value>mine</value>
   <description>password to use against metastore database</description>
+</property>
+
+<property>
+  <name>datanucleus.connectionPoolingType</name>
+  <value>DBCP</value>
+  <description>Uses a DBCP connection pool for JDBC metastore</description>
 </property>
 
 <property>
@@ -184,6 +184,12 @@
   <name>datanucleus.identifierFactory</name>
   <value>datanucleus</value>
   <description>Name of the identifier factory to use when generating table/column names etc. 'datanucleus' is used for backward compatibility</description>
+</property>
+
+<property>
+  <name>datanucleus.plugin.pluginRegistryBundleCheck</name>
+  <value>LOG</value>
+  <description>Defines what happens when plugin bundles are found and are duplicated [EXCEPTION|LOG|NONE]</description>
 </property>
 
 <property>
@@ -390,6 +396,12 @@
 </property>
 
 <property>
+  <name>hive.task.progress</name>
+  <value>false</value>
+  <description>Whether Hive should periodically update task progress counters during execution.  Enabling this allows task progress to be monitored more closely in the job tracker, but may impose a performance penalty.  This flag is automatically set to true for jobs with hive.exec.dynamic.partition set to true.</description>
+</property>
+
+<property>
   <name>hive.hwi.war.file</name>
   <value>lib/hive-hwi-@VERSION@.war</value>
   <description>This sets the path to the HWI war file, relative to ${HIVE_HOME}. </description>
@@ -410,7 +422,13 @@
 <property>
   <name>hive.exec.pre.hooks</name>
   <value></value>
-  <description>Pre Execute Hook for Tests</description>
+  <description>Comma-separated list of pre-execution hooks to be invoked for each statement.  A pre-execution hook is specified as the name of a Java class which implements the org.apache.hadoop.hive.ql.hooks.PreExecute interface.</description>
+</property>
+
+<property>
+  <name>hive.exec.post.hooks</name>
+  <value></value>
+  <description>Comma-separated list of post-execution hooks to be invoked for each statement.  A post-execution hook is specified as the name of a Java class which implements the org.apache.hadoop.hive.ql.hooks.PostExecute interface.</description>
 </property>
 
 <property>
@@ -570,6 +588,13 @@
 </property>
 
 <property>
+  <name>hive.exec.max.created.files</name>
+  <value>100000</value>
+  <description>Maximum number of HDFS files created by all mappers/reducers in a MapReduce job.</description>
+</property>
+
+
+<property>
   <name>hive.default.partition.name</name>
   <value>__HIVE_DEFAULT_PARTITION__</value>
   <description>The default partition name in case the dynamic partition column value is null/empty string or anyother values that cannot be escaped. This value must not contain any special character used in HDFS URI (e.g., ':', '%', '/' etc). The user has to be aware that the dynamic partition value should not contain this value to avoid confusions.</description>
@@ -593,6 +618,12 @@
   <description>In new Hadoop versions, the parent directory must be set while
   creating a HAR. Because this functionality is hard to detect with just version
   numbers, this conf var needs to be set manually.</description>
+</property>
+
+<property>
+  <name>hive.exec.mode.local.auto</name>
+  <value>false</value>
+  <description> Let hive determine whether to run in local mode automatically </description>
 </property>
 
 <!-- HBase Storage Handler Parameters -->

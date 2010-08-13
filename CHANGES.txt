@@ -16,6 +16,32 @@ Trunk -  Unreleased
     HIVE-1438. SENTENCES() UDF for natural language tokenization
     (Mayank Lahiri via jvs)
 
+    HIVE-1481. ngrams() UDAF for estimating top-k n-gram frequencies
+    (Mayank Lahiri via jvs)
+
+    HIVE-1408. add option to let hive automatically run in local mode based on
+    tunable heuristics
+    (Joydeep Sen Sarma via Ning Zhang)
+
+    HIVE-1126. Missiong some Jdbc functionality like getTables
+    getColumns and HiveResultSet.get* methods based on column name.
+    (Bennie Schut via jvs)
+
+    HIVE-417. Implement Indexing in Hive
+    (He Yongqiang via jvs)
+
+    HIVE-1414. Automatically invoke .hiverc init script
+    (Edward Capriolo via jvs)
+
+    HIVE-1413. Ability to take a table offline
+    (Siying Dong via namit)
+
+    HIVE-1514. API to change fileformat and location of a partition
+    (He Yongqiang via namit)
+
+    HIVE-1528. JSON UDTF function
+    (Ning Zhang via jvs)
+
   IMPROVEMENTS
 
     HIVE-1394. Do not update transient_lastDdlTime if the partition is modified by a housekeeping
@@ -41,9 +67,23 @@ Trunk -  Unreleased
     HIVE-1229. Replace dependencies on HBase deprecated API.
     (Basab Maulik via jvs)
 
+    HIVE-1513. hive starter scripts should load admin/user supplied script for
+    configurability
+    (Joydeep Sen Sarma via Ning Zhang)
+
+    HIVE-1495. supply correct information to hooks and lineage for
+    index rebuild
+    (He Yongqiang via jvs)
+
   OPTIMIZATIONS
 
   BUG FIXES
+
+    HIVE-1524. Parallel Execution fails if mapred.job.name is set
+    (Ning Zhang via jssarma)
+
+    HIVE-1509. Hive should kill query if too many files are created by it
+    (Ning Zhang via jssarma)
 
     HIVE-1471. CTAS should unescape column names in select-clause
     (Ning Zhang via jssarma)
@@ -76,6 +116,30 @@ Trunk -  Unreleased
 
     HIVE-1470. percentile_approx() fails with more than 1 reducer
     (Mayank Lahiri via jvs)
+
+    HIVE-1425. hive.task.progress should be added to conf/hive-default.xml
+    (John Sichi via Ning Zhang)
+
+    HIVE-1492. FileSinkOperator should remove duplicated files from the same task based on file sizes
+    (Ning Zhang via He Yongqiang)
+
+    HIVE-1491. fix or disable loadpart_err.q
+    (John Sichi via He Yongqiang)
+
+    HIVE-1411. DataNucleus throws NucleusException if core-3.1.1 JAR
+    appears more than once on CLASSPATH
+    (Carl Steinbach via jvs)
+
+    HIVE-1494. Index followup:  remove sort by clause and fix a bug in
+    collect_set udaf
+    (He Yongqiang via jvs)
+
+    HIVE-1422 (2nd trial). skip counter update when RunningJob.getCounters()
+    returns null
+    (Joydeep Sen Sarma via Ning Zhang)
+
+    HIVE-1535 Dont change table metadata while changing partition metadata
+    (He Yongqiang via namit)
 
   TESTS
 
@@ -324,6 +388,9 @@ Release 0.6.0 -  Unreleased
     (Ning Zhang via jvs)
 
     HIVE-1135. Use Anakia for version controlled documentation
+    (Edward Capriolo via jvs)
+
+    HIVE-1401. Web Interface can only browse default
     (Edward Capriolo via jvs)
 
   OPTIMIZATIONS
@@ -648,6 +715,14 @@ Release 0.6.0 -  Unreleased
 
     HIVE-1435. Upgraded naming scheme causes JDO exceptions
     (Paul Yang via jvs)
+
+    HIVE-1411. DataNucleus throws NucleusException if core-3.1.1 JAR
+    appears more than once on CLASSPATH
+    (Carl Steinbach via jvs)
+
+    HIVE-1294. HIVE_AUX_JARS_PATH interferes with startup of Hive Web
+    Interface
+    (Edward Capriolo via jvs)
 
 Release 0.5.0 -  Unreleased
 

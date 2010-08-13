@@ -86,23 +86,32 @@ TOK_LIST;
 TOK_STRUCT;
 TOK_MAP;
 TOK_CREATETABLE;
+TOK_CREATEINDEX;
+TOK_CREATEINDEX_INDEXTBLNAME;
+TOK_DEFERRED_REBUILDINDEX;
+TOK_DROPINDEX;
 TOK_LIKETABLE;
 TOK_DESCTABLE;
 TOK_DESCFUNCTION;
+TOK_ALTERTABLE_PARTITION;
 TOK_ALTERTABLE_RENAME;
 TOK_ALTERTABLE_ADDCOLS;
 TOK_ALTERTABLE_RENAMECOL;
 TOK_ALTERTABLE_REPLACECOLS;
 TOK_ALTERTABLE_ADDPARTS;
 TOK_ALTERTABLE_DROPPARTS;
+TOK_ALTERTABLE_ALTERPARTS_PROTECTMODE;
 TOK_ALTERTABLE_TOUCH;
 TOK_ALTERTABLE_ARCHIVE;
 TOK_ALTERTABLE_UNARCHIVE;
 TOK_ALTERTABLE_SERDEPROPERTIES;
 TOK_ALTERTABLE_SERIALIZER;
+TOK_TABLE_PARTITION;
 TOK_ALTERTABLE_FILEFORMAT;
+TOK_ALTERTABLE_LOCATION;
 TOK_ALTERTABLE_PROPERTIES;
 TOK_ALTERTABLE_CHANGECOL_AFTER_POSITION;
+TOK_ALTERINDEX_REBUILD;
 TOK_MSCK;
 TOK_SHOWTABLES;
 TOK_SHOWFUNCTIONS;
@@ -123,6 +132,11 @@ TOK_TBLSEQUENCEFILE;
 TOK_TBLTEXTFILE;
 TOK_TBLRCFILE;
 TOK_TABLEFILEFORMAT;
+TOK_OFFLINE;
+TOK_ENABLE;
+TOK_DISABLE;
+TOK_READONLY;
+TOK_NO_DROP;
 TOK_STORAGEHANDLER;
 TOK_ALTERTABLE_CLUSTER_SORT;
 TOK_TABCOLNAME;
@@ -219,6 +233,9 @@ ddlStatement
     | createViewStatement
     | dropViewStatement
     | createFunctionStatement
+    | createIndexStatement
+    | dropIndexStatement
+    | alterIndexRebuild
     | dropFunctionStatement
     ;
 
@@ -259,6 +276,60 @@ createTableStatement
         )
     ;
 
+createIndexStatement
+@init { msgs.push("create index statement");}
+@after {msgs.pop();}
+    : KW_CREATE KW_INDEX indexName=Identifier 
+      KW_ON KW_TABLE tab=Identifier LPAREN indexedCols=columnNameList RPAREN 
+      KW_AS typeName=StringLiteral
+      autoRebuild?
+      indexTblName?
+      tableRowFormat?
+      tableFileFormat?
+      tableLocation?
+    ->^(TOK_CREATEINDEX $indexName $typeName $tab $indexedCols 
+        autoRebuild?
+        indexTblName?
+        tableRowFormat?
+        tableFileFormat?
+        tableLocation?)
+    ;
+
+autoRebuild
+@init { msgs.push("auto rebuild index");}
+@after {msgs.pop();}
+    : KW_WITH KW_DEFERRED KW_REBUILD
+    ->^(TOK_DEFERRED_REBUILDINDEX)
+    ;
+
+indexTblName
+@init { msgs.push("index table name");}
+@after {msgs.pop();}
+    : KW_IN KW_TABLE indexTbl=Identifier
+    ->^(TOK_CREATEINDEX_INDEXTBLNAME $indexTbl)
+    ;
+
+indexPropertiesPrefixed
+@init { msgs.push("table properties with prefix"); }
+@after { msgs.pop(); }
+    :
+        KW_IDXPROPERTIES! indexProperties
+    ;
+
+indexProperties
+@init { msgs.push("table properties"); }
+@after { msgs.pop(); }
+    :
+      LPAREN propertiesList RPAREN -> ^(TOK_TABLEPROPERTIES propertiesList)
+    ;
+
+dropIndexStatement
+@init { msgs.push("drop index statement");}
+@after {msgs.pop();}
+    : KW_DROP KW_INDEX indexName=Identifier KW_ON tab=Identifier
+    ->^(TOK_DROPINDEX $indexName $tab)
+    ;
+
 dropTableStatement
 @init { msgs.push("drop statement"); }
 @after { msgs.pop(); }
@@ -289,7 +360,7 @@ alterTableStatementSuffix
     | alterStatementSuffixUnArchive
     | alterStatementSuffixProperties
     | alterStatementSuffixSerdeProperties
-    | alterStatementSuffixFileFormat
+    | alterTblPartitionStatement
     | alterStatementSuffixClusterbySortby
     ;
 
@@ -333,7 +404,7 @@ alterStatementSuffixAddPartitions
     : Identifier KW_ADD ifNotExists? partitionSpec partitionLocation? (partitionSpec partitionLocation?)*
     -> ^(TOK_ALTERTABLE_ADDPARTS Identifier ifNotExists? (partitionSpec partitionLocation?)+)
     ;
-
+    
 alterStatementSuffixTouch
 @init { msgs.push("touch statement"); }
 @after { msgs.pop(); }
@@ -392,12 +463,64 @@ alterStatementSuffixSerdeProperties
     -> ^(TOK_ALTERTABLE_SERDEPROPERTIES $name tableProperties)
     ;
 
+tablePartitionPrefix
+@init {msgs.push("table partition prefix");}
+@after {msgs.pop();}
+  :name=Identifier partitionSpec? 
+  ->^(TOK_TABLE_PARTITION $name partitionSpec?)
+  ;
+
+alterTblPartitionStatement
+@init {msgs.push("alter table partition statement");}
+@after {msgs.pop();}
+  :  tablePartitionPrefix alterTblPartitionStatementSuffix
+  -> ^(TOK_ALTERTABLE_PARTITION tablePartitionPrefix alterTblPartitionStatementSuffix)
+  ;
+
+alterTblPartitionStatementSuffix
+@init {msgs.push("alter table partition statement suffix");}
+@after {msgs.pop();}
+  : alterStatementSuffixFileFormat
+  | alterStatementSuffixLocation
+  | alterStatementSuffixProtectMode
+  ;
+
 alterStatementSuffixFileFormat
 @init {msgs.push("alter fileformat statement"); }
-@after {msgs.pop(); }
-	:name=Identifier KW_SET KW_FILEFORMAT fileFormat
-	-> ^(TOK_ALTERTABLE_FILEFORMAT $name fileFormat)
+@after {msgs.pop();}
+	: KW_SET KW_FILEFORMAT fileFormat
+	-> ^(TOK_ALTERTABLE_FILEFORMAT fileFormat)
 	;
+
+alterStatementSuffixLocation
+@init {msgs.push("alter location");}
+@after {msgs.pop();}
+  : KW_SET KW_LOCATION newLoc=StringLiteral
+  -> ^(TOK_ALTERTABLE_LOCATION $newLoc)
+  ;
+
+alterStatementSuffixProtectMode
+@init { msgs.push("alter partition protect mode statement"); }
+@after { msgs.pop(); }
+    : alterProtectMode
+    -> ^(TOK_ALTERTABLE_ALTERPARTS_PROTECTMODE alterProtectMode)
+    ;
+
+alterProtectMode
+@init { msgs.push("protect mode specification enable"); }
+@after { msgs.pop(); }
+    : KW_ENABLE alterProtectModeMode  -> ^(TOK_ENABLE alterProtectModeMode)
+    | KW_DISABLE alterProtectModeMode  -> ^(TOK_DISABLE alterProtectModeMode)
+    ;
+
+alterProtectModeMode
+@init { msgs.push("protect mode specification enable"); }
+@after { msgs.pop(); }
+    : KW_OFFLINE  -> ^(TOK_OFFLINE)
+    | KW_NO_DROP  -> ^(TOK_NO_DROP)
+    | KW_READONLY  -> ^(TOK_READONLY)
+    ;
+
 
 alterStatementSuffixClusterbySortby
 @init {msgs.push("alter cluster by sort by statement");}
@@ -408,6 +531,13 @@ alterStatementSuffixClusterbySortby
 	name=Identifier KW_NOT KW_CLUSTERED
 	->^(TOK_ALTERTABLE_CLUSTER_SORT $name)
 	;
+
+alterIndexRebuild
+@init { msgs.push("update index statement");}
+@after {msgs.pop();}
+    : KW_ALTER KW_INDEX indexName=Identifier KW_ON base_table_name=Identifier partitionSpec? KW_REBUILD
+    ->^(TOK_ALTERINDEX_REBUILD $base_table_name $indexName partitionSpec?)
+    ;
 
 fileFormat
 @init { msgs.push("file format specification"); }
@@ -1513,6 +1643,8 @@ KW_PARTITION : 'PARTITION';
 KW_PARTITIONS : 'PARTITIONS';
 KW_TABLE: 'TABLE';
 KW_TABLES: 'TABLES';
+KW_INDEX: 'INDEX';
+KW_REBUILD: 'REBUILD';
 KW_FUNCTIONS: 'FUNCTIONS';
 KW_SHOW: 'SHOW';
 KW_MSCK: 'MSCK';
@@ -1580,6 +1712,11 @@ KW_TEXTFILE: 'TEXTFILE';
 KW_RCFILE: 'RCFILE';
 KW_INPUTFORMAT: 'INPUTFORMAT';
 KW_OUTPUTFORMAT: 'OUTPUTFORMAT';
+KW_OFFLINE: 'OFFLINE';
+KW_ENABLE: 'ENABLE';
+KW_DISABLE: 'DISABLE';
+KW_READONLY: 'READONLY';
+KW_NO_DROP: 'NO_DROP';
 KW_LOCATION: 'LOCATION';
 KW_TABLESAMPLE: 'TABLESAMPLE';
 KW_BUCKET: 'BUCKET';
@@ -1597,10 +1734,12 @@ KW_EXPLAIN: 'EXPLAIN';
 KW_EXTENDED: 'EXTENDED';
 KW_SERDE: 'SERDE';
 KW_WITH: 'WITH';
+KW_DEFERRED: 'DEFERRED';
 KW_SERDEPROPERTIES: 'SERDEPROPERTIES';
 KW_LIMIT: 'LIMIT';
 KW_SET: 'SET';
 KW_TBLPROPERTIES: 'TBLPROPERTIES';
+KW_IDXPROPERTIES: 'INDEXPROPERTIES';
 KW_VALUE_TYPE: '$VALUE$';
 KW_ELEM_TYPE: '$ELEM$';
 KW_CASE: 'CASE';
