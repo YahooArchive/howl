@@ -28,8 +28,8 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobContext;
 
-/** The abstract class to be implemented by underlying storage drivers to enable data access from Owl through
- *  OwlInputFormat.
+/** The abstract class to be implemented by underlying storage drivers to enable data access from Howl through
+ *  HowlInputFormat.
  */
 public abstract class HowlInputStorageDriver {
 
@@ -66,7 +66,7 @@ public abstract class HowlInputStorageDriver {
    * Set the schema of the data as originally published in Howl. The storage driver might validate that this matches with
    * the schema it has (like Zebra) or it will use this to create a HowlRecord matching the output schema.
    * @param jobContext the job context object
-   * @param howlSchema the schema published in Owl for this data
+   * @param howlSchema the schema published in Howl for this data
    * @param instantiationState
    * @throws IOException Signals that an I/O exception has occurred.
    */
@@ -87,7 +87,7 @@ public abstract class HowlInputStorageDriver {
    * Sets the partition key values for the current partition. The storage driver is passed this so that the storage
    * driver can add the partition key values to the output HowlRecord if the partition key values are not present on disk.
    * @param jobContext the job context object
-   * @param partitionValues the partition values having a map with partition key name as key and the OwlKeyValue as value
+   * @param partitionValues the partition values having a map with partition key name as key and the HowlKeyValue as value
    * @param instantiationState
    * @throws IOException Signals that an I/O exception has occurred.
    */

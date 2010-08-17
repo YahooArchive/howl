@@ -3,6 +3,7 @@ package org.apache.hadoop.hive.howl.pig;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Properties;
 
 import junit.framework.TestCase;
 
@@ -17,6 +18,7 @@ public class TestHowlStorer extends TestCase {
 
   MiniCluster cluster = MiniCluster.buildCluster();
   private Driver driver;
+  Properties props;
 
   @Override
   protected void setUp() throws Exception {
@@ -25,9 +27,15 @@ public class TestHowlStorer extends TestCase {
     hiveConf.set(HiveConf.ConfVars.PREEXECHOOKS.varname, "");
     hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
     driver = new Driver(hiveConf);
+
+    props = new Properties();
+    props.setProperty("fs.default.name", cluster.getProperties().getProperty("fs.default.name"));
+    fullFileName = cluster.getProperties().getProperty("fs.default.name") + fileName;
   }
 
-  String fileName = "input.data";
+  String fileName = "/tmp/input.data";
+  String fullFileName;
+
 
 //  public void testStoreFuncMap() throws IOException{
 //
@@ -43,10 +51,10 @@ public class TestHowlStorer extends TestCase {
 //    MiniCluster.deleteFile(cluster, fileName);
 //    MiniCluster.createInputFile(cluster, fileName, new String[]{"test\t{([a#haddop,b#pig])}","data\t{([b#hive,a#howl])}"});
 //
-//    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+//    PigServer server = new PigServer(ExecType.LOCAL, props);
 //    UDFContext.getUDFContext().setClientSystemProps();
 //    server.setBatchOn();
-//    server.registerQuery("A = load '"+fileName+"' as (b:chararray,arr_of_maps:bag{mytup:tuple ( mymap:map[ ])});");
+//    server.registerQuery("A = load '"+ fullFileName +"' as (b:chararray,arr_of_maps:bag{mytup:tuple ( mymap:map[ ])});");
 //    server.registerQuery("store A into 'default.junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer('','b:chararray,arr_of_maps:bag{mytup:tuple ( mymap:map[ ])}');");
 //    server.executeBatch();
 //
@@ -95,10 +103,10 @@ public class TestHowlStorer extends TestCase {
       }
     }
     MiniCluster.createInputFile(cluster, fileName, input);
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+fileName+"' as (a:int, b:chararray);");
+    server.registerQuery("A = load '"+ fullFileName +"' as (a:int, b:chararray);");
     server.registerQuery("B = filter A by a < 2;");
     server.registerQuery("store B into 'junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
     server.registerQuery("C = filter A by a >= 2;");
@@ -112,8 +120,11 @@ public class TestHowlStorer extends TestCase {
     driver.run("select * from junit_unparted2");
     ArrayList<String> res2 = new ArrayList<String>();
     driver.getResults(res2);
+
     res.addAll(res2);
     driver.run("drop table junit_unparted");
+    driver.run("drop table junit_unparted2");
+
     Iterator<String> itr = res.iterator();
     for(int i = 0; i < LOOP_SIZE*LOOP_SIZE; i++) {
       assertEquals( input[i] ,itr.next());
@@ -144,10 +155,10 @@ public class TestHowlStorer extends TestCase {
       }
     }
     MiniCluster.createInputFile(cluster, fileName, input);
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+fileName+"' as (a:int, b:chararray);");
+    server.registerQuery("A = load '"+ fullFileName +"' as (a:int, b:chararray);");
     server.registerQuery("store A into 'default.junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer('');");
     server.executeBatch();
     MiniCluster.deleteFile(cluster, fileName);
@@ -186,10 +197,10 @@ public class TestHowlStorer extends TestCase {
       }
     }
     MiniCluster.createInputFile(cluster, fileName, input);
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+fileName+"' as (a:int, b:chararray);");
+    server.registerQuery("A = load '"+ fullFileName +"' as (a:int, b:chararray);");
     server.registerQuery("store A into 'junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
     server.executeBatch();
     MiniCluster.deleteFile(cluster, fileName);
@@ -228,10 +239,10 @@ public class TestHowlStorer extends TestCase {
       }
     }
     MiniCluster.createInputFile(cluster, fileName, input);
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+fileName+"' as (a:int, b:chararray);");
+    server.registerQuery("A = load '"+fullFileName+"' as (a:int, b:chararray);");
     server.registerQuery("B = filter A by a > 100;");
     server.registerQuery("store B into 'default.junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer('','a:int,b:chararray');");
     server.executeBatch();
@@ -261,10 +272,10 @@ public class TestHowlStorer extends TestCase {
   MiniCluster.createInputFile(cluster, fileName, new String[]{"zookeeper\t(2)\t{(pig)}\t{(pnuts,hdfs)}\t{(hadoop),(howl)}",
       "chubby\t(2)\t{(sawzall)}\t{(bigtable,gfs)}\t{(mapreduce),(howl)}"});
 
-  PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+  PigServer server = new PigServer(ExecType.LOCAL, props);
   UDFContext.getUDFContext().setClientSystemProps();
   server.setBatchOn();
-  server.registerQuery("A = load '"+fileName+"' as (b:chararray, a:tuple(a1:int), arr_of_struct:bag{mytup:tuple(s1:chararray)}, arr_of_struct2:bag{mytup:tuple(s1:chararray,s2:chararray)}, arr_of_struct3:bag{t3:tuple(s3:chararray)});");
+  server.registerQuery("A = load '"+fullFileName+"' as (b:chararray, a:tuple(a1:int), arr_of_struct:bag{mytup:tuple(s1:chararray)}, arr_of_struct2:bag{mytup:tuple(s1:chararray,s2:chararray)}, arr_of_struct3:bag{t3:tuple(s3:chararray)});");
   server.registerQuery("store A into 'default.junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer('','b:chararray, a:tuple(a1:int)," +
   		" arr_of_struct:bag{mytup:tuple(s1:chararray)}, arr_of_struct2:bag{mytup:tuple(s1:chararray,s2:chararray)}, arr_of_struct3:bag{t3:tuple(s3:chararray)}');");
   server.executeBatch();
@@ -302,10 +313,10 @@ public class TestHowlStorer extends TestCase {
     }
 
     MiniCluster.createInputFile(cluster, fileName, input);
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+fileName+"' as (a:int, b:float, c:double, d:long, e:chararray);");
+    server.registerQuery("A = load '"+fullFileName+"' as (a:int, b:float, c:double, d:long, e:chararray);");
     server.registerQuery("store A into 'default.junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer('','a:int, b:float, c:double, d:long, e:chararray');");
     server.executeBatch();
     MiniCluster.deleteFile(cluster, fileName);
@@ -352,10 +363,10 @@ public class TestHowlStorer extends TestCase {
       }
     }
     MiniCluster.createInputFile(cluster, fileName, input);
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+fileName+"' as (a:int, b:chararray);");
+    server.registerQuery("A = load '"+fullFileName+"' as (a:int, b:chararray);");
     server.registerQuery("store A into 'default.junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer('','a:int,b:chararray');");
     server.executeBatch();
     MiniCluster.deleteFile(cluster, fileName);

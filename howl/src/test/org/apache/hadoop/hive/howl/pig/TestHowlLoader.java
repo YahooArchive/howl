@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import junit.framework.TestCase;
 
@@ -29,9 +30,12 @@ public class TestHowlLoader extends TestCase {
   private static final String PARTITIONED_TABLE = "junit_parted_basic";
   private static MiniCluster cluster = MiniCluster.buildCluster();
   private static Driver driver;
+  private static Properties props;
 
-  private static final String basicFile = "basic.input.data";
-  private static final String complexFile = "complex.input.data";
+  private static final String basicFile = "/tmp/basic.input.data";
+  private static final String complexFile = "/tmp/complex.input.data";
+  private static String fullFileNameBasic;
+  private static String fullFileNameComplex;
 
   private static int guardTestCount = 5; // ugh, instantiate using introspection in guardedSetupBeforeClass
   private static boolean setupHasRun = false;
@@ -73,6 +77,11 @@ public class TestHowlLoader extends TestCase {
     hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
     driver = new Driver(hiveConf);
 
+    props = new Properties();
+    props.setProperty("fs.default.name", cluster.getProperties().getProperty("fs.default.name"));
+    fullFileNameBasic = cluster.getProperties().getProperty("fs.default.name") + basicFile;
+    fullFileNameComplex = cluster.getProperties().getProperty("fs.default.name") + complexFile;
+
     cleanup();
 
     createTable(BASIC_TABLE,"a int, b string");
@@ -103,15 +112,15 @@ public class TestHowlLoader extends TestCase {
 
     MiniCluster.createInputFile(cluster, complexFile,
         new String[]{
-        "Henry Jekyll\t42\t(415-253-6367,hjekyll@contemporary.edu.uk)\t{(PHARMACOLOGY),(PSYCHIATRY)},[PHARMACOLOGY#A-,PSYCHIATRY#B+],{(415-253-6367,cell),(408-253-6367,landline)}",
-        "Edward Hyde\t1337\t(415-253-6367,anonymous@b44chan.org)\t{(CREATIVE_WRITING),(COPYRIGHT_LAW)},[CREATIVE_WRITING#A+,COPYRIGHT_LAW#D],{(415-253-6367,cell),(408-253-6367,landline)}",
+        //"Henry Jekyll\t42\t(415-253-6367,hjekyll@contemporary.edu.uk)\t{(PHARMACOLOGY),(PSYCHIATRY)},[PHARMACOLOGY#A-,PSYCHIATRY#B+],{(415-253-6367,cell),(408-253-6367,landline)}",
+        //"Edward Hyde\t1337\t(415-253-6367,anonymous@b44chan.org)\t{(CREATIVE_WRITING),(COPYRIGHT_LAW)},[CREATIVE_WRITING#A+,COPYRIGHT_LAW#D],{(415-253-6367,cell),(408-253-6367,landline)}",
         }
     );
 
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+basicFile+"' as (a:int, b:chararray);");
+    server.registerQuery("A = load '"+fullFileNameBasic+"' as (a:int, b:chararray);");
 //    Iterator<Tuple> iter = server.openIterator("A");
 //    while(iter.hasNext()){
 //      System.err.println("BOO A" + iter.next());
@@ -123,25 +132,15 @@ public class TestHowlLoader extends TestCase {
 //      System.err.println("BOO A3" + iter.next());
 //    }
 //
-//    server.registerQuery("B = foreach A generate a,b;");
-//    server.registerQuery("B2 = filter B by a < 2;");
-//    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
-//    server.registerQuery("B3 = load '"+ PARTITIONED_TABLE +"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
-//    iter = server.openIterator("B3");
-//    while(iter.hasNext()){
-//      System.err.println("BOO B3" + iter.next());
-//    }
-//
-//    server.registerQuery("C = foreach A generate a,b;");
-//    server.registerQuery("C2 = filter C by a >= 2;");
-//    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
-//    server.registerQuery("C3 = load '"+ PARTITIONED_TABLE +"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
-//    iter = server.openIterator("C3");
-//    while(iter.hasNext()){
-//      System.err.println("BOO C3" + iter.next());
-//    }
+    server.registerQuery("B = foreach A generate a,b;");
+    server.registerQuery("B2 = filter B by a < 2;");
+    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
 
-    server.registerQuery("D = load '"+complexFile+"' as (name:chararray, studentid:int, contact:tuple(phno:chararray,email:chararray), currently_registered_courses:bag{innertup:tuple(course:chararray)}, current_grades:map[ ] , phnos :bag{innertup:tuple(phno:chararray,type:chararray)});");
+    server.registerQuery("C = foreach A generate a,b;");
+    server.registerQuery("C2 = filter C by a >= 2;");
+    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
+
+    server.registerQuery("D = load '"+fullFileNameComplex+"' as (name:chararray, studentid:int, contact:tuple(phno:chararray,email:chararray), currently_registered_courses:bag{innertup:tuple(course:chararray)}, current_grades:map[ ] , phnos :bag{innertup:tuple(phno:chararray,type:chararray)});");
     server.registerQuery("store D into '"+COMPLEX_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
     server.executeBatch();
 
@@ -176,7 +175,7 @@ public class TestHowlLoader extends TestCase {
 
   public void testSchemaLoadBasic() throws IOException{
 
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
 
     // test that schema was loaded correctly
     server.registerQuery("X = load '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
@@ -192,7 +191,7 @@ public class TestHowlLoader extends TestCase {
   }
 
   public void testReadDataBasic() throws IOException {
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
 
     server.registerQuery("X = load '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
     Iterator<Tuple> XIter = server.openIterator("X");
@@ -211,7 +210,7 @@ public class TestHowlLoader extends TestCase {
 
   public void testSchemaLoadComplex() throws IOException{
 
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
 
     // test that schema was loaded correctly
     server.registerQuery("K = load '"+COMPLEX_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
@@ -268,7 +267,7 @@ public class TestHowlLoader extends TestCase {
   }
 
   public void testReadPartitionedBasic() throws IOException {
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
 
     driver.run("select * from "+PARTITIONED_TABLE);
     ArrayList<String> valuesReadFromHiveDriver = new ArrayList<String>();
@@ -306,7 +305,7 @@ public class TestHowlLoader extends TestCase {
 
   public void testProjectionsBasic() throws IOException {
 
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
 
     // projections are handled by using generate, not "as" on the Load
 

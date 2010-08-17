@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import junit.framework.TestCase;
 
@@ -22,7 +23,9 @@ public class TestHowlStorerMulti extends TestCase {
   private static MiniCluster cluster = MiniCluster.buildCluster();
   private static Driver driver;
 
-  private static final String basicFile = "basic.input.data";
+  private static final String basicFile = "/tmp/basic.input.data";
+  private static String basicFileFullName;
+  private static Properties props;
 
   private static Map<Integer,Pair<Integer,String>> basicInputData;
 
@@ -55,6 +58,11 @@ public class TestHowlStorerMulti extends TestCase {
       hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
       driver = new Driver(hiveConf);
     }
+
+    props = new Properties();
+    props.setProperty("fs.default.name", cluster.getProperties().getProperty("fs.default.name"));
+    basicFileFullName = cluster.getProperties().getProperty("fs.default.name") + basicFile;
+
     cleanup();
   }
 
@@ -70,10 +78,10 @@ public class TestHowlStorerMulti extends TestCase {
 
     populateBasicFile();
 
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+basicFile+"' as (a:int, b:chararray);");
+    server.registerQuery("A = load '"+basicFileFullName+"' as (a:int, b:chararray);");
     server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
 
     server.executeBatch();
@@ -96,10 +104,10 @@ public class TestHowlStorerMulti extends TestCase {
 
     populateBasicFile();
 
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+basicFile+"' as (a:int, b:chararray);");
+    server.registerQuery("A = load '"+basicFileFullName+"' as (a:int, b:chararray);");
 
     server.registerQuery("B2 = filter A by a < 2;");
     server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
@@ -127,10 +135,10 @@ public class TestHowlStorerMulti extends TestCase {
 
     populateBasicFile();
 
-    PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    PigServer server = new PigServer(ExecType.LOCAL, props);
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
-    server.registerQuery("A = load '"+basicFile+"' as (a:int, b:chararray);");
+    server.registerQuery("A = load '"+basicFileFullName+"' as (a:int, b:chararray);");
     server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
 
     server.registerQuery("B2 = filter A by a < 2;");

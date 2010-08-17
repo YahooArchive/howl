@@ -38,7 +38,7 @@ class HowlRecordReader extends RecordReader<WritableComparable, HowlRecord> {
     private final HowlInputStorageDriver storageDriver;
 
     /**
-     * Instantiates a new owl record reader.
+     * Instantiates a new howl record reader.
      * @param baseRecordReader the base record reader
      */
     public HowlRecordReader(HowlInputStorageDriver storageDriver, RecordReader<? extends WritableComparable, ? extends Writable> baseRecordReader) {
