@@ -39,17 +39,17 @@ class HowlSplit extends InputSplit implements Writable {
     /** The schema for the HowlTable */
     private HowlSchema tableSchema;
     /**
-     * Instantiates a new owl split.
+     * Instantiates a new howl split.
      */
     public HowlSplit() {
     }
 
     /**
-     * Instantiates a new owl split.
+     * Instantiates a new howl split.
      *
      * @param partitionInfo the partition info
      * @param baseSplit the base split
-     * @param tableSchema the owl table level schema
+     * @param tableSchema the table level schema
      */
     public HowlSplit(PartInfo partitionInfo, InputSplit baseSplit, HowlSchema tableSchema) {
         this.partitionInfo = partitionInfo;

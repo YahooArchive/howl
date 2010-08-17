@@ -32,8 +32,8 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputFormat;
 
 
-/** The abstract class to be implemented by underlying storage drivers to enable data access from Owl through
- *  OwlOutputFormat.
+/** The abstract class to be implemented by underlying storage drivers to enable data access from Howl through
+ *  HowlOutputFormat.
  */
 public abstract class HowlOutputStorageDriver {
 

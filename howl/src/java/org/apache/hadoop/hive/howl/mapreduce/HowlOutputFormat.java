@@ -29,6 +29,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.common.ErrorType;
 import org.apache.hadoop.hive.howl.common.HowlException;
@@ -63,6 +64,13 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
     /** The directory under which data is initially written for a non partitioned table */
     protected static final String TEMP_DIR_NAME = "_TEMP";
+
+    private static final PathFilter hiddenFileFilter = new PathFilter(){
+      public boolean accept(Path p){
+        String name = p.getName();
+        return !name.startsWith("_") && !name.startsWith(".");
+      }
+    };
 
     /**
      * Set the info about the output to write for the Job. This queries the metadata server
@@ -157,7 +165,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         FileSystem fs = tablePath.getFileSystem(job.getConfiguration());
 
         if ( fs.exists(tablePath) ) {
-          FileStatus[] status = fs.globStatus(new Path(tablePath, "*"));
+          FileStatus[] status = fs.globStatus(new Path(tablePath, "*"), hiddenFileFilter);
 
           if( status.length > 0 ) {
             throw new HowlException(ErrorType.ERROR_NON_EMPTY_TABLE,

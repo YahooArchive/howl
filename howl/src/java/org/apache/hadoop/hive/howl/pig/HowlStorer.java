@@ -36,6 +36,7 @@ import org.apache.hadoop.hive.howl.data.HowlSchema;
 import org.apache.hadoop.hive.howl.data.type.HowlType;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
+import org.apache.hadoop.hive.howl.mapreduce.HowlOutputCommitter;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputFormat;
 import org.apache.hadoop.hive.howl.mapreduce.HowlTableInfo;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
@@ -45,7 +46,9 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
@@ -65,7 +68,7 @@ import org.apache.pig.impl.util.Utils;
  */
 
 
-public class HowlStorer extends StoreFunc {
+public class HowlStorer extends StoreFunc implements StoreMetadata {
 
   /**
    *
@@ -498,5 +501,19 @@ public class HowlStorer extends StoreFunc {
         config.set(HowlOutputFormat.HOWL_KEY_HIVE_CONF, p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
       }
     }
+  }
+
+  @Override
+  public void storeSchema(ResourceSchema schema, String arg1, Job job) throws IOException {
+    if( job.getConfiguration().get("mapred.job.tracker", "").equalsIgnoreCase("local") ) {
+      //In local mode, mapreduce will not call HowlOutputCommitter.cleanupJob.
+      //Calling it from here so that the partition publish happens.
+      //This call needs to be removed after MAPREDUCE-1447 is fixed.
+      new HowlOutputCommitter(null).cleanupJob(job);
+    }
+  }
+
+  @Override
+  public void storeStatistics(ResourceStatistics stats, String arg1, Job job) throws IOException {
   }
 }

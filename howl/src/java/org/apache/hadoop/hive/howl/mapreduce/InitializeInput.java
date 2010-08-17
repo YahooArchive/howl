@@ -35,7 +35,7 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.Job;
 
 /**
- * The Class which handles querying the owl metadata server using the OwlDriver. The list of
+ * The Class which handles querying the metadata server using the MetaStoreClient. The list of
  * partitions matching the partition filter is fetched from the server and the information is
  * serialized and written into the JobContext configuration. The inputInfo is also updated with
  * info required in the client process context.
@@ -53,23 +53,14 @@ public class InitializeInput {
 
   private static final short MAX_PARTS = Short.MAX_VALUE;
 
-  static HiveMetaStoreClient client = null;
-
   private static HiveMetaStoreClient createHiveMetaClient(Configuration conf, HowlTableInfo inputInfo) throws Exception {
-    if (client != null){
-      return client;
-    }
     HiveConf hiveConf = new HiveConf(HowlInputFormat.class);
-//    System.err.println("XXX: all props:" + hiveConf.getAllProperties());
     if (inputInfo.getServerUri() != null){
       hiveConf.set("hive.metastore.local", "false");
       hiveConf.set("hive.metastore.uris", inputInfo.getServerUri());
     }
 
-//    hiveConf.set("hive.metastore.warehouse.dir", conf.get("hive.metastore.warehouse.dir","/tmp/"));
-//    hiveConf.setBoolean("hive.metastore.local", conf.getBoolean("hive.metastore.local",true));
-
-    return (client = new HiveMetaStoreClient(hiveConf,null));
+    return new HiveMetaStoreClient(hiveConf,null);
   }
 
   /**
@@ -84,38 +75,46 @@ public class InitializeInput {
     //* Create and initialize an JobInfo object
     //* Serialize the JobInfo and save in the Job's Configuration object
 
-    createHiveMetaClient(job.getConfiguration(),inputInfo);
+    HiveMetaStoreClient client = null;
 
-    Table table = client.getTable(inputInfo.getDatabaseName(), inputInfo.getTableName());
-    HowlSchema tableSchema = HowlUtil.getTableSchemaWithPtnCols(table);
+    try {
+      client = createHiveMetaClient(job.getConfiguration(),inputInfo);
 
-    List<PartInfo> partInfoList = new ArrayList<PartInfo>();
+      Table table = client.getTable(inputInfo.getDatabaseName(), inputInfo.getTableName());
+      HowlSchema tableSchema = HowlUtil.getTableSchemaWithPtnCols(table);
 
-    if( table.getPartitionKeys().size() != 0 ) {
-      //Partitioned table
-      List<Partition> parts = client.listPartitions(inputInfo.getDatabaseName(), inputInfo.getTableName(), MAX_PARTS);
+      List<PartInfo> partInfoList = new ArrayList<PartInfo>();
 
-      // populate partition info
-      for (Partition ptn : parts){
-        PartInfo partInfo = extractPartInfo(ptn.getSd(),ptn.getParameters());
-        partInfo.setPartitionValues(createPtnKeyValueMap(table,ptn));
+      if( table.getPartitionKeys().size() != 0 ) {
+        //Partitioned table
+        List<Partition> parts = client.listPartitions(inputInfo.getDatabaseName(), inputInfo.getTableName(), MAX_PARTS);
+
+        // populate partition info
+        for (Partition ptn : parts){
+          PartInfo partInfo = extractPartInfo(ptn.getSd(),ptn.getParameters());
+          partInfo.setPartitionValues(createPtnKeyValueMap(table,ptn));
+          partInfoList.add(partInfo);
+        }
+
+      }else{
+        //Non partitioned table
+        PartInfo partInfo = extractPartInfo(table.getSd(),table.getParameters());
+        partInfo.setPartitionValues(new HashMap<String,String>());
         partInfoList.add(partInfo);
       }
 
-    }else{
-      //Non partitioned table
-      PartInfo partInfo = extractPartInfo(table.getSd(),table.getParameters());
-      partInfo.setPartitionValues(new HashMap<String,String>());
-      partInfoList.add(partInfo);
+      JobInfo howlJobInfo = new JobInfo(inputInfo, tableSchema, partInfoList);
+      inputInfo.setJobInfo(howlJobInfo);
+
+      job.getConfiguration().set(
+          HowlInputFormat.HOWL_KEY_JOB_INFO,
+          HowlUtil.serialize(howlJobInfo)
+      );
+    } finally {
+      if (client != null ) {
+        client.close();
+      }
     }
-
-    JobInfo howlJobInfo = new JobInfo(inputInfo, tableSchema, partInfoList);
-    inputInfo.setJobInfo(howlJobInfo);
-
-    job.getConfiguration().set(
-        HowlInputFormat.HOWL_KEY_JOB_INFO,
-        HowlUtil.serialize(howlJobInfo)
-    );
   }
 
   private static Map<String, String> createPtnKeyValueMap(Table table, Partition ptn) throws IOException{

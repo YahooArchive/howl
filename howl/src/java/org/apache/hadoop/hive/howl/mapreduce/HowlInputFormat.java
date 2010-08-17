@@ -32,7 +32,7 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-/** The InputFormat to use to read data from Owl */
+/** The InputFormat to use to read data from Howl */
 public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord> {
 
   //The keys used to store info into the job Configuration
@@ -59,7 +59,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
   }
 
   /**
-   * Set the schema for the HowlRecord data returned by OwlInputFormat.
+   * Set the schema for the HowlRecord data returned by HowlInputFormat.
    * @param job the job object
    * @param howlSchema the schema to use as the consolidated schema
    */
@@ -72,7 +72,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * Logically split the set of input files for the job. Returns the
    * underlying InputFormat's splits
    * @param jobContext the job context object
-   * @return the splits, an OwlInputSplit wrapper over the storage
+   * @return the splits, an HowlInputSplit wrapper over the storage
    *         driver InputSplits
    * @throws IOException or InterruptedException
    */
@@ -131,11 +131,11 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
   /**
    * Create the RecordReader for the given InputSplit. Returns the underlying
    * RecordReader if the required operations are supported and schema matches
-   * with OwlTable schema. Returns an OwlRecordReader if operations need to
-   * be implemented in owl.
+   * with HowlTable schema. Returns an HowlRecordReader if operations need to
+   * be implemented in Howl.
    * @param split the split
    * @param taskContext the task attempt context
-   * @return the record reader instance, either an OwlRecordReader(later) or
+   * @return the record reader instance, either an HowlRecordReader(later) or
    *         the underlying storage driver's RecordReader
    * @throws IOException or InterruptedException
    */
@@ -147,8 +147,8 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
     PartInfo partitionInfo = howlSplit.getPartitionInfo();
 
     //If running through a Pig job, the JobInfo will not be available in the
-    //backend process context (since OwlLoader works on a copy of the JobContext and does
-    //not call OwlInputFormat.setInput in the backend process).
+    //backend process context (since HowlLoader works on a copy of the JobContext and does
+    //not call HowlInputFormat.setInput in the backend process).
     //So this function should NOT attempt to read the JobInfo.
 
     HowlInputStorageDriver storageDriver;
@@ -165,7 +165,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
     InputFormat inputFormat =
       storageDriver.getInputFormat(partitionInfo.getInputStorageDriverProperties());
 
-    //Create the underlying input formats record record and an Owl wrapper
+    //Create the underlying input formats record record and an Howl wrapper
     RecordReader recordReader =
       inputFormat.createRecordReader(howlSplit.getBaseSplit(), taskContext);
 
@@ -173,12 +173,12 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
   }
 
   /**
-   * Gets the OwlTable schema for the table specified in the OwlInputFormat.setInput call
-   * on the specified job context. This information is available only after OwlInputFormat.setInput
+   * Gets the HowlTable schema for the table specified in the HowlInputFormat.setInput call
+   * on the specified job context. This information is available only after HowlInputFormat.setInput
    * has been called for a JobContext.
    * @param context the context
    * @return the table schema
-   * @throws Exception if OwlInputFromat.setInput has not been called for the current context
+   * @throws Exception if HowlInputFromat.setInput has not been called for the current context
    */
   public static HowlSchema getTableSchema(JobContext context) throws Exception {
     JobInfo jobInfo = getJobInfo(context);
@@ -188,10 +188,10 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
   /**
    * Gets the JobInfo object by reading the Configuration and deserializing
    * the string. If JobInfo is not present in the configuration, throws an
-   * exception since that means OwlInputFormat.setInput has not been called.
+   * exception since that means HowlInputFormat.setInput has not been called.
    * @param jobContext the job context
    * @return the JobInfo object
-   * @throws Exception the owl exception
+   * @throws Exception the exception
    */
   private static JobInfo getJobInfo(JobContext jobContext) throws Exception {
     String jobString = jobContext.getConfiguration().get(HOWL_KEY_JOB_INFO);
@@ -210,7 +210,7 @@ public class HowlInputFormat extends InputFormat<WritableComparable, HowlRecord>
    * @param storageDriver the storage driver
    * @param context the job context
    * @param partitionInfo the partition info
-   * @param tableSchema the owl table level schema
+   * @param tableSchema the table level schema
    * @throws IOException Signals that an I/O exception has occurred.
    */
   private void initStorageDriver(HowlInputStorageDriver storageDriver,

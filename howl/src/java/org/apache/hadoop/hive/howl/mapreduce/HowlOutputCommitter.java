@@ -45,12 +45,12 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.thrift.TException;
 
-class HowlOutputCommitter extends OutputCommitter {
+public class HowlOutputCommitter extends OutputCommitter {
 
     /** The underlying output committer */
     private final OutputCommitter baseCommitter;
 
-    HowlOutputCommitter(OutputCommitter baseCommitter) {
+    public HowlOutputCommitter(OutputCommitter baseCommitter) {
         this.baseCommitter = baseCommitter;
     }
 
@@ -84,6 +84,7 @@ class HowlOutputCommitter extends OutputCommitter {
     @Override
     public void cleanupJob(JobContext context) throws IOException {
       OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(context);
+
       if( jobInfo.getTable().getPartitionKeys().size() == 0 ) {
         //non partitioned table
 
