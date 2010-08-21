@@ -137,7 +137,8 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     for(FieldSchema fSchema : pigSchema.getFields()){
       byte type = fSchema.type;
       HowlFieldSchema howlFSchema;
-      String alias = fSchema.alias.toLowerCase();
+      String alias = fSchema.alias;
+
       if(type == org.apache.pig.data.DataType.BAG){
 
         // Find out if we need to throw away the tuple or not.
@@ -163,6 +164,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
   private void validateUnNested(Schema innerSchema) throws FrontendException{
 
     for(FieldSchema innerField : innerSchema.getFields()){
+      validateAlias(innerField.alias);
       if(DataType.isComplex(innerField.type)) {
         throw new FrontendException("Complex types cannot be nested. "+innerField, PigHowlUtil.PIG_EXCEPTION_CODE);
       }
@@ -171,7 +173,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
 
   private boolean removeTupleFromBag(HowlSchema tableSchema, FieldSchema bagFieldSchema){
 
-    String colName = bagFieldSchema.alias.toLowerCase();
+    String colName = bagFieldSchema.alias;
     for(HowlFieldSchema field : tableSchema.getHowlFieldSchemas()){
       if(colName.equalsIgnoreCase(field.getName())){
         List<HowlTypeInfo> tupleTypeInfo = field.getHowlTypeInfo().getListElementTypeInfo().getAllStructFieldTypeInfos();
@@ -197,7 +199,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
       List<String> fieldNames = new ArrayList<String>();
       List<HowlTypeInfo> typeInfos = new ArrayList<HowlTypeInfo>();
       for( FieldSchema fieldSchema : fSchema.schema.getFields()){
-        fieldNames.add( fieldSchema.alias.toLowerCase());
+        fieldNames.add( fieldSchema.alias);
         typeInfos.add(getTypeInfoFrom(fieldSchema));
       }
       return HowlTypeInfoUtils.getStructHowlTypeInfo(fieldNames, typeInfos);
@@ -206,7 +208,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
       // Pig's schema contain no type information about map's keys and
       // values. So, if its a new column assume <string,string> if its existing
       // return whatever is contained in the existing column.
-      HowlFieldSchema mapField = getTableCol(fSchema.alias.toLowerCase(), howlTblSchema);
+      HowlFieldSchema mapField = getTableCol(fSchema.alias, howlTblSchema);
       if(mapField != null){
         HowlType mapValType = mapField.getHowlTypeInfo().getMapValueTypeInfo().getType();
         Class<?> clazz;
@@ -354,8 +356,10 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
 
     for(FieldSchema pigField : pigSchema.getFields()){
       byte type = pigField.type;
-      String alias = pigField.alias.toLowerCase();
+      String alias = pigField.alias;
+      validateAlias(alias);
       HowlFieldSchema howlField = getTableCol(alias, tblSchema);
+
       if(DataType.isComplex(type)){
         switch(type){
 
@@ -376,6 +380,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
             if(innerField.type == DataType.BAG || innerField.type == DataType.TUPLE) {
               throw new FrontendException("Complex types cannot be nested. "+innerField, PigHowlUtil.PIG_EXCEPTION_CODE);
             }
+            validateAlias(innerField.alias);
           }
           if(howlField != null){
             // Do the same validation for HowlSchema.
@@ -432,6 +437,14 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     }
   }
 
+  private void validateAlias(String alias) throws FrontendException{
+    if(alias == null) {
+      throw new FrontendException("Column name for a field is not specified. Please provide the full schema as an argument to HowlStorer.", PigHowlUtil.PIG_EXCEPTION_CODE);
+    }
+    if(alias.matches(".*[A-Z]+.*")) {
+      throw new FrontendException("Column names should all be in lowercase. Invalid name found: "+alias, PigHowlUtil.PIG_EXCEPTION_CODE);
+    }
+  }
 
   // Finds column by name in HowlSchema, if not found returns null.
   private HowlFieldSchema getTableCol(String alias, HowlSchema tblSchema){

@@ -12,6 +12,7 @@ import org.apache.hadoop.hive.howl.MiniCluster;
 import org.apache.hadoop.hive.ql.Driver;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
 
 public class TestHowlStorer extends TestCase {
@@ -72,6 +73,49 @@ public class TestHowlStorer extends TestCase {
 //   assertFalse(itr.hasNext());
 //
 //  }
+
+  // This test currently fails because of a Pig bug. Once thats fixed and the
+  // new jar is checked in, this should pass.
+
+  public void testNoAlias() throws IOException{
+    driver.run("drop table junit_parted");
+    String createTable = "create table junit_parted(a int, b string) partitioned by (ds string) stored as RCFILE " +
+        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
+    int retCode = driver.run(createTable).getResponseCode();
+    if(retCode != 0) {
+      throw new IOException("Failed to create table.");
+    }
+    PigServer server = new PigServer(ExecType.LOCAL, props);
+    UDFContext.getUDFContext().setClientSystemProps();
+    boolean errCaught = false;
+    try{
+      server.setBatchOn();
+      server.registerQuery("A = load '"+ fullFileName +"' as (a:int, b:chararray);");
+      server.registerQuery("B = foreach A generate a+10, b;");
+      server.registerQuery("store B into 'junit_parted' using org.apache.hadoop.hive.howl.pig.HowlStorer('ds=20100101');");
+      server.executeBatch();
+    }
+    catch(FrontendException fe){
+      assertEquals(PigHowlUtil.PIG_EXCEPTION_CODE, fe.getErrorCode());
+      errCaught = true;
+    }
+    assertTrue(errCaught);
+    errCaught = false;
+    try{
+      server.setBatchOn();
+      server.registerQuery("A = load '"+ fullFileName +"' as (a:int, b:chararray);");
+      server.registerQuery("B = foreach A generate a, B;");
+      server.registerQuery("store B into 'junit_parted' using org.apache.hadoop.hive.howl.pig.HowlStorer('ds=20100101');");
+      server.executeBatch();
+    }
+    catch(FrontendException fe){
+      assertEquals(PigHowlUtil.PIG_EXCEPTION_CODE, fe.getErrorCode());
+      errCaught = true;
+    }
+    driver.run("drop table junit_parted");
+    assertTrue(errCaught);
+  }
 
   public void testStoreMultiTables() throws IOException{
 
