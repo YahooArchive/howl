@@ -444,6 +444,12 @@
 </property>
 
 <property>
+  <name>hive.mergejob.maponly</name>
+  <value>true</value>
+  <description>Try to generate a map-only job for merging files if CombineHiveInputFormat is supported.</description>
+</property>
+
+<property>
   <name>hive.heartbeat.interval</name>
   <value>1000</value>
   <description>Send a heartbeat after this interval - used by mapjoin and filter operators</description>
@@ -456,7 +462,7 @@
 </property>
 
 <property>
-  <name>hive.merge.size.smallfiles.avgsize</name>
+  <name>hive.merge.smallfiles.avgsize</name>
   <value>16000000</value>
   <description>When the average output file size of a job is less than this number, Hive will start an additional map-reduce job to merge the output files into bigger files.  This is only done for map-only jobs if hive.merge.mapfiles is true, and for map-reduce jobs if hive.merge.mapredfiles is true.</description>
 </property>
@@ -595,9 +601,51 @@
 
 
 <property>
-  <name>hive.default.partition.name</name>
+  <name>hive.exec.default.partition.name</name>
   <value>__HIVE_DEFAULT_PARTITION__</value>
   <description>The default partition name in case the dynamic partition column value is null/empty string or anyother values that cannot be escaped. This value must not contain any special character used in HDFS URI (e.g., ':', '%', '/' etc). The user has to be aware that the dynamic partition value should not contain this value to avoid confusions.</description>
+</property>
+
+<property>
+  <name>hive.support.concurrency</name>
+  <value>false</value>
+  <description>Whether hive supports concurrency or not. A zookeeper instance must be up and running for the default hive lock manager to support read-write locks.</description>
+</property>
+
+<property>
+  <name>hive.concurrency.manager</name>
+  <value>org.apache.hadoop.hive.ql.lockmgr.ZooKeeperLockMgr</value>
+  <description>The concurrency manager for hive.</description>
+</property>
+
+<property>
+  <name>hive.lock.numretries</name>
+  <value>100</value>
+  <description>The number of times you want to try to get all the locks</description>
+</property>
+
+<property>
+  <name>hive.lock.sleep.between.retries</name>
+  <value>60</value>
+  <description>The sleep time (in seconds) between various retries</description>
+</property>
+
+<property>
+  <name>hive.zookeeper.quorum</name>
+  <value></value>
+  <description>The list of zookeeper servers to talk to. This is only needed for read/write locks.</description>
+</property>
+
+<property>
+  <name>hive.zookeeper.client.port</name>
+  <value>2181</value>
+  <description>The port of zookeeper servers to talk to. This is only needed for read/write locks.</description>
+</property>
+
+<property>
+  <name>hive.zookeeper.session.timeout</name>
+  <value></value>
+  <description>Zookeeper client's session timeout. The client is disconnected, and as a result, all locks released, if a heartbeat is not sent in the timeout.</description>
 </property>
 
 <property>
@@ -625,6 +673,16 @@
   <value>false</value>
   <description> Let hive determine whether to run in local mode automatically </description>
 </property>
+
+<property>
+  <name>hive.exec.show.job.failure.debug.info</name>
+  <value>false</value>
+  <description>
+  	If a job fails, whether to provide a link in the CLI to the task with the
+  	most failures, along with debugging hints if applicable.
+  </description>
+</property>
+
 
 <!-- HBase Storage Handler Parameters -->
 

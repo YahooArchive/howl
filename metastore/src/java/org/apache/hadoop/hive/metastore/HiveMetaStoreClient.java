@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hive.metastore;
 
+import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_NAME;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -78,6 +80,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     if (conf == null) {
       conf = new HiveConf(HiveMetaStoreClient.class);
     }
+
 
     boolean localMetaStore = conf.getBoolean("hive.metastore.local", false);
     if (localMetaStore) {
@@ -204,19 +207,6 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     }
   }
 
-  public void dropTable(String tableName, boolean deleteData)
-      throws MetaException, NoSuchObjectException {
-    // assume that it is default database
-    try {
-      this.dropTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tableName,
-          deleteData, false);
-    } catch (NoSuchObjectException e) {
-      throw e;
-    } catch (Exception e) {
-      MetaStoreUtils.logAndThrowMetaException(e);
-    }
-  }
-
   /**
    * @param new_part
    * @return the added partition
@@ -256,19 +246,21 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     return deepCopy(
         client.append_partition_by_name(dbName, tableName, partName));
   }
+
   /**
-   * @param name
-   * @param location_uri
+   * Create a new Database
+   * @param db
    * @return true or false
    * @throws AlreadyExistsException
+   * @throws InvalidObjectException
    * @throws MetaException
    * @throws TException
    * @see org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore.Iface#create_database(java.lang.String,
    *      java.lang.String)
    */
-  public boolean createDatabase(String name, String location_uri)
-      throws AlreadyExistsException, MetaException, TException {
-    return client.create_database(name, location_uri);
+  public void createDatabase(Database db)
+      throws AlreadyExistsException, InvalidObjectException, MetaException, TException {
+    client.create_database(db);
   }
 
   /**
@@ -315,13 +307,31 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   /**
    * @param name
    * @return true or false
+   * @throws NoSuchObjectException
+   * @throws InvalidOperationException
    * @throws MetaException
    * @throws TException
    * @see org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore.Iface#drop_database(java.lang.String)
    */
-  public boolean dropDatabase(String name) throws MetaException, TException {
-    return client.drop_database(name);
+  public void dropDatabase(String name)
+      throws NoSuchObjectException, InvalidOperationException, MetaException, TException {
+    dropDatabase(name, true, false);
   }
+
+
+  public void dropDatabase(String name, boolean deleteData, boolean ignoreUnknownDb)
+      throws NoSuchObjectException, InvalidOperationException, MetaException, TException {
+    try {
+      getDatabase(name);
+    } catch (NoSuchObjectException e) {
+      if (!ignoreUnknownDb) {
+        throw e;
+      }
+      return;
+    }
+    client.drop_database(name, deleteData);
+  }
+
 
   /**
    * @param tbl_name
@@ -378,6 +388,13 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     dropTable(dbname, name, true, true);
   }
 
+  /** {@inheritDoc} */
+  @Deprecated
+  public void dropTable(String tableName, boolean deleteData)
+      throws MetaException, UnknownTableException, TException, NoSuchObjectException {
+    dropTable(DEFAULT_DATABASE_NAME, tableName, deleteData, false);
+  }
+
   /**
    * @param dbname
    * @param name
@@ -431,7 +448,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
    * @throws TException
    * @see org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore.Iface#drop_type(java.lang.String)
    */
-  public boolean dropType(String type) throws MetaException, TException {
+  public boolean dropType(String type) throws NoSuchObjectException, MetaException, TException {
     return client.drop_type(type);
   }
 
@@ -455,14 +472,25 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     return result;
   }
 
-  /**
-   * @return the list of databases
-   * @throws MetaException
-   * @throws TException
-   * @see org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore.Iface#get_databases()
-   */
-  public List<String> getDatabases() throws MetaException, TException {
-    return client.get_databases();
+  /** {@inheritDoc} */
+  public List<String> getDatabases(String databasePattern)
+    throws MetaException {
+    try {
+      return client.get_databases(databasePattern);
+    } catch (Exception e) {
+      MetaStoreUtils.logAndThrowMetaException(e);
+    }
+    return null;
+  }
+
+  /** {@inheritDoc} */
+  public List<String> getAllDatabases() throws MetaException {
+    try {
+      return client.get_all_databases();
+    } catch (Exception e) {
+      MetaStoreUtils.logAndThrowMetaException(e);
+    }
+    return null;
   }
 
   /**
@@ -532,19 +560,27 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     return deepCopy(client.get_table(dbname, name));
   }
 
+  /** {@inheritDoc} */
+  @Deprecated
+  public Table getTable(String tableName) throws MetaException, TException,
+      NoSuchObjectException {
+    return getTable(DEFAULT_DATABASE_NAME, tableName);
+  }
+
   /**
    * @param name
    * @return the type
    * @throws MetaException
    * @throws TException
+   * @throws NoSuchObjectException
    * @see org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore.Iface#get_type(java.lang.String)
    */
-  public Type getType(String name) throws MetaException, TException {
+  public Type getType(String name) throws NoSuchObjectException, MetaException, TException {
     return deepCopy(client.get_type(name));
   }
 
-  public List<String> getTables(String dbname, String tablePattern)
-      throws MetaException {
+  /** {@inheritDoc} */
+  public List<String> getTables(String dbname, String tablePattern) throws MetaException {
     try {
       return client.get_tables(dbname, tablePattern);
     } catch (Exception e) {
@@ -553,24 +589,31 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
     return null;
   }
 
-  public List<String> getTables(String tablePattern) throws MetaException {
-    String dbname = MetaStoreUtils.DEFAULT_DATABASE_NAME;
-    return this.getTables(dbname, tablePattern);
+  /** {@inheritDoc} */
+  public List<String> getAllTables(String dbname) throws MetaException {
+    try {
+      return client.get_all_tables(dbname);
+    } catch (Exception e) {
+      MetaStoreUtils.logAndThrowMetaException(e);
+    }
+    return null;
   }
 
-  public boolean tableExists(String tableName) throws MetaException,
+  public boolean tableExists(String databaseName, String tableName) throws MetaException,
       TException, UnknownDBException {
     try {
-      client.get_table(MetaStoreUtils.DEFAULT_DATABASE_NAME, tableName);
+      client.get_table(databaseName, tableName);
     } catch (NoSuchObjectException e) {
       return false;
     }
     return true;
   }
 
-  public Table getTable(String tableName) throws MetaException, TException,
-      NoSuchObjectException {
-    return getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tableName);
+  /** {@inheritDoc} */
+  @Deprecated
+  public boolean tableExists(String tableName) throws MetaException,
+      TException, UnknownDBException {
+    return tableExists(DEFAULT_DATABASE_NAME, tableName);
   }
 
   public List<String> listPartitionNames(String dbName, String tblName,
@@ -604,7 +647,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
       UnknownDBException {
     return deepCopyFieldSchemas(client.get_fields(db, tableName));
   }
-  
+
   /**
    * create an index
    * @param index the index object
@@ -613,12 +656,12 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
    * @throws MetaException
    * @throws NoSuchObjectException
    * @throws TException
-   * @throws AlreadyExistsException 
+   * @throws AlreadyExistsException
    */
   public void createIndex(Index index, Table indexTable) throws AlreadyExistsException, InvalidObjectException, MetaException, NoSuchObjectException, TException {
     client.add_index(index, indexTable);
   }
-  
+
   /**
    * @param dbName
    * @param tblName
@@ -652,7 +695,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
 
   /**
    * list all the index names of the give base table.
-   * 
+   *
    * @param db_name
    * @param tbl_name
    * @param max
@@ -664,7 +707,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
       throws NoSuchObjectException, MetaException, TException {
     return client.get_indexes(dbName, tblName, max);
   }
-  
+
   /**
    * @param db
    * @param tableName

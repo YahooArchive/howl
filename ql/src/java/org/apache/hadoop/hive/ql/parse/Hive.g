@@ -85,6 +85,7 @@ TOK_STRING;
 TOK_LIST;
 TOK_STRUCT;
 TOK_MAP;
+TOK_CREATEDATABASE;
 TOK_CREATETABLE;
 TOK_CREATEINDEX;
 TOK_CREATEINDEX_INDEXTBLNAME;
@@ -113,11 +114,18 @@ TOK_ALTERTABLE_PROPERTIES;
 TOK_ALTERTABLE_CHANGECOL_AFTER_POSITION;
 TOK_ALTERINDEX_REBUILD;
 TOK_MSCK;
+TOK_SHOWDATABASES;
 TOK_SHOWTABLES;
 TOK_SHOWFUNCTIONS;
 TOK_SHOWPARTITIONS;
 TOK_SHOW_TABLESTATUS;
+TOK_SHOWLOCKS;
+TOK_LOCKTABLE;
+TOK_UNLOCKTABLE;
+TOK_SWITCHDATABASE;
+TOK_DROPDATABASE;
 TOK_DROPTABLE;
+TOK_DATABASECOMMENT;
 TOK_TABCOLLIST;
 TOK_TABCOL;
 TOK_TABLECOMMENT;
@@ -159,6 +167,7 @@ TOK_TABLEPROPLIST;
 TOK_TABTYPE;
 TOK_LIMIT;
 TOK_TABLEPROPERTY;
+TOK_IFEXISTS;
 TOK_IFNOTEXISTS;
 TOK_HINTLIST;
 TOK_HINT;
@@ -224,7 +233,10 @@ loadStatement
 ddlStatement
 @init { msgs.push("ddl statement"); }
 @after { msgs.pop(); }
-    : createTableStatement
+    : createDatabaseStatement
+    | switchDatabaseStatement
+    | dropDatabaseStatement
+    | createTableStatement
     | dropTableStatement
     | alterStatement
     | descStatement
@@ -237,6 +249,15 @@ ddlStatement
     | dropIndexStatement
     | alterIndexRebuild
     | dropFunctionStatement
+    | lockStatement
+    | unlockStatement
+    ;
+
+ifExists
+@init { msgs.push("if exists clause"); }
+@after { msgs.pop(); }
+    : KW_IF KW_EXISTS
+    -> ^(TOK_IFEXISTS)
     ;
 
 ifNotExists
@@ -244,6 +265,38 @@ ifNotExists
 @after { msgs.pop(); }
     : KW_IF KW_NOT KW_EXISTS
     -> ^(TOK_IFNOTEXISTS)
+    ;
+
+
+createDatabaseStatement
+@init { msgs.push("create database statement"); }
+@after { msgs.pop(); }
+    : KW_CREATE (KW_DATABASE|KW_SCHEMA)
+        ifNotExists?
+        name=Identifier
+        databaseComment?
+    -> ^(TOK_CREATEDATABASE $name ifNotExists? databaseComment?)
+    ;
+
+switchDatabaseStatement
+@init { msgs.push("switch database statement"); }
+@after { msgs.pop(); }
+    : KW_USE Identifier
+    -> ^(TOK_SWITCHDATABASE Identifier)
+    ;
+
+dropDatabaseStatement
+@init { msgs.push("drop database statement"); }
+@after { msgs.pop(); }
+    : KW_DROP (KW_DATABASE|KW_SCHEMA) ifExists? Identifier
+    -> ^(TOK_DROPDATABASE Identifier ifExists?)
+    ;
+
+databaseComment
+@init { msgs.push("database's comment"); }
+@after { msgs.pop(); }
+    : KW_COMMENT comment=StringLiteral
+    -> ^(TOK_DATABASECOMMENT $comment)
     ;
 
 createTableStatement
@@ -572,11 +625,31 @@ descStatement
 showStatement
 @init { msgs.push("show statement"); }
 @after { msgs.pop(); }
-    : KW_SHOW KW_TABLES showStmtIdentifier?  -> ^(TOK_SHOWTABLES showStmtIdentifier?)
+    : KW_SHOW (KW_DATABASES|KW_SCHEMAS) (KW_LIKE showStmtIdentifier)? -> ^(TOK_SHOWDATABASES showStmtIdentifier?)
+    | KW_SHOW KW_TABLES showStmtIdentifier?  -> ^(TOK_SHOWTABLES showStmtIdentifier?)
     | KW_SHOW KW_FUNCTIONS showStmtIdentifier?  -> ^(TOK_SHOWFUNCTIONS showStmtIdentifier?)
     | KW_SHOW KW_PARTITIONS Identifier partitionSpec? -> ^(TOK_SHOWPARTITIONS Identifier partitionSpec?)
     | KW_SHOW KW_TABLE KW_EXTENDED ((KW_FROM|KW_IN) db_name=Identifier)? KW_LIKE showStmtIdentifier partitionSpec?
     -> ^(TOK_SHOW_TABLESTATUS showStmtIdentifier $db_name? partitionSpec?)
+    | KW_SHOW KW_LOCKS -> ^(TOK_SHOWLOCKS)
+    ;
+
+lockStatement
+@init { msgs.push("lock statement"); }
+@after { msgs.pop(); }
+    : KW_LOCK KW_TABLE Identifier partitionSpec? lockMode -> ^(TOK_LOCKTABLE Identifier lockMode partitionSpec?)
+    ;
+
+lockMode
+@init { msgs.push("lock mode"); }
+@after { msgs.pop(); }
+    : KW_SHARED | KW_EXCLUSIVE
+    ;
+
+unlockStatement
+@init { msgs.push("unlock statement"); }
+@after { msgs.pop(); }
+    : KW_UNLOCK KW_TABLE Identifier partitionSpec?  -> ^(TOK_UNLOCKTABLE Identifier partitionSpec?)
     ;
 
 metastoreCheck
@@ -1012,7 +1085,7 @@ selectClause
 @init { msgs.push("select clause"); }
 @after { msgs.pop(); }
     :
-    KW_SELECT hintClause? (((KW_ALL | dist=KW_DISTINCT)? selectList) 
+    KW_SELECT hintClause? (((KW_ALL | dist=KW_DISTINCT)? selectList)
                           | (transform=KW_TRANSFORM selectTrfmClause))
      -> {$transform == null && $dist == null}? ^(TOK_SELECT hintClause? selectList)
      -> {$transform == null && $dist != null}? ^(TOK_SELECTDI hintClause? selectList)
@@ -1027,7 +1100,7 @@ selectList
     :
     selectItem ( COMMA  selectItem )* -> selectItem+
     ;
-    
+
 selectTrfmClause
 @init { msgs.push("transform clause"); }
 @after { msgs.pop(); }
@@ -1762,6 +1835,7 @@ KW_INTERSECT: 'INTERSECT';
 KW_VIEW: 'VIEW';
 KW_IN: 'IN';
 KW_DATABASE: 'DATABASE';
+KW_DATABASES: 'DATABASES';
 KW_MATERIALIZED: 'MATERIALIZED';
 KW_SCHEMA: 'SCHEMA';
 KW_SCHEMAS: 'SCHEMAS';
@@ -1770,7 +1844,10 @@ KW_REVOKE: 'REVOKE';
 KW_SSL: 'SSL';
 KW_UNDO: 'UNDO';
 KW_LOCK: 'LOCK';
+KW_LOCKS: 'LOCKS';
 KW_UNLOCK: 'UNLOCK';
+KW_SHARED: 'SHARED';
+KW_EXCLUSIVE: 'EXCLUSIVE';
 KW_PROCEDURE: 'PROCEDURE';
 KW_UNSIGNED: 'UNSIGNED';
 KW_WHILE: 'WHILE';
@@ -1794,6 +1871,7 @@ KW_LATERAL: 'LATERAL';
 KW_TOUCH: 'TOUCH';
 KW_ARCHIVE: 'ARCHIVE';
 KW_UNARCHIVE: 'UNARCHIVE';
+KW_USE: 'USE';
 
 // Operators
 // NOTE: if you add a new function/operator, add it to sysFuncNames so that describe function _FUNC_ will work.

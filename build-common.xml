@@ -50,7 +50,7 @@
   <property name="test.timeout" value="13200000"/>
   <property name="test.junit.output.format" value="xml"/>
   <property name="test.junit.output.usefile" value="true"/>
-  <property name="minimr.query.files" value="join1.q,groupby1.q"/>
+  <property name="minimr.query.files" value="input16_cc.q,scriptfile1.q,bucket4.q,bucketmapjoin6.q,disable_merge_for_bucketing.q,reduce_deduplicate.q,smb_mapjoin_8.q,join1.q,groupby2.q,bucketizedhiveinputformat.q"/>
   <property name="test.silent" value="true"/>
   <property name="hadoopVersion" value="${hadoop.version.ant-internal}"/>
   <property name="test.serialize.qplan" value="false"/>
@@ -63,6 +63,12 @@
     <fileset dir="${hive.root}" includes="testlibs/*.jar"/>
     <path refid="classpath"/>
   </path>
+
+  <taskdef resource="net/sf/antcontrib/antcontrib.properties">
+    <classpath>
+      <pathelement location="${hive.root}/testlibs/ant-contrib-1.0b3.jar"/>
+    </classpath>
+  </taskdef>
 
   <!-- IVY properties set here -->
   <property name="build.ivy.dir" location="${build.dir.hive}/ivy"/>
@@ -148,7 +154,7 @@
     <ivy:settings id="${ant.project.name}.ivy.settings" file="${ivysettings.xml}"/>
   </target>
 
-  <target name="ivy-resolve" depends="ivy-init">
+  <target name="ivy-resolve" depends="ivy-init" unless="offline">
     <ivy:resolve settingsRef="${ant.project.name}.ivy.settings"
       log="${ivyresolvelog}"/>
   </target>
@@ -158,7 +164,7 @@
       log="${ivyresolvelog}"/>
   </target>
 
-  <target name="ivy-retrieve" depends="ivy-resolve"
+  <target name="ivy-retrieve" depends="ivy-resolve" unless="offline"
     description="Retrieve Ivy-managed artifacts">
     <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
       pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}"
@@ -330,16 +336,6 @@
 
   <target name="test-conditions">
 
-    <condition property="qfile" value="${minimr.query.files}">
-      <and>
-        <not>
-          <isset property="qfile"/>
-        </not>
-
-        <equals arg1="${clustermode}" arg2="miniMR" />
-      </and>
-    </condition>
-
     <condition property="qfile" value="">
       <not>
         <isset property="qfile"/>
@@ -399,6 +395,9 @@
     </not>
   </condition>
 
+  <property name="test.warehouse.dir" value="${test.warehouse.scheme}${build.dir}/test/data/warehouse"/>
+  <property name="mapred.job.tracker" value="local"/>
+  <property name="fs.default.name" value="file:///"/>
 
   <!-- target to run the tests -->
   <target name="test"
@@ -425,7 +424,9 @@
       <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
       <sysproperty key="test.silent" value="${test.silent}"/>
       <sysproperty key="test.tmp.dir" value="${build.dir}/tmp"/>
-      <sysproperty key="test.warehouse.dir" value="${test.warehouse.scheme}${build.dir}/test/data/warehouse"/>
+      <sysproperty key="test.warehouse.dir" value="${test.warehouse.dir}"/>
+      <sysproperty key="mapred.job.tracker" value="${mapred.job.tracker}"/>
+      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
       <sysproperty key="build.dir" value="${build.dir}"/>
       <sysproperty key="build.dir.hive" value="${build.dir.hive}"/>
 
@@ -434,7 +435,7 @@
       <batchtest todir="${test.build.dir}" unless="testcase">
         <fileset dir="${test.build.classes}"
                  includes="**/${test.include}.class"
-                 excludes="**/TestSerDe.class,**/*$*.class" />
+                 excludes="**/TestSerDe.class,**/TestHiveMetaStore.class,**/*$*.class" />
       </batchtest>
       <batchtest todir="${test.build.dir}" if="testcase">
         <fileset dir="${test.build.classes}" includes="**/${testcase}.class"/>

@@ -133,7 +133,11 @@ import org.apache.hadoop.hive.ql.udf.UDFYear;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFAverage;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFBridge;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCollectSet;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFContextNGrams;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCorrelation;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCount;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCovariance;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFCovarianceSample;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFHistogramNumeric;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFMax;
@@ -166,6 +170,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFLocate;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFMap;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPNotNull;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPNull;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFReflect;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFSentences;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFSize;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFSplit;
@@ -366,17 +371,22 @@ public final class FunctionRegistry {
     registerGenericUDAF("variance", new GenericUDAFVariance());
     registerGenericUDAF("var_pop", new GenericUDAFVariance());
     registerGenericUDAF("var_samp", new GenericUDAFVarianceSample());
-
+    registerGenericUDAF("covar_pop", new GenericUDAFCovariance());
+    registerGenericUDAF("covar_samp", new GenericUDAFCovarianceSample());
+    registerGenericUDAF("corr", new GenericUDAFCorrelation());
     registerGenericUDAF("histogram_numeric", new GenericUDAFHistogramNumeric());
     registerGenericUDAF("percentile_approx", new GenericUDAFPercentileApprox());
     registerGenericUDAF("collect_set", new GenericUDAFCollectSet());
 
     registerGenericUDAF("ngrams", new GenericUDAFnGrams());
+    registerGenericUDAF("context_ngrams", new GenericUDAFContextNGrams());
 
     registerUDAF("percentile", UDAFPercentile.class);
 
 
     // Generic UDFs
+    registerGenericUDF("reflect", GenericUDFReflect.class);
+    
     registerGenericUDF("array", GenericUDFArray.class);
     registerGenericUDF("map", GenericUDFMap.class);
     registerGenericUDF("struct", GenericUDFStruct.class);

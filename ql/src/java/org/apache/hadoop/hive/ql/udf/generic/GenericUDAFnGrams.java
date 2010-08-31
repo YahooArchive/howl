@@ -18,12 +18,7 @@
 package org.apache.hadoop.hive.ql.udf.generic;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.Map;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -238,111 +233,39 @@ public class GenericUDAFnGrams implements GenericUDAFResolver {
         return;
       }
       NGramAggBuf myagg = (NGramAggBuf) agg;
-
-      ArrayList partialNGrams = (ArrayList) loi.getList(partial);
-      int k = Integer.parseInt(((Text)partialNGrams.get(0)).toString());
-      int n = Integer.parseInt(((Text)partialNGrams.get(1)).toString());
-      int pf = Integer.parseInt(((Text)partialNGrams.get(2)).toString());
-      if(myagg.k > 0 && myagg.k != k) {
-        throw new HiveException(getClass().getSimpleName() + ": mismatch in value for 'k'" 
-            + ", which usually is caused by a non-constant expression. Found '"+k+"' and '"
-            + myagg.k + "'.");
-      }
+      List<Text> partialNGrams = (List<Text>) loi.getList(partial);
+      int n = Integer.parseInt(partialNGrams.get(partialNGrams.size()-1).toString());
       if(myagg.n > 0 && myagg.n != n) {
         throw new HiveException(getClass().getSimpleName() + ": mismatch in value for 'n'" 
             + ", which usually is caused by a non-constant expression. Found '"+n+"' and '"
             + myagg.n + "'.");
       }
-      if(myagg.pf > 0 && myagg.pf != pf) {
-        throw new HiveException(getClass().getSimpleName() + ": mismatch in value for 'pf'" 
-            + ", which usually is caused by a non-constant expression. Found '"+pf+"' and '"
-            + myagg.pf + "'.");
-      }
-      myagg.k = k;
       myagg.n = n;
-      myagg.pf = pf;
-
-      for(int i = 3; i < partialNGrams.size(); i++) {
-        ArrayList<String> key = new ArrayList<String>();
-        for(int j = 0; j < n; j++) {
-          key.add(((Text)partialNGrams.get(i+j)).toString());
-        }
-        i += n;
-        double val = Double.parseDouble( ((Text)partialNGrams.get(i)).toString() );
-        Double myval = (Double)myagg.ngrams.get(key);
-        if(myval == null) {
-          myval = new Double(val);
-        } else {
-          myval += val;
-        }
-        myagg.ngrams.put(key, myval);
-      }
-      trim(myagg, myagg.k*myagg.pf);
+      partialNGrams.remove(partialNGrams.size()-1);
+      myagg.nge.merge(partialNGrams);
     }
 
     @Override
     public Object terminatePartial(AggregationBuffer agg) throws HiveException {
       NGramAggBuf myagg = (NGramAggBuf) agg;
-
-      ArrayList<Text> result = new ArrayList<Text>();
-      result.add(new Text(Integer.toString(myagg.k)));
+      ArrayList<Text> result = myagg.nge.serialize();
       result.add(new Text(Integer.toString(myagg.n)));
-      result.add(new Text(Integer.toString(myagg.pf)));
-      for(Iterator<ArrayList<String> > it = myagg.ngrams.keySet().iterator(); it.hasNext(); ) {
-        ArrayList<String> mykey = it.next();
-        for(int i = 0; i < mykey.size(); i++) {
-          result.add(new Text(mykey.get(i)));
-        }
-        Double myval = (Double) myagg.ngrams.get(mykey);
-        result.add(new Text(myval.toString()));
-      }
-
       return result;
     }
 
-    private void trim(NGramAggBuf agg, int N) {
-      ArrayList list = new ArrayList(agg.ngrams.entrySet());
-      if(list.size() <= N) {
-        return;
-      }
-      Collections.sort(list, new Comparator() {
-          public int compare(Object o1, Object o2) {
-          return ((Double)((Map.Entry)o1).getValue()).compareTo(
-            ((Double)((Map.Entry)o2).getValue()) );
-          }
-          });
-      for(int i = 0; i < list.size() - N; i++) {
-        agg.ngrams.remove( ((Map.Entry)list.get(i)).getKey() );
-      }
-    }
-
-    private void processNgrams(NGramAggBuf agg, ArrayList<String> seq) {
+    private void processNgrams(NGramAggBuf agg, ArrayList<String> seq) throws HiveException {
       for(int i = seq.size()-agg.n; i >= 0; i--) {
         ArrayList<String> ngram = new ArrayList<String>();
         for(int j = 0; j < agg.n; j++)  {
           ngram.add(seq.get(i+j));
         }
-        Double curVal = (Double) agg.ngrams.get(ngram);
-        if(curVal == null) {
-          // new n-gram
-          curVal = new Double(1);
-        } else {
-          // existing n-gram, just increment count
-          curVal++;
-        }
-        agg.ngrams.put(ngram, curVal);
-      }
-
-      // do we have too many ngrams? 
-      if(agg.ngrams.size() > agg.k * agg.pf) {
-        // delete low-support n-grams
-        trim(agg, agg.k * agg.pf);
+        agg.nge.add(ngram);
       }
     }
 
     @Override
     public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
-      assert (parameters.length == 3);
+      assert (parameters.length == 3 || parameters.length == 4);
       if(parameters[0] == null || parameters[1] == null || parameters[2] == null) {
         return;
       }
@@ -350,37 +273,39 @@ public class GenericUDAFnGrams implements GenericUDAFResolver {
     
       // Parse out 'n' and 'k' if we haven't already done so, and while we're at it,
       // also parse out the precision factor 'pf' if the user has supplied one.
-      if(myagg.n == 0 || myagg.k == 0) {
-        myagg.n = PrimitiveObjectInspectorUtils.getInt(parameters[1], nOI);
-        myagg.k = PrimitiveObjectInspectorUtils.getInt(parameters[2], kOI);
-        if(myagg.n < 1) {
+      if(!myagg.nge.isInitialized()) {
+        int n = PrimitiveObjectInspectorUtils.getInt(parameters[1], nOI);
+        int k = PrimitiveObjectInspectorUtils.getInt(parameters[2], kOI);
+        int pf = 0;
+        if(n < 1) {
           throw new HiveException(getClass().getSimpleName() + " needs 'n' to be at least 1, "
-                                  + "but you supplied " + myagg.n);
+                                  + "but you supplied " + n);
         }
-        if(myagg.k < 1) {
+        if(k < 1) {
           throw new HiveException(getClass().getSimpleName() + " needs 'k' to be at least 1, "
-                                  + "but you supplied " + myagg.k);
+                                  + "but you supplied " + k);
         }
         if(parameters.length == 4) {
-          myagg.pf = PrimitiveObjectInspectorUtils.getInt(parameters[3], pOI);
-          if(myagg.pf < 1) {
+          pf = PrimitiveObjectInspectorUtils.getInt(parameters[3], pOI);
+          if(pf < 1) {
             throw new HiveException(getClass().getSimpleName() + " needs 'pf' to be at least 1, "
-                + "but you supplied " + myagg.pf);
+                + "but you supplied " + pf);
           }
+        } else {
+          pf = 1; // placeholder; minimum pf value is enforced in NGramEstimator
         }
 
-        // Enforce a minimum n-gram buffer size
-        if(myagg.pf*myagg.k < 1000) {
-          myagg.pf = 1000 / myagg.k;
-        }
+        // Set the parameters
+        myagg.n = n;
+        myagg.nge.initialize(k, pf, n);
       }
 
       // get the input expression
-      ArrayList outer = (ArrayList) outerInputOI.getList(parameters[0]);
+      List<Text> outer = (List<Text>) outerInputOI.getList(parameters[0]);
       if(innerInputOI != null) {
         // we're dealing with an array of arrays of strings
         for(int i = 0; i < outer.size(); i++) {
-          ArrayList inner = (ArrayList) innerInputOI.getList(outer.get(i));
+          List<Text> inner = (List<Text>) innerInputOI.getList(outer.get(i));
           ArrayList<String> words = new ArrayList<String>();
           for(int j = 0; j < inner.size(); j++) {
             String word = PrimitiveObjectInspectorUtils.getString(inner.get(j), inputOI);
@@ -406,48 +331,19 @@ public class GenericUDAFnGrams implements GenericUDAFResolver {
     @Override
     public Object terminate(AggregationBuffer agg) throws HiveException {
       NGramAggBuf myagg = (NGramAggBuf) agg;
-      if (myagg.ngrams.size() < 1) { // SQL standard - return null for zero elements
-        return null;
-      } 
-
-      ArrayList<Object[]> result = new ArrayList<Object[]>();
-
-      ArrayList list = new ArrayList(myagg.ngrams.entrySet());
-      Collections.sort(list, new Comparator() {
-          public int compare(Object o1, Object o2) {
-          return ((Double)((Map.Entry)o2).getValue()).compareTo(
-            ((Double)((Map.Entry)o1).getValue()) );
-          }
-          });
-
-      for(int i = 0; i < list.size() && i < myagg.k; i++) {
-        ArrayList<String> key = (ArrayList<String>)((Map.Entry)list.get(i)).getKey();
-        Double val = (Double)((Map.Entry)list.get(i)).getValue();
-
-        Object[] ngram = new Object[2];
-        ngram[0] = new ArrayList<Text>();
-        for(int j = 0; j < key.size(); j++) {
-          ((ArrayList<Text>)ngram[0]).add(new Text(key.get(j)));
-        }
-        ngram[1] = new DoubleWritable(val.doubleValue());
-        result.add(ngram);
-      }
-
-      return result;
+      return myagg.nge.getNGrams();
     }
-
 
     // Aggregation buffer methods. 
     static class NGramAggBuf implements AggregationBuffer {
-      HashMap ngrams;
+      NGramEstimator nge;
       int n;
-      int k;
-      int pf;
     };
 
     @Override
     public AggregationBuffer getNewAggregationBuffer() throws HiveException {
       NGramAggBuf result = new NGramAggBuf();
+      result.nge = new NGramEstimator();
       reset(result);
       return result;
     }
@@ -455,8 +351,8 @@ public class GenericUDAFnGrams implements GenericUDAFResolver {
     @Override
     public void reset(AggregationBuffer agg) throws HiveException {
       NGramAggBuf result = (NGramAggBuf) agg;
-      result.ngrams = new HashMap();
-      result.n = result.k = result.pf = 0;
+      result.nge.reset();
+      result.n = 0;
     }
   }
 }

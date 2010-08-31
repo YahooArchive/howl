@@ -130,4 +130,17 @@ public abstract class AbstractMapJoinOperator <T extends MapJoinDesc> extends Co
   public int getType() {
     return OperatorType.MAPJOIN;
   }
+
+  // returns true if there are elements in key list and any of them is null
+  protected boolean hasAnyNulls(ArrayList<Object> key) {
+    if (key != null && key.size() > 0) {
+      for (Object k : key) {
+        if (k == null) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
 }

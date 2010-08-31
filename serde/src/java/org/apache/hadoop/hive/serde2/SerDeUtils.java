@@ -331,6 +331,92 @@ public final class SerDeUtils {
     }
   }
 
+  /**
+   * True if Object passed is representing null object.
+   *
+   * @param o The object
+   * @param oi The ObjectInspector
+   *
+   * @return true if the object passed is representing NULL object
+   *         false otherwise
+   */
+  public static boolean hasAnyNullObject(Object o, ObjectInspector oi) {
+    switch (oi.getCategory()) {
+    case PRIMITIVE: {
+      if (o == null) {
+        return true;
+      }
+      return false;
+    }
+    case LIST: {
+      ListObjectInspector loi = (ListObjectInspector) oi;
+      ObjectInspector listElementObjectInspector = loi
+          .getListElementObjectInspector();
+      List<?> olist = loi.getList(o);
+      if (olist == null) {
+        return true;
+      } else {
+        // there are no elements in the list
+        if (olist.size() == 0) {
+          return false;
+        }
+        // if all the elements are representing null, then return true
+        for (int i = 0; i < olist.size(); i++) {
+          if (hasAnyNullObject(olist.get(i), listElementObjectInspector)) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+    case MAP: {
+      MapObjectInspector moi = (MapObjectInspector) oi;
+      ObjectInspector mapKeyObjectInspector = moi.getMapKeyObjectInspector();
+      ObjectInspector mapValueObjectInspector = moi
+          .getMapValueObjectInspector();
+      Map<?, ?> omap = moi.getMap(o);
+      if (omap == null) {
+        return true;
+      } else {
+        // there are no elements in the map
+        if (omap.entrySet().size() == 0) {
+          return false;
+        }
+        // if all the entries of map are representing null, then return true
+        for (Map.Entry<?, ?> entry : omap.entrySet()) {
+          if (hasAnyNullObject(entry.getKey(), mapKeyObjectInspector)
+              || hasAnyNullObject(entry.getValue(), mapValueObjectInspector)) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+    case STRUCT: {
+      StructObjectInspector soi = (StructObjectInspector) oi;
+      List<? extends StructField> structFields = soi.getAllStructFieldRefs();
+      if (o == null) {
+        return true;
+      } else {
+        // there are no fields in the struct
+        if (structFields.size() == 0) {
+          return false;
+        }
+        // if any the fields of struct are representing null, then return true
+        for (int i = 0; i < structFields.size(); i++) {
+          if (hasAnyNullObject(soi.getStructFieldData(o, structFields.get(i)),
+              structFields.get(i).getFieldObjectInspector())) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+    default:
+      throw new RuntimeException("Unknown type in ObjectInspector!");
+    }
+  }
+
   private SerDeUtils() {
     // prevent instantiation
   }

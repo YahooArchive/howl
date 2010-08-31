@@ -42,6 +42,32 @@ Trunk -  Unreleased
     HIVE-1528. JSON UDTF function
     (Ning Zhang via jvs)
 
+    HIVE-1529. Add ANSI SQL covariance aggregate functions: covar_pop
+    and covar_samp
+    (Pierre Huyn via jvs)
+
+    HIVE-1518. context_ngrams() UDAF for estimating top-k contextual
+    n-grams
+    (Mayank Lahiri via jvs)
+
+    HIVE-1549. Add ANSI SQL correlation function CORR(X,Y).
+    (Pierre Huyn via jvs)
+
+    HIVE-1307. More generic and efficient merge
+    (Ning Zhang via namit)
+
+    HIVE-1578. Add conf. variable for displaying link to task
+    with most failures (Paul Yang via namit)
+
+    HIVE-1293. Concurrency Model for Hive
+    (Namit Jain via jvs)
+
+    HIVE-675. Add database/schema support for Hive
+    (Carl Steinbach via namit)
+
+    HIVE-471. Add a UDF for simple reflection
+    (Edward Capriolo via namit)
+
   IMPROVEMENTS
 
     HIVE-1394. Do not update transient_lastDdlTime if the partition is modified by a housekeeping
@@ -75,6 +101,22 @@ Trunk -  Unreleased
     index rebuild
     (He Yongqiang via jvs)
 
+    HIVE-1512. Need to get hive_hbase-handler to work with hbase
+    versions 0.20.4 0.20.5 and cloudera CDH3 version
+    (Basab Maulik via jvs)
+
+    HIVE-1581. CompactIndexInputFormat should create split only for files in the index output file
+    (He Yongqiang via namit)
+
+    HIVE-1441. Extend ivy offline mode to cover metastore downloads
+    (John Sichi via Ning Zhang)
+
+    HIVE-1523. Enable some tests in miniMR mode
+    (Joydeep Sen Sarma via namit)
+
+    HIVE-1536. Add support for JDBC PreparedStatements
+    (Sean Flatley via jvs)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -103,10 +145,6 @@ Trunk -  Unreleased
 
     HIVE-1056. Predicate push down does not work with UDTF's
     (Paul Yang via He Yongqiang)
-
-    HIVE-1428. ALTER TABLE ADD PARTITION failes with a remote Thrift
-    metastore
-    (Pradeep Kamath via jvs)
 
     HIVE-1385. UDF field() doesn't work
     (Siying Dong via He Yongqiang)
@@ -141,6 +179,59 @@ Trunk -  Unreleased
     HIVE-1535 Dont change table metadata while changing partition metadata
     (He Yongqiang via namit)
 
+    HIVE-1532 Replace globStatus with listStatus inside Hive.java's replaceFiles
+    (He Yongqiang via namit)
+
+    HIVE-1543 Abort in ExecMapper when record reader's next gets a exception
+    (Ning Zhang via namit)
+
+    HIVE-1547 Unarchiving operation throws NPE
+    (Paul Yang via namit)
+
+    HIVE-1548 populate inputs and outputs for all statement
+    (namit via He Yongqiang)
+
+    HIVE-1556. tests broken
+    (namit via Ning Zhang)
+
+    HIVE-1563. tests broken
+    (John Sichi via namit)
+
+    HIVE-1564. bucketizedhiveinputformat does not work in minimr mode
+    (He Yongqiang via namit)
+
+    HIVE-1561. test bug: smb_mapjoin*.q should use bucketizedhiveinputformat
+    (He Yongqiang via namit)
+
+    HIVE-1510. HiveCombineInputFormat should not use prefix matching to find
+    the partitionDesc for a given path
+    (He Yongqiang via Ning Zhang)
+
+    HIVE-1584. wrong log files in contrib client positive
+    (namit via He Yongqiang)
+
+    HIVE-1589. Add HBase/ZK JARs to Eclipse classpath
+    (Carl Steinbach via jvs)
+
+    HIVE-741. NULL is not handled correctly in join
+    (Amareshwari Sriramadasu via Ning Zhang)
+
+    HIVE-1593. Add test file udtf_explode
+    (Carl Steinbach via namit)
+
+    HIVE-1594. Typo of hive.merge.size.smallfiles.avgsize prevents
+    change of value. (Yun Huang Yong via namit)
+
+    HIVE-1600. Making test outputs deterministic by sorting inputs and outputs in hooks
+    (John Sichi via namit)
+
+    HIVE-1605. Regression and improvements in handling NULLs in joins
+    (Ning Zhang via namit)
+
+    HIVE-1607. Reinstate and deprecate IMetaStoreClient methods removed 
+    in HIVE-675
+    (Carl Steinbach via Ning Zhang)
+
   TESTS
 
     HIVE-1464. improve  test query performance
@@ -153,6 +244,9 @@ Trunk -  Unreleased
     HIVE-1489. TestCliDriver -Doverwrite=true does not put the file in
     the correct directory
     (Ning Zhang via jvs)
+
+    HIVE-1601. Hadoop 0.17 ant test broken by HIVE-1523
+    (Joydeep Sen Sarma via jvs)
 
 Release 0.6.0 -  Unreleased
 
@@ -392,6 +486,9 @@ Release 0.6.0 -  Unreleased
 
     HIVE-1401. Web Interface can only browse default
     (Edward Capriolo via jvs)
+
+    HIVE-1531. Make Hive build work with Ivy versions < 2.1.0
+    (Carl Steinbach via jvs)
 
   OPTIMIZATIONS
 
@@ -723,6 +820,10 @@ Release 0.6.0 -  Unreleased
     HIVE-1294. HIVE_AUX_JARS_PATH interferes with startup of Hive Web
     Interface
     (Edward Capriolo via jvs)
+
+    HIVE-1428. ALTER TABLE ADD PARTITION failes with a remote Thrift
+    metastore
+    (Pradeep Kamath via jvs)
 
 Release 0.5.0 -  Unreleased
 

@@ -37,9 +37,13 @@ coalesce
 collect_set
 concat
 concat_ws
+context_ngrams
 conv
+corr
 cos
 count
+covar_pop
+covar_samp
 date_add
 date_sub
 datediff
@@ -100,6 +104,7 @@ pow
 power
 radians
 rand
+reflect
 regexp
 regexp_extract
 regexp_replace
@@ -163,9 +168,13 @@ coalesce
 collect_set
 concat
 concat_ws
+context_ngrams
 conv
+corr
 cos
 count
+covar_pop
+covar_samp
 PREHOOK: query: SHOW FUNCTIONS '.*e$'
 PREHOOK: type: SHOWFUNCTIONS
 POSTHOOK: query: SHOW FUNCTIONS '.*e$'

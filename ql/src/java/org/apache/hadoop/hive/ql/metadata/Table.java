@@ -97,8 +97,8 @@ public class Table implements Serializable {
     }
   }
 
-  public Table(String name) {
-    this(getEmptyTable(name));
+  public Table(String databaseName, String tableName) {
+    this(getEmptyTable(databaseName, tableName));
   }
 
   /**
@@ -120,7 +120,8 @@ public class Table implements Serializable {
   /**
    * Initialize an emtpy table.
    */
-  static org.apache.hadoop.hive.metastore.api.Table getEmptyTable(String name) {
+  static org.apache.hadoop.hive.metastore.api.Table
+  getEmptyTable(String databaseName, String tableName) {
     StorageDescriptor sd = new StorageDescriptor();
     {
       sd.setSerdeInfo(new SerDeInfo());
@@ -144,8 +145,8 @@ public class Table implements Serializable {
       t.setPartitionKeys(new ArrayList<FieldSchema>());
       t.setParameters(new HashMap<String, String>());
       t.setTableType(TableType.MANAGED_TABLE.toString());
-      t.setTableName(name);
-      t.setDbName(MetaStoreUtils.DEFAULT_DATABASE_NAME);
+      t.setDbName(databaseName);
+      t.setTableName(tableName);
     }
     return t;
   }
@@ -793,5 +794,12 @@ public class Table implements Serializable {
   public boolean canWrite() {
     ProtectMode mode = getProtectMode();
     return (!mode.offline && !mode.readOnly);
+  }
+
+  /**
+   * @return include the db name
+   */
+  public String getCompleteName() {
+    return getDbName() + "@" + getTableName();
   }
 };

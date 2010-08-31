@@ -45,7 +45,6 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Order;
 import org.apache.hadoop.hive.ql.Context;
@@ -744,7 +743,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         String tab_name = qb.getTabNameForAlias(alias);
         Table tab = null;
         try {
-          tab = db.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tab_name);
+          tab = db.getTable(tab_name);
         } catch (InvalidTableException ite) {
           throw new SemanticException(ErrorMsg.INVALID_TABLE.getMsg(qb
               .getParseInfo().getSrcForAlias(alias)));
@@ -3273,10 +3272,12 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         }
 
         if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.DYNAMICPARTITIONING)) { // allow DP
-          // TODO: we should support merge files for dynamically generated partitions later
           if (dpCtx.getNumDPCols() > 0 &&
               (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVEMERGEMAPFILES) ||
-               HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVEMERGEMAPREDFILES))) {
+               HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVEMERGEMAPREDFILES)) &&
+               Utilities.supportCombineFileInputFormat() == false) {
+            // Do not support merge for Hadoop versions (pre-0.20) that do not
+            // support CombineHiveInputFormat
             HiveConf.setBoolVar(conf, HiveConf.ConfVars.HIVEMERGEMAPFILES, false);
             HiveConf.setBoolVar(conf, HiveConf.ConfVars.HIVEMERGEMAPREDFILES, false);
           }
@@ -6043,12 +6044,12 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
   private void getLeafTasks(Task<? extends Serializable> task,
       HashSet<Task<? extends Serializable>> leaves) {
-    if (task.getChildTasks() == null) {
+    if (task.getDependentTasks() == null) {
       if (!leaves.contains(task)) {
         leaves.add(task);
       }
     } else {
-      getLeafTasks(task.getChildTasks(), leaves);
+      getLeafTasks(task.getDependentTasks(), leaves);
     }
   }
 
@@ -6766,16 +6767,12 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     case CTAS: // create table as select
 
-      // check for existence of table. Throw an exception if it exists.
+      // Verify that the table does not already exist
       try {
-        Table tab = db.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME,
-            tableName, false); // do not throw exception if table does not exist
-
-        if (tab != null) {
-          throw new SemanticException(ErrorMsg.TABLE_ALREADY_EXISTS
-              .getMsg(tableName));
+        if (null != db.getTable(db.getCurrentDatabase(), tableName, false)) {
+          throw new SemanticException(ErrorMsg.TABLE_ALREADY_EXISTS.getMsg(tableName));
         }
-      } catch (HiveException e) { // may be unable to get meta data
+      } catch (HiveException e) {
         throw new SemanticException(e);
       }
 
@@ -6788,7 +6785,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
       return selectStmt;
     default:
-      assert false; // should never be unknown command type
+      throw new SemanticException("Unrecognized command.");
     }
     return null;
   }

@@ -56,6 +56,7 @@ import org.apache.hadoop.hive.ql.exec.errors.TaskLogProcessor;
 import org.apache.hadoop.hive.ql.history.HiveHistory.Keys;
 import org.apache.hadoop.hive.ql.io.HiveKey;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
+import org.apache.hadoop.hive.ql.io.IOPrepareCache;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
@@ -468,8 +469,12 @@ public class ExecDriver extends Task<MapredWork> implements Serializable {
    */
   @Override
   public int execute(DriverContext driverContext) {
+    
+    IOPrepareCache ioPrepareCache = IOPrepareCache.get();
+    ioPrepareCache.clear();
+    
     boolean success = true;
-
+    
     String invalidReason = work.isInvalid();
     if (invalidReason != null) {
       throw new RuntimeException("Plan invalid, Reason: " + invalidReason);
@@ -621,7 +626,9 @@ public class ExecDriver extends Task<MapredWork> implements Serializable {
         statusMesg += " with errors";
         returnVal = 2;
         console.printError(statusMesg);
-        showJobFailDebugInfo(job, rj);
+        if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.SHOW_JOB_FAIL_DEBUG_INFO)) {
+          showJobFailDebugInfo(job, rj);
+        }
       } else {
         console.printInfo(statusMesg);
       }
