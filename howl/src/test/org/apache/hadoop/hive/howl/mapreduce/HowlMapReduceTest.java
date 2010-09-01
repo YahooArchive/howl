@@ -98,6 +98,7 @@ public abstract class HowlMapReduceTest extends TestCase {
     //is present only in the ql/test directory
     hiveConf.set(HiveConf.ConfVars.PREEXECHOOKS.varname, "");
     hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
+    hiveConf.set(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY.varname, "false");
     driver = new Driver(hiveConf);
 
     thriftUri = System.getenv("HOWL_METASTORE_URI");

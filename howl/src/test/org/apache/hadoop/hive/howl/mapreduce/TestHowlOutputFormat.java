@@ -30,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
@@ -79,10 +80,13 @@ public class TestHowlOutputFormat extends TestCase {
 
   private void initTable() throws Exception {
 
-    client.dropTable(dbName, tblName);
-    client.dropDatabase(dbName);
-    boolean ret = client.createDatabase(dbName, "howlTest_loc");
-    assertTrue("Unable to create the database " + dbName, ret);
+    try {
+      client.dropTable(dbName, tblName);
+    } catch(Exception e) {}
+    try {
+      client.dropDatabase(dbName);
+    } catch(Exception e) {}
+    client.createDatabase(new Database(dbName, "", "howlTest_loc"));
 
     List<FieldSchema> fields = new ArrayList<FieldSchema>();
     fields.add(new FieldSchema("colname", Constants.STRING_TYPE_NAME, ""));
