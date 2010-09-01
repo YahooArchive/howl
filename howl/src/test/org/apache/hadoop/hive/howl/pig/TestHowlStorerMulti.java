@@ -56,6 +56,7 @@ public class TestHowlStorerMulti extends TestCase {
       HiveConf hiveConf = new HiveConf(this.getClass());
       hiveConf.set(HiveConf.ConfVars.PREEXECHOOKS.varname, "");
       hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
+      hiveConf.set(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY.varname, "false");
       driver = new Driver(hiveConf);
     }
 
