@@ -68,6 +68,9 @@ Trunk -  Unreleased
     HIVE-471. Add a UDF for simple reflection
     (Edward Capriolo via namit)
 
+    HIVE-1598. Create an option to specify an option for the format of
+    intermediate results (Ning Zhang via namit)
+
   IMPROVEMENTS
 
     HIVE-1394. Do not update transient_lastDdlTime if the partition is modified by a housekeeping
@@ -116,6 +119,12 @@ Trunk -  Unreleased
 
     HIVE-1536. Add support for JDBC PreparedStatements
     (Sean Flatley via jvs)
+
+    HIVE-1580. Cleanup ExecDriver.progress
+    (Joydeep Sen Sarma via namit)
+
+    HIVE-1614. UDTF json_tuple should return null row when input is not a valid
+    JSON string (Ning Zhang via namit)
 
   OPTIMIZATIONS
 
@@ -228,9 +237,18 @@ Trunk -  Unreleased
     HIVE-1605. Regression and improvements in handling NULLs in joins
     (Ning Zhang via namit)
 
-    HIVE-1607. Reinstate and deprecate IMetaStoreClient methods removed 
+    HIVE-1607. Reinstate and deprecate IMetaStoreClient methods removed
     in HIVE-675
     (Carl Steinbach via Ning Zhang)
+
+    HIVE-1622. Use map-only tak to merge if available
+    (Ning Zhang via namit)
+
+    HIVE-1630. Bug in NO_DROP
+    (Siying Dong via namit)
+
+    HIVE-1629. Patch to fix hashCode method in DoubleWritable class
+    (Vaibhav Aggarwal via Ning Zhang)
 
   TESTS
 
@@ -824,6 +842,10 @@ Release 0.6.0 -  Unreleased
     HIVE-1428. ALTER TABLE ADD PARTITION failes with a remote Thrift
     metastore
     (Pradeep Kamath via jvs)
+
+    HIVE-1613. hive --service jar looks for hadoop version but was not
+    defined
+    (Edward Capriolo via jvs)
 
 Release 0.5.0 -  Unreleased
 
