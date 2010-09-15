@@ -105,7 +105,7 @@ public class TestHowlStorer extends TestCase {
     errCaught = false;
     try{
       server.setBatchOn();
-      server.registerQuery("A = load '"+ fullFileName +"' as (a:int, b:chararray);");
+      server.registerQuery("A = load '"+ fullFileName +"' as (a:int, B:chararray);");
       server.registerQuery("B = foreach A generate a, B;");
       server.registerQuery("store B into 'junit_parted' using org.apache.hadoop.hive.howl.pig.HowlStorer('ds=20100101');");
       server.executeBatch();
