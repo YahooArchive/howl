@@ -66,9 +66,7 @@ public class TestHowlLoader extends TestCase {
   protected void guardedSetUpBeforeClass() throws Exception {
     if (!setupHasRun){
       setupHasRun = true;
-      System.out.println("running setUp for the first time.");
     }else{
-      System.out.println("setUp has already run previously, skipping.");
       return;
     }
 
@@ -122,17 +120,8 @@ public class TestHowlLoader extends TestCase {
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
     server.registerQuery("A = load '"+fullFileNameBasic+"' as (a:int, b:chararray);");
-//    Iterator<Tuple> iter = server.openIterator("A");
-//    while(iter.hasNext()){
-//      System.err.println("BOO A" + iter.next());
-//    }
+
     server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
-//    server.registerQuery("A3 = load '"+ BASIC_TABLE +"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
-//    iter = server.openIterator("A3");
-//    while(iter.hasNext()){
-//      System.err.println("BOO A3" + iter.next());
-//    }
-//
     server.registerQuery("B = foreach A generate a,b;");
     server.registerQuery("B2 = filter B by a < 2;");
     server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
@@ -157,10 +146,8 @@ public class TestHowlLoader extends TestCase {
   protected void guardedTearDownAfterClass() throws Exception {
     guardTestCount--;
     if (guardTestCount > 0){
-      System.out.println("skipping tearDown, "+guardTestCount+" more tests still need to run.");
       return;
     }
-    System.out.println("running tearDown.");
     cleanup();
   }
 
@@ -181,7 +168,6 @@ public class TestHowlLoader extends TestCase {
     // test that schema was loaded correctly
     server.registerQuery("X = load '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
     Schema dumpedXSchema = server.dumpSchema("X");
-//    System.err.println("dumped schema : basic : "+dumpedXSchema.toString());
     List<FieldSchema> Xfields = dumpedXSchema.getFields();
     assertEquals(2,Xfields.size());
     assertTrue(Xfields.get(0).alias.equalsIgnoreCase("a"));
@@ -216,7 +202,6 @@ public class TestHowlLoader extends TestCase {
     // test that schema was loaded correctly
     server.registerQuery("K = load '"+COMPLEX_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
     Schema dumpedKSchema = server.dumpSchema("K");
-//    System.err.println("dumped schema : complex : "+dumpedKSchema.toString());
     List<FieldSchema> Kfields = dumpedKSchema.getFields();
     assertEquals(6,Kfields.size());
 

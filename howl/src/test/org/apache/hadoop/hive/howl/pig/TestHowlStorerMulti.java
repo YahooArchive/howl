@@ -90,14 +90,7 @@ public class TestHowlStorerMulti extends TestCase {
     driver.run("select * from "+BASIC_TABLE);
     ArrayList<String> unpartitionedTableValuesReadFromHiveDriver = new ArrayList<String>();
     driver.getResults(unpartitionedTableValuesReadFromHiveDriver);
-    for(String line : unpartitionedTableValuesReadFromHiveDriver){
-      System.err.println("basic : " + line);
-    }
-
     assertEquals(basicInputData.size(),unpartitionedTableValuesReadFromHiveDriver.size());
-
-
-
   }
 
   public void testStorePartitionedTable() throws Exception {
@@ -120,12 +113,7 @@ public class TestHowlStorerMulti extends TestCase {
     driver.run("select * from "+PARTITIONED_TABLE);
     ArrayList<String> partitionedTableValuesReadFromHiveDriver = new ArrayList<String>();
     driver.getResults(partitionedTableValuesReadFromHiveDriver);
-    for(String line : partitionedTableValuesReadFromHiveDriver){
-      System.err.println("ptned : " + line);
-    }
-
     assertEquals(basicInputData.size(),partitionedTableValuesReadFromHiveDriver.size());
-
   }
 
   public void testStoreTableMulti() throws Exception {
@@ -147,34 +135,18 @@ public class TestHowlStorerMulti extends TestCase {
     server.registerQuery("C2 = filter A by a >= 2;");
     server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
 
-
-    //    server.registerQuery("B = foreach A generate a,b;");
-    //    server.registerQuery("B2 = filter B by a < 2;");
-    //    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
-    //    server.registerQuery("C = foreach A generate a,b;");
-    //    server.registerQuery("C2 = filter B by a >= 2;");
-    //    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
-
     server.executeBatch();
 
     driver.run("select * from "+BASIC_TABLE);
     ArrayList<String> unpartitionedTableValuesReadFromHiveDriver = new ArrayList<String>();
     driver.getResults(unpartitionedTableValuesReadFromHiveDriver);
-    for(String line : unpartitionedTableValuesReadFromHiveDriver){
-      System.err.println("basic : " + line);
-    }
-
     driver.run("select * from "+PARTITIONED_TABLE);
     ArrayList<String> partitionedTableValuesReadFromHiveDriver = new ArrayList<String>();
     driver.getResults(partitionedTableValuesReadFromHiveDriver);
-    for(String line : partitionedTableValuesReadFromHiveDriver){
-      System.err.println("ptned : " + line);
-    }
-
     assertEquals(basicInputData.size(),unpartitionedTableValuesReadFromHiveDriver.size());
     assertEquals(basicInputData.size(),partitionedTableValuesReadFromHiveDriver.size());
-
   }
+
   private void populateBasicFile() throws IOException {
     int LOOP_SIZE = 3;
     String[] input = new String[LOOP_SIZE*LOOP_SIZE];
@@ -191,10 +163,10 @@ public class TestHowlStorerMulti extends TestCase {
     }
     MiniCluster.createInputFile(cluster, basicFile, input);
   }
+
   private void cleanup() throws IOException {
     MiniCluster.deleteFile(cluster, basicFile);
     dropTable(BASIC_TABLE);
     dropTable(PARTITIONED_TABLE);
   }
-
 }
