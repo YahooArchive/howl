@@ -33,7 +33,7 @@ import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlSchema;
-import org.apache.hadoop.hive.howl.data.type.HowlType;
+import org.apache.hadoop.hive.howl.data.schema.HFieldSchema.Type;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputCommitter;
@@ -210,7 +210,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
       // return whatever is contained in the existing column.
       HowlFieldSchema mapField = getTableCol(fSchema.alias, howlTblSchema);
       if(mapField != null){
-        HowlType mapValType = mapField.getHowlTypeInfo().getMapValueTypeInfo().getType();
+        Type mapValType = mapField.getHowlTypeInfo().getMapValueTypeInfo().getType();
         Class<?> clazz;
         switch(mapValType){
         case STRING:
@@ -290,7 +290,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
 
     // The real work-horse. Spend time and energy in this method if there is
     // need to keep HowlStorer lean and go fast.
-    HowlType type = typeInfo.getType();
+    Type type = typeInfo.getType();
 
     switch(type){
 
@@ -365,7 +365,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
 
         case DataType.MAP:
           if(howlField != null){
-            if(howlField.getHowlTypeInfo().getMapKeyTypeInfo().getType() != HowlType.STRING){
+            if(howlField.getHowlTypeInfo().getMapKeyTypeInfo().getType() != Type.STRING){
               throw new FrontendException("Key Type of map must be String "+howlField,  PigHowlUtil.PIG_EXCEPTION_CODE);
             }
             if(HowlTypeInfoUtils.isComplex(howlField.getHowlTypeInfo().getMapValueTypeInfo().getType())){
@@ -385,23 +385,23 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
           if(howlField != null){
             // Do the same validation for HowlSchema.
             HowlTypeInfo listTypeInfo = howlField.getHowlTypeInfo().getListElementTypeInfo();
-            HowlType hType = listTypeInfo.getType();
-            if(hType == HowlType.STRUCT){
+            Type hType = listTypeInfo.getType();
+            if(hType == Type.STRUCT){
               for(HowlTypeInfo structTypeInfo : listTypeInfo.getAllStructFieldTypeInfos()){
-                if(structTypeInfo.getType() == HowlType.STRUCT || structTypeInfo.getType() == HowlType.ARRAY){
+                if(structTypeInfo.getType() == Type.STRUCT || structTypeInfo.getType() == Type.ARRAY){
                   throw new FrontendException("Nested Complex types not allowed "+ howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
                 }
               }
             }
-            if(hType == HowlType.MAP){
-              if(listTypeInfo.getMapKeyTypeInfo().getType() != HowlType.STRING){
+            if(hType == Type.MAP){
+              if(listTypeInfo.getMapKeyTypeInfo().getType() != Type.STRING){
                 throw new FrontendException("Key Type of map must be String "+howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
               }
               if(HowlTypeInfoUtils.isComplex(listTypeInfo.getMapValueTypeInfo().getType())){
                 throw new FrontendException("Value type of map cannot be complex "+howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
               }
             }
-            if(hType == HowlType.ARRAY) {
+            if(hType == Type.ARRAY) {
               throw new FrontendException("Arrays cannot contain array within it. "+howlField, PigHowlUtil.PIG_EXCEPTION_CODE);
             }
           }
@@ -427,7 +427,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     for(HowlFieldSchema howlField : tblSchema.getHowlFieldSchemas()){
 
       // We dont do type promotion/demotion.
-      HowlType hType = howlField.getHowlTypeInfo().getType();
+      Type hType = howlField.getHowlTypeInfo().getType();
       switch(hType){
       case SMALLINT:
       case TINYINT:

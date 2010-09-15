@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.howl.data.HowlSchema;
+import org.apache.hadoop.hive.howl.data.schema.HFieldSchema;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
@@ -88,12 +89,12 @@ public class HowlTypeInfoUtils {
     return new HowlTypeInfo(typeString);
   }
 
-  public static boolean isComplex(HowlType type){
-    return type == HowlType.ARRAY || type == HowlType.MAP || type == HowlType.STRUCT;
+  public static boolean isComplex(HFieldSchema.Type type){
+    return type == HFieldSchema.Type.ARRAY || type == HFieldSchema.Type.MAP || type == HFieldSchema.Type.STRUCT;
   }
 
   public static List<String> getStructFieldNames(HowlTypeInfo structTypeInfo) {
-    if(structTypeInfo.type != HowlType.STRUCT) {
+    if(structTypeInfo.type != HFieldSchema.Type.STRUCT) {
       throw new IllegalArgumentException("Expected struct, got non struct type " +
           "info");
     }

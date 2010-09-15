@@ -15,22 +15,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.howl.data.type;
+package org.apache.hadoop.hive.howl.data;
 
+import java.util.List;
+
+import org.apache.hadoop.io.WritableComparable;
 
 /**
- * An enumeration corresponding to types supported in Howl
+ * Interface that determines whether we can implement a HowlRecord on top of it
  */
-public enum HowlType {
-    INT,
-    TINYINT,
-    SMALLINT,
-    BIGINT,
-    BOOLEAN,
-    FLOAT,
-    DOUBLE,
-    STRING,
-    ARRAY,
-    MAP,
-    STRUCT,
+public interface HowlRecordable extends WritableComparable<Object> {
+
+  /**
+   * Gets the field at the specified index.
+   * @param fieldNum the field number
+   * @return the object at the specified index
+   */
+  Object get(int fieldNum);
+
+  /**
+   * Gets all the fields of the howl record.
+   * @return the list of fields
+   */
+  List<Object> getAll();
+
+  /**
+   * Sets the field at the specified index.
+   * @param fieldNum the field number
+   * @param value the value to set
+   */
+  void set(int fieldNum, Object value);
+
+  /**
+   * Gets the size of the howl record.
+   * @return the size
+   */
+  int size();
+
 }
