@@ -20,7 +20,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.Serializable;
 
-import org.apache.hadoop.hive.howl.data.HowlSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 
 /** The class used to serialize and store the output related information  */

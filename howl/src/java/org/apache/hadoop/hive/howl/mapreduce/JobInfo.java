@@ -20,7 +20,7 @@ package org.apache.hadoop.hive.howl.mapreduce;
 import java.io.Serializable;
 import java.util.List;
 
-import org.apache.hadoop.hive.howl.data.HowlSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 
 /** The class used to serialize and store the information read from the metadata server */
 public class JobInfo implements Serializable{

@@ -90,7 +90,7 @@ public class TestHowlLoader extends TestCase {
         + "currently_registered_courses array<string>, "
         + "current_grades map<string,string>, "
         + "phnos array<struct<phno:string,type:string>>");
-
+    
     createTable(PARTITIONED_TABLE,"a int, b string","bkt string");
 
 
