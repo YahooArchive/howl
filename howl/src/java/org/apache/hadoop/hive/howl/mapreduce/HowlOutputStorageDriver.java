@@ -25,7 +25,7 @@ import java.util.Properties;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
-import org.apache.hadoop.hive.howl.data.HowlSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.JobContext;

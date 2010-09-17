@@ -183,5 +183,31 @@ public class HFieldSchema implements Serializable {
             throw new HowlException("Type category mismatch. Expected type "+type+" not in category "+category+" but was so.");
         }
     }
-    
+
+    @Override
+    public String toString(){
+        StringBuilder sb = new StringBuilder();
+        if (fieldName != null){
+            sb.append(fieldName);
+            sb.append(":");
+        }
+        if (Category.PRIMITIVE == category){
+            sb.append(type);
+        }else if (Category.STRUCT == category){
+            sb.append("struct<");
+            sb.append(subSchema.toString());
+            sb.append(">");
+        }else if (Category.ARRAY == category){
+            sb.append("array<");
+            sb.append(subSchema.toString());
+            sb.append(">");
+        }else if (Category.MAP == category){
+            sb.append("map<");
+            sb.append(mapKeyType);
+            sb.append(",");
+            sb.append(subSchema.toString());
+            sb.append(">");
+        }
+        return sb.toString().toLowerCase();
+    }
 }

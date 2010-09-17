@@ -18,9 +18,12 @@
 package org.apache.hadoop.hive.howl.data.schema;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.hadoop.hive.howl.common.HowlException;
 
@@ -33,13 +36,16 @@ public class HSchema implements Serializable{
 
     private List<HFieldSchema> fieldSchemas;
     private Map<String,Integer> fieldPositionMap;
+    private List<String> fieldNames = null;
 
     public HSchema(List<HFieldSchema> fieldSchemas){
         this.fieldSchemas = fieldSchemas;
         int idx = 0;
         fieldPositionMap = new HashMap<String,Integer>();
+        fieldNames = new ArrayList<String>();
         for (HFieldSchema field : fieldSchemas){
             fieldPositionMap.put(field.getName(), idx);
+            fieldNames.add(field.getName());
             idx++;
         }
     }
@@ -64,7 +70,26 @@ public class HSchema implements Serializable{
         return get(getPosition(fieldName));
     }
     
+    public List<String> getFieldNames(){
+        return this.fieldNames;
+    }
+    
     public HFieldSchema get(int position) {
         return fieldSchemas.get(position);
+    }
+
+    @Override
+    public String toString() {
+        boolean first = true;
+        StringBuilder sb = new StringBuilder();
+        for (HFieldSchema hfs : fieldSchemas){
+            if (!first){
+                sb.append(",");
+            }else{
+                first = false;
+            }
+            sb.append(hfs.toString());
+        }
+        return sb.toString();
     }
 }

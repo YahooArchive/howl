@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.howl.data.HowlRecord;
-import org.apache.hadoop.hive.howl.data.HowlSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
