@@ -30,8 +30,6 @@ import java.util.List;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
-import org.apache.hadoop.hive.howl.data.schema.DeprecatedHowlFieldSchema;
-import org.apache.hadoop.hive.howl.data.schema.DeprecatedHowlSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchemaUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -97,18 +95,6 @@ public class HowlUtil {
     }
     return bytes;
   }
-
-  public static List<DeprecatedHowlFieldSchema> getDFieldSchemaList(List<FieldSchema> fields) {
-      if(fields == null) {
-          return null;
-      } else {
-          List<DeprecatedHowlFieldSchema> result = new ArrayList<DeprecatedHowlFieldSchema>();
-          for(FieldSchema f: fields) {
-              result.add(new DeprecatedHowlFieldSchema(f));
-          }
-          return result;
-      }
-  }
   
   public static List<HowlFieldSchema> getHowlFieldSchemaList(List<FieldSchema> fields) throws HowlException {
       if(fields == null) {
@@ -122,13 +108,6 @@ public class HowlUtil {
       }
   }
 
-  public static DeprecatedHowlSchema extractDSchemaFromStorageDescriptor(StorageDescriptor sd) throws IOException {
-    if (sd == null){
-      throw new IOException("Cannot construct partition info from an empty storage descriptor.");
-    }
-    DeprecatedHowlSchema schema = new DeprecatedHowlSchema(HowlUtil.getDFieldSchemaList(sd.getCols()));
-    return schema;
-  }
 
   public static HowlSchema extractSchemaFromStorageDescriptor(StorageDescriptor sd) throws HowlException {
       if (sd == null){
@@ -136,18 +115,6 @@ public class HowlUtil {
         }
         HowlSchema schema = new HowlSchema(HowlUtil.getHowlFieldSchemaList(sd.getCols()));
         return schema;
-  }
-  
-  public static List<FieldSchema> getFieldSchemaListFromDFields(List<DeprecatedHowlFieldSchema> howlFields) {
-      if(howlFields == null) {
-          return null;
-      } else {
-          List<FieldSchema> result = new ArrayList<FieldSchema>();
-          for(FieldSchema f: howlFields) {
-              result.add(f);
-          }
-          return result;
-      }
   }
 
   public static List<FieldSchema> getFieldSchemaList(List<HowlFieldSchema> howlFields) {
@@ -164,20 +131,6 @@ public class HowlUtil {
 
   public static Table getTable(HiveMetaStoreClient client, String dbName, String tableName) throws Exception{
     return client.getTable(dbName,tableName);
-  }
-
-  public static DeprecatedHowlSchema getTableDSchemaWithPtnCols(Table table) throws IOException{
-    DeprecatedHowlSchema tableSchema = extractDSchemaFromStorageDescriptor(table.getSd());
-
-    if( table.getPartitionKeys().size() != 0 ) {
-
-      // add partition keys to table schema
-      // NOTE : this assumes that we do not ever have ptn keys as columns inside the table schema as well!
-      for (FieldSchema fs : table.getPartitionKeys()){
-          tableSchema.getHowlFieldSchemas().add(new DeprecatedHowlFieldSchema(fs));
-      }
-    }
-    return tableSchema;
   }
 
   public static HowlSchema getTableSchemaWithPtnCols(Table table) throws IOException{

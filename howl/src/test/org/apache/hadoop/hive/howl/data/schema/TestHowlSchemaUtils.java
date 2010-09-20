@@ -5,8 +5,8 @@ import java.io.PrintStream;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Category;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Type;
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
+import org.apache.hadoop.hive.howl.pig.HowlTypeInfo;
+import org.apache.hadoop.hive.howl.pig.HowlTypeInfoUtils;
 
 import junit.framework.TestCase;
 

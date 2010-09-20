@@ -15,13 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.howl.data.type;
+package org.apache.hadoop.hive.howl.pig;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
-import org.apache.hadoop.hive.howl.data.schema.DeprecatedHowlSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -31,7 +30,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
-
+@Deprecated
 public class HowlTypeInfoUtils {
 
   private static HowlTypeInfoUtils ref = new HowlTypeInfoUtils();
@@ -75,10 +74,6 @@ public class HowlTypeInfoUtils {
     return getHowlTypeInfo(s.getFieldSchemas());
   }
 
-  public static HowlTypeInfo getHowlTypeInfo(DeprecatedHowlSchema s){
-    return getHowlTypeInfo(s.getHowlFieldSchemas());
-  }
-  
   public static HowlTypeInfo getHowlTypeInfo(HowlSchema s){
       return getHowlTypeInfo(HowlUtil.getFieldSchemaList(s.getFields()));
   }
