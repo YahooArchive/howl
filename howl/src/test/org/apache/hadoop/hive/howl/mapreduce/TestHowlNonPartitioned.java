@@ -29,6 +29,7 @@ import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchemaUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.serde.Constants;
 
@@ -38,7 +39,7 @@ public class TestHowlNonPartitioned extends HowlMapReduceTest {
   List<HowlFieldSchema> partitionColumns;
 
   @Override
-  protected void initialize() {
+  protected void initialize() throws HowlException {
 
     dbName = null; //test if null dbName works ("default" is used)
     tableName = "testHowlNonPartitionedTable";
@@ -54,8 +55,8 @@ public class TestHowlNonPartitioned extends HowlMapReduceTest {
     }
 
     partitionColumns = new ArrayList<HowlFieldSchema>();
-    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c1", Constants.INT_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c2", Constants.STRING_TYPE_NAME, "")));
   }
 
   @Override

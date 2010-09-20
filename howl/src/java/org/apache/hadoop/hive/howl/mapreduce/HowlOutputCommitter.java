@@ -31,6 +31,7 @@ import org.apache.hadoop.hive.howl.common.ErrorType;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchemaUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
@@ -124,8 +125,8 @@ public class HowlOutputCommitter extends OutputCommitter {
         updateTableSchema(client, table, jobInfo.getOutputSchema());
 
         List<FieldSchema> fields = new ArrayList<FieldSchema>();
-        for(HowlFieldSchema fieldSchema : jobInfo.getOutputSchema().getHowlFieldSchemas()) {
-          fields.add(fieldSchema);
+        for(HowlFieldSchema fieldSchema : jobInfo.getOutputSchema().getFields()) {
+          fields.add(HowlSchemaUtils.getFieldSchema(fieldSchema));
         }
 
         partition.getSd().setCols(fields);
@@ -197,9 +198,9 @@ public class HowlOutputCommitter extends OutputCommitter {
       List<FieldSchema> tableCols = table.getSd().getCols();
       List<FieldSchema> newFields = new ArrayList<FieldSchema>();
 
-      for(int i = 0;i <  partitionSchema.getHowlFieldSchemas().size();i++) {
+      for(int i = 0;i <  partitionSchema.getFields().size();i++) {
 
-        HowlFieldSchema field = partitionSchema.getHowlFieldSchemas().get(i);
+        FieldSchema field = HowlSchemaUtils.getFieldSchema(partitionSchema.getFields().get(i));
 
         FieldSchema tableField;
         if( i < tableCols.size() ) {

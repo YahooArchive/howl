@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchemaUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.serde.Constants;
 
@@ -53,8 +54,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     }
 
     partitionColumns = new ArrayList<HowlFieldSchema>();
-    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c1", Constants.INT_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c2", Constants.STRING_TYPE_NAME, "")));
   }
 
 
@@ -140,10 +141,10 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     HowlSchema tableSchema = getTableSchema();
 
-    assertEquals(3, tableSchema.getHowlFieldSchemas().size());
+    assertEquals(3, tableSchema.getFields().size());
 
     //Update partition schema to have 3 fields
-    partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c3", Constants.STRING_TYPE_NAME, "")));
 
     writeRecords = new ArrayList<HowlRecord>();
 
@@ -165,19 +166,19 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     tableSchema = getTableSchema();
 
     //assert that c3 has got added to table schema
-    assertEquals(4, tableSchema.getHowlFieldSchemas().size());
-    assertEquals("c1", tableSchema.getHowlFieldSchemas().get(0).getName());
-    assertEquals("c2", tableSchema.getHowlFieldSchemas().get(1).getName());
-    assertEquals("c3", tableSchema.getHowlFieldSchemas().get(2).getName());
-    assertEquals("part1", tableSchema.getHowlFieldSchemas().get(3).getName());
+    assertEquals(4, tableSchema.getFields().size());
+    assertEquals("c1", tableSchema.getFields().get(0).getName());
+    assertEquals("c2", tableSchema.getFields().get(1).getName());
+    assertEquals("c3", tableSchema.getFields().get(2).getName());
+    assertEquals("part1", tableSchema.getFields().get(3).getName());
 
     //Test that changing column data type fails
     partitionMap.clear();
     partitionMap.put("part1", "p1value6");
 
     partitionColumns = new ArrayList<HowlFieldSchema>();
-    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("c2", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c1", Constants.INT_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c2", Constants.INT_TYPE_NAME, "")));
 
     IOException exc = null;
     try {
@@ -192,10 +193,10 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     //Test that partition key is not allowed in data
     partitionColumns = new ArrayList<HowlFieldSchema>();
-    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("part1", Constants.INT_TYPE_NAME, ""));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c1", Constants.INT_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c2", Constants.STRING_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c3", Constants.STRING_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("part1", Constants.INT_TYPE_NAME, "")));
 
     exc = null;
     try {
@@ -214,12 +215,12 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     HowlSchema tableSchema = getTableSchema();
 
-    assertEquals(4, tableSchema.getHowlFieldSchemas().size());
+    assertEquals(4, tableSchema.getFields().size());
 
     partitionColumns = new ArrayList<HowlFieldSchema>();
-    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("c3", Constants.STRING_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c1", Constants.INT_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c3", Constants.STRING_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c2", Constants.STRING_TYPE_NAME, "")));
 
 
     writeRecords = new ArrayList<HowlRecord>();
@@ -251,8 +252,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
 
     partitionColumns = new ArrayList<HowlFieldSchema>();
-    partitionColumns.add(new HowlFieldSchema("c1", Constants.INT_TYPE_NAME, ""));
-    partitionColumns.add(new HowlFieldSchema("c2", Constants.STRING_TYPE_NAME, ""));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c1", Constants.INT_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c2", Constants.STRING_TYPE_NAME, "")));
 
     writeRecords = new ArrayList<HowlRecord>();
 

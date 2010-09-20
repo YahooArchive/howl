@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.hive.howl.data.HowlRecord;
+import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputStorageDriver;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
@@ -127,14 +128,14 @@ import org.apache.hadoop.mapreduce.OutputFormat;
   public void setSchema(JobContext jobContext, HowlSchema schema) throws IOException {
     outputSchema = schema;
     RCFileMapReduceOutputFormat.setColumnNumber(
-        jobContext.getConfiguration(), schema.getHowlFieldSchemas().size());
+        jobContext.getConfiguration(), schema.getFields().size());
   }
 
   @Override
   public void initialize(JobContext context,Properties howlProperties) throws IOException {
 
     super.initialize(context, howlProperties);
-    List<FieldSchema> fields = HowlUtil.getFieldSchemaList(outputSchema.getHowlFieldSchemas());
+    List<FieldSchema> fields = HowlUtil.getFieldSchemaList(outputSchema.getFields());
     howlProperties.setProperty(Constants.LIST_COLUMNS,
           MetaStoreUtils.getColumnNamesFromFieldSchema(fields));
     howlProperties.setProperty(Constants.LIST_COLUMN_TYPES,
@@ -163,10 +164,10 @@ import org.apache.hadoop.mapreduce.OutputFormat;
     List<ObjectInspector> fieldInspectors = new ArrayList<ObjectInspector>();
     List<String> fieldNames = new ArrayList<String>();
 
-    for(FieldSchema fieldSchema : outputSchema.getHowlFieldSchemas()) {
-      TypeInfo type = TypeInfoUtils.getTypeInfoFromTypeString(fieldSchema.getType());
+    for(HowlFieldSchema howlFieldSchema : outputSchema.getFields()) {
+      TypeInfo type = TypeInfoUtils.getTypeInfoFromTypeString(howlFieldSchema.getTypeString());
 
-      fieldNames.add(fieldSchema.getName());
+      fieldNames.add(howlFieldSchema.getName());
       fieldInspectors.add(getObjectInspector(type));
     }
 

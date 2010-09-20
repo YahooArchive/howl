@@ -3,8 +3,8 @@ package org.apache.hadoop.hive.howl.data.schema;
 import java.io.PrintStream;
 
 import org.apache.hadoop.hive.howl.common.HowlException;
-import org.apache.hadoop.hive.howl.data.schema.HFieldSchema.Category;
-import org.apache.hadoop.hive.howl.data.schema.HFieldSchema.Type;
+import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Category;
+import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Type;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 
@@ -17,23 +17,27 @@ public class TestHowlSchemaUtils extends TestCase {
             + "contact:struct<phno:string,email:string>,"
             + "currently_registered_courses:array<string>,"
             + "current_grades:map<string,string>,"
-            + "phnos:array<struct<phno:string,type:string>>>";
+            + "phnos:array<struct<phno:string,type:string>>,blah:array<int>>";
         HowlTypeInfo hti = HowlTypeInfoUtils.getHowlTypeInfo(typeString);
 
-        HSchema hsch = HowlSchemaUtils.getHowlSchema(typeString);
-        PrintStream p1 = new PrintStream(System.out);
-        pretty_print(p1,hti);
-        PrintStream p2 = new PrintStream(System.out);
-        pretty_print(p2,hsch);
+        HowlSchema hsch = HowlSchemaUtils.getHowlSchema(typeString);
+//        PrintStream p1 = new PrintStream(System.out);
+//        pretty_print(p1,hti);
+//        PrintStream p2 = new PrintStream(System.out);
+//        pretty_print(p2,hsch);
         System.out.println(hti.getTypeString());
         System.out.println(hsch.toString());
+        assertEquals(hti.getTypeString(),hsch.toString());
+        assertEquals(hsch.toString(),typeString);
     }
 
+    @SuppressWarnings("unused")
     private void pretty_print(PrintStream pout, HowlTypeInfo hti) {
         pretty_print(pout,hti,"");
     }
 
-    private void pretty_print(PrintStream pout, HSchema hsch) throws HowlException {
+    @SuppressWarnings("unused")
+    private void pretty_print(PrintStream pout, HowlSchema hsch) throws HowlException {
         pretty_print(pout,hsch,"");
     }
 
@@ -56,14 +60,14 @@ public class TestHowlSchemaUtils extends TestCase {
         }
     }
 
-    private void pretty_print(PrintStream pout, HSchema hsch, String prefix) throws HowlException {
+    private void pretty_print(PrintStream pout, HowlSchema hsch, String prefix) throws HowlException {
         int i = 0;
-        for (HFieldSchema field : hsch.getFields()){
+        for (HowlFieldSchema field : hsch.getFields()){
             pretty_print(pout,field,prefix+"."+(field.getName()==null?i:field.getName()));
             i++;
         }
     }
-    private void pretty_print(PrintStream pout, HFieldSchema hfsch, String prefix) throws HowlException {
+    private void pretty_print(PrintStream pout, HowlFieldSchema hfsch, String prefix) throws HowlException {
         
         Category tcat = hfsch.getCategory();
         if (Category.STRUCT == tcat){

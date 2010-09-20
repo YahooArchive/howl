@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.howl.common.HowlException;
-import org.apache.hadoop.hive.howl.data.schema.HSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 
 public class DefaultHowlRecord extends HowlRecord {
 
@@ -140,12 +140,12 @@ public class DefaultHowlRecord extends HowlRecord {
     }
 
     @Override
-    public Object get(String fieldName, HSchema recordSchema) throws HowlException {
+    public Object get(String fieldName, HowlSchema recordSchema) throws HowlException {
         return get(recordSchema.getPosition(fieldName));
     }
 
     @Override
-    public void set(String fieldName, HSchema recordSchema, Object value) throws HowlException {
+    public void set(String fieldName, HowlSchema recordSchema, Object value) throws HowlException {
         set(recordSchema.getPosition(fieldName),value);
     }
 

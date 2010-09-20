@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hive.howl.common.HowlException;
-import org.apache.hadoop.hive.howl.data.schema.HSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 
 /**
  * Abstract class exposing get and set semantics for basic record usage.
@@ -32,104 +32,104 @@ import org.apache.hadoop.hive.howl.data.schema.HSchema;
  */
 public abstract class HowlRecord implements HowlRecordable {
 
-    public abstract Object get(String fieldName, HSchema recordSchema) throws HowlException;
-    public abstract void set(String fieldName, HSchema recordSchema, Object value ) throws HowlException;
+    public abstract Object get(String fieldName, HowlSchema recordSchema) throws HowlException;
+    public abstract void set(String fieldName, HowlSchema recordSchema, Object value ) throws HowlException;
 
     
-    protected Object get(String fieldName, HSchema recordSchema, Class clazz) throws HowlException{
+    protected Object get(String fieldName, HowlSchema recordSchema, Class clazz) throws HowlException{
         // TODO : if needed, verify that recordschema entry for fieldname matches appropriate type.
         return get(fieldName,recordSchema);
     }
     
-    public Boolean getBoolean(String fieldName, HSchema recordSchema) throws HowlException {
+    public Boolean getBoolean(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (Boolean) get(fieldName, recordSchema, Boolean.class);
     }
 
-    public void setBoolean(String fieldName, HSchema recordSchema, Boolean value) throws HowlException {
+    public void setBoolean(String fieldName, HowlSchema recordSchema, Boolean value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
 
-    public Byte getByte(String fieldName, HSchema recordSchema) throws HowlException {
+    public Byte getByte(String fieldName, HowlSchema recordSchema) throws HowlException {
         //TINYINT
         return (Byte) get(fieldName, recordSchema, Byte.class);
     }
 
-    public void setByte(String fieldName, HSchema recordSchema, Byte value) throws HowlException {
+    public void setByte(String fieldName, HowlSchema recordSchema, Byte value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
     
-    public Short getShort(String fieldName, HSchema recordSchema) throws HowlException {
+    public Short getShort(String fieldName, HowlSchema recordSchema) throws HowlException {
         // SMALLINT
         return (Short) get(fieldName, recordSchema, Short.class);
     }
 
-    public void setShort(String fieldName, HSchema recordSchema, Short value) throws HowlException {
+    public void setShort(String fieldName, HowlSchema recordSchema, Short value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
     
-    public Integer getInteger(String fieldName, HSchema recordSchema) throws HowlException {
+    public Integer getInteger(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (Integer) get(fieldName,recordSchema, Integer.class);
     }
 
-    public void setInteger(String fieldName, HSchema recordSchema, Integer value) throws HowlException {
+    public void setInteger(String fieldName, HowlSchema recordSchema, Integer value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
     
-    public Long getLong(String fieldName, HSchema recordSchema) throws HowlException {
+    public Long getLong(String fieldName, HowlSchema recordSchema) throws HowlException {
         // BIGINT
         return (Long) get(fieldName,recordSchema,Long.class);
     }
 
-    public void setLong(String fieldName, HSchema recordSchema, Long value) throws HowlException {
+    public void setLong(String fieldName, HowlSchema recordSchema, Long value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
 
-    public Float getFloat(String fieldName, HSchema recordSchema) throws HowlException {
+    public Float getFloat(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (Float) get(fieldName,recordSchema,Float.class);
     }
 
-    public void setFloat(String fieldName, HSchema recordSchema, Float value) throws HowlException {
+    public void setFloat(String fieldName, HowlSchema recordSchema, Float value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
 
-    public Double getDouble(String fieldName, HSchema recordSchema) throws HowlException {
+    public Double getDouble(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (Double) get(fieldName,recordSchema,Double.class);
     }
 
-    public void setDouble(String fieldName, HSchema recordSchema, Double value) throws HowlException {
+    public void setDouble(String fieldName, HowlSchema recordSchema, Double value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
 
-    public String getString(String fieldName, HSchema recordSchema) throws HowlException {
+    public String getString(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (String) get(fieldName,recordSchema,String.class);
     }
 
-    public void setString(String fieldName, HSchema recordSchema, String value) throws HowlException {
+    public void setString(String fieldName, HowlSchema recordSchema, String value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
 
     @SuppressWarnings("unchecked")
-    public List<? extends Object> getStruct(String fieldName, HSchema recordSchema) throws HowlException {
+    public List<? extends Object> getStruct(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (List<? extends Object>) get(fieldName,recordSchema,List.class);
     }
 
-    public void setStruct(String fieldName, HSchema recordSchema, List<? extends Object> value) throws HowlException {
+    public void setStruct(String fieldName, HowlSchema recordSchema, List<? extends Object> value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
     
-    public List<?> getList(String fieldName, HSchema recordSchema) throws HowlException {
+    public List<?> getList(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (List<?>) get(fieldName,recordSchema,List.class);
     }
 
-    public void setList(String fieldName, HSchema recordSchema, List<?> value) throws HowlException {
+    public void setList(String fieldName, HowlSchema recordSchema, List<?> value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
 
-    public Map<?,?> getMap(String fieldName, HSchema recordSchema) throws HowlException {
+    public Map<?,?> getMap(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (Map<?,?>) get(fieldName,recordSchema,Map.class);
     }
     
-    public void setMap(String fieldName, HSchema recordSchema, Map<?,?> value) throws HowlException {
+    public void setMap(String fieldName, HowlSchema recordSchema, Map<?,?> value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
 

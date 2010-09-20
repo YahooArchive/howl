@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.howl.common.HowlException;
-import org.apache.hadoop.hive.howl.data.schema.HFieldSchema.Type;
+import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Type;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
@@ -40,52 +40,56 @@ public class HowlSchemaUtils {
     public static CollectionBuilder getStructSchemaBuilder(){
         return ref.new CollectionBuilder();
     }
+    
+    public static CollectionBuilder getListSchemaBuilder(){
+        return ref.new CollectionBuilder();
+    }
 
     public static MapBuilder getMapSchemaBuilder(){
         return ref.new MapBuilder();
     }
 
 
-    public abstract class HSchemaBuilder {
-        public abstract HSchema build() throws HowlException;
+    public abstract class HowlSchemaBuilder {
+        public abstract HowlSchema build() throws HowlException;
     }
 
-    public class CollectionBuilder extends HSchemaBuilder { // for STRUCTS(multiple-add-calls) and LISTS(single-add-call)
-        List<HFieldSchema> fieldSchemas = null;
+    public class CollectionBuilder extends HowlSchemaBuilder { // for STRUCTS(multiple-add-calls) and LISTS(single-add-call)
+        List<HowlFieldSchema> fieldSchemas = null;
 
         CollectionBuilder(){
-            fieldSchemas = new ArrayList<HFieldSchema>();
+            fieldSchemas = new ArrayList<HowlFieldSchema>();
         }
 
         public CollectionBuilder addField(FieldSchema fieldSchema) throws HowlException{
-            return this.addField(getHFieldSchema(fieldSchema));
+            return this.addField(getHowlFieldSchema(fieldSchema));
         }
         
-        public CollectionBuilder addField(HFieldSchema fieldColumnSchema){
+        public CollectionBuilder addField(HowlFieldSchema fieldColumnSchema){
             fieldSchemas.add(fieldColumnSchema);
             return this;
         }
 
         @Override
-        public HSchema build() throws HowlException{
-            return new HSchema(fieldSchemas);
+        public HowlSchema build() throws HowlException{
+            return new HowlSchema(fieldSchemas);
         }
 
     }
 
-    public class MapBuilder extends HSchemaBuilder {
+    public class MapBuilder extends HowlSchemaBuilder {
 
         Type keyType = null;
-        HSchema valueSchema = null;
+        HowlSchema valueSchema = null;
 
         @Override
-        public HSchema build() throws HowlException {
-            List<HFieldSchema> fslist = new ArrayList<HFieldSchema>();
-            fslist.add(new HFieldSchema(null,Type.MAP,keyType,valueSchema));
-            return new HSchema(fslist);
+        public HowlSchema build() throws HowlException {
+            List<HowlFieldSchema> fslist = new ArrayList<HowlFieldSchema>();
+            fslist.add(new HowlFieldSchema(null,Type.MAP,keyType,valueSchema,null));
+            return new HowlSchema(fslist);
         }
 
-        public MapBuilder withValueSchema(HSchema valueSchema) {
+        public MapBuilder withValueSchema(HowlSchema valueSchema) {
             this.valueSchema = valueSchema;
             return this;
         }
@@ -99,31 +103,31 @@ public class HowlSchemaUtils {
 
 
     /**
-     * Convert a HFieldSchema to a FieldSchema
+     * Convert a HowlFieldSchema to a FieldSchema
      * @param fs FieldSchema to convert
-     * @return HFieldSchema representation of FieldSchema
+     * @return HowlFieldSchema representation of FieldSchema
      * @throws HowlException 
      */
-    public static HFieldSchema getHFieldSchema(FieldSchema fs) throws HowlException {
+    public static HowlFieldSchema getHowlFieldSchema(FieldSchema fs) throws HowlException {
         String fieldName = fs.getName();
         TypeInfo baseTypeInfo = TypeInfoUtils.getTypeInfoFromTypeString(fs.getType());
-        return getHFieldSchema(fieldName, baseTypeInfo);
+        return getHowlFieldSchema(fieldName, baseTypeInfo);
     }
 
-    private static HFieldSchema getHFieldSchema(String fieldName, TypeInfo fieldTypeInfo) throws HowlException {
+    private static HowlFieldSchema getHowlFieldSchema(String fieldName, TypeInfo fieldTypeInfo) throws HowlException {
         Category typeCategory = fieldTypeInfo.getCategory();
         if (Category.PRIMITIVE == typeCategory){
-            return new HFieldSchema(fieldName,getPrimitiveHType(fieldTypeInfo));
+            return new HowlFieldSchema(fieldName,getPrimitiveHType(fieldTypeInfo),null);
         } else if (Category.STRUCT == typeCategory) {
-            HSchema subSchema = getHowlSchema(((StructTypeInfo)fieldTypeInfo));
-            return new HFieldSchema(fieldName,HFieldSchema.Type.STRUCT,subSchema);
+            HowlSchema subSchema = constructHowlSchema((StructTypeInfo)fieldTypeInfo);
+            return new HowlFieldSchema(fieldName,HowlFieldSchema.Type.STRUCT,subSchema,null);
         } else if (Category.LIST == typeCategory) {
-            HSchema subSchema = getHowlSchema(((ListTypeInfo)fieldTypeInfo).getListElementTypeInfo());
-            return new HFieldSchema(fieldName,HFieldSchema.Type.ARRAY,subSchema);
+            HowlSchema subSchema = getHowlSchema(((ListTypeInfo)fieldTypeInfo).getListElementTypeInfo());
+            return new HowlFieldSchema(fieldName,HowlFieldSchema.Type.ARRAY,subSchema,null);
         } else if (Category.MAP == typeCategory) {
-            HFieldSchema.Type mapKeyType =  getPrimitiveHType(((MapTypeInfo)fieldTypeInfo).getMapKeyTypeInfo());
-            HSchema subSchema = getHowlSchema(((MapTypeInfo)fieldTypeInfo).getMapValueTypeInfo());
-            return new HFieldSchema(fieldName,HFieldSchema.Type.MAP,mapKeyType,subSchema);
+            HowlFieldSchema.Type mapKeyType =  getPrimitiveHType(((MapTypeInfo)fieldTypeInfo).getMapKeyTypeInfo());
+            HowlSchema subSchema = getHowlSchema(((MapTypeInfo)fieldTypeInfo).getMapValueTypeInfo());
+            return new HowlFieldSchema(fieldName,HowlFieldSchema.Type.MAP,mapKeyType,subSchema,null);
         } else{
             throw new TypeNotPresentException(fieldTypeInfo.getTypeName(),null);
         }
@@ -132,55 +136,60 @@ public class HowlSchemaUtils {
     private static Type getPrimitiveHType(TypeInfo basePrimitiveTypeInfo) {
         switch(((PrimitiveTypeInfo)basePrimitiveTypeInfo).getPrimitiveCategory()) {
         case BOOLEAN:
-            return HFieldSchema.Type.BOOLEAN;
+            return HowlFieldSchema.Type.BOOLEAN;
         case BYTE:
-            return HFieldSchema.Type.TINYINT;
+            return HowlFieldSchema.Type.TINYINT;
         case DOUBLE:
-            return HFieldSchema.Type.DOUBLE;
+            return HowlFieldSchema.Type.DOUBLE;
         case FLOAT:
-            return HFieldSchema.Type.FLOAT;
+            return HowlFieldSchema.Type.FLOAT;
         case INT:
-            return HFieldSchema.Type.INT;
+            return HowlFieldSchema.Type.INT;
         case LONG:
-            return HFieldSchema.Type.BIGINT;
+            return HowlFieldSchema.Type.BIGINT;
         case SHORT:
-            return HFieldSchema.Type.SMALLINT;
+            return HowlFieldSchema.Type.SMALLINT;
         case STRING:
-            return HFieldSchema.Type.STRING;
+            return HowlFieldSchema.Type.STRING;
         default:
             throw new TypeNotPresentException(((PrimitiveTypeInfo)basePrimitiveTypeInfo).getTypeName(), null);
         }
     }
 
-    public static HSchema getHowlSchema(Schema schema) throws HowlException{
+    public static HowlSchema getHowlSchema(Schema schema) throws HowlException{
         return getHowlSchema(schema.getFieldSchemas());
     }
 
-    public static HSchema getHowlSchema(List<? extends FieldSchema> fslist) throws HowlException{
+    public static HowlSchema getHowlSchema(List<? extends FieldSchema> fslist) throws HowlException{
         CollectionBuilder builder = getStructSchemaBuilder();
         for (FieldSchema fieldSchema : fslist){
             builder.addField(fieldSchema);
         }
         return builder.build();
     }
+    
+    private static HowlSchema constructHowlSchema(StructTypeInfo stypeInfo) throws HowlException {
+        CollectionBuilder builder = getStructSchemaBuilder();
+        for (String fieldName : ((StructTypeInfo)stypeInfo).getAllStructFieldNames()){
+            builder.addField(getHowlFieldSchema(fieldName,((StructTypeInfo)stypeInfo).getStructFieldTypeInfo(fieldName)));
+        }
+        return builder.build();
+    }
 
-    public static HSchema getHowlSchema(TypeInfo typeInfo) throws HowlException {
+    public static HowlSchema getHowlSchema(TypeInfo typeInfo) throws HowlException {
         Category typeCategory = typeInfo.getCategory();
         if (Category.PRIMITIVE == typeCategory){
-            return getStructSchemaBuilder().addField(new HFieldSchema(null,getPrimitiveHType(typeInfo))).build();
+            return getStructSchemaBuilder().addField(new HowlFieldSchema(null,getPrimitiveHType(typeInfo),null)).build();
         } else if (Category.STRUCT == typeCategory) {
-            CollectionBuilder builder = getStructSchemaBuilder();
-            for (String fieldName : ((StructTypeInfo)typeInfo).getAllStructFieldNames()){
-                builder.addField(getHFieldSchema(fieldName,((StructTypeInfo)typeInfo).getStructFieldTypeInfo(fieldName)));
-            }
-            return builder.build();
+            HowlSchema subSchema = constructHowlSchema((StructTypeInfo) typeInfo);
+            return getStructSchemaBuilder().addField(new HowlFieldSchema(null,Type.STRUCT,subSchema,null)).build();
         } else if (Category.LIST == typeCategory) {
             CollectionBuilder builder = getStructSchemaBuilder();
-            builder.addField(getHFieldSchema(null,((ListTypeInfo)typeInfo).getListElementTypeInfo()));
+            builder.addField(getHowlFieldSchema(null,((ListTypeInfo)typeInfo).getListElementTypeInfo()));
             return builder.build();
         } else if (Category.MAP == typeCategory) {
-            HFieldSchema.Type mapKeyType =  getPrimitiveHType(((MapTypeInfo)typeInfo).getMapKeyTypeInfo());
-            HSchema subSchema = getHowlSchema(((MapTypeInfo)typeInfo).getMapValueTypeInfo());
+            HowlFieldSchema.Type mapKeyType =  getPrimitiveHType(((MapTypeInfo)typeInfo).getMapKeyTypeInfo());
+            HowlSchema subSchema = getHowlSchema(((MapTypeInfo)typeInfo).getMapValueTypeInfo());
             MapBuilder builder = getMapSchemaBuilder();
             return builder.withKeyType(mapKeyType).withValueSchema(subSchema).build();
         } else{
@@ -188,8 +197,19 @@ public class HowlSchemaUtils {
         }
     }
 
-    public static HSchema getHowlSchema(String typeString) throws HowlException {
+    public static HowlSchema getHowlSchema(String typeString) throws HowlException {
         return getHowlSchema(TypeInfoUtils.getTypeInfoFromTypeString(typeString));
     }
 
+    public static FieldSchema getFieldSchema(HowlFieldSchema howlFieldSchema){
+        return new FieldSchema(howlFieldSchema.getName(),howlFieldSchema.getTypeString(),howlFieldSchema.getComment());
+    }
+    
+    public static List<FieldSchema> getFieldSchemas(List<HowlFieldSchema> howlFieldSchemas){
+        List<FieldSchema> lfs = new ArrayList<FieldSchema>();
+        for (HowlFieldSchema hfs : howlFieldSchemas){
+            lfs.add(getFieldSchema(hfs));
+        }
+        return lfs;
+    }
 }

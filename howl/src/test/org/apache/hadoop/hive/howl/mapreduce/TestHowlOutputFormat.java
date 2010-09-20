@@ -137,8 +137,8 @@ public class TestHowlOutputFormat extends TestCase {
     assertNotNull(jobInfo.getTableInfo());
     assertEquals(1, jobInfo.getTableInfo().getPartitionValues().size());
     assertEquals("p1", jobInfo.getTableInfo().getPartitionValues().get("colname"));
-    assertEquals(1, jobInfo.getTableSchema().getHowlFieldSchemas().size());
-    assertEquals("colname", jobInfo.getTableSchema().getHowlFieldSchemas().get(0).getName());
+    assertEquals(1, jobInfo.getTableSchema().getFields().size());
+    assertEquals("colname", jobInfo.getTableSchema().getFields().get(0).getName());
 
     StorerInfo storer = jobInfo.getStorerInfo();
     assertEquals(RCFileOutputStorageDriver.class.getName(), storer.getOutputSDClass());
