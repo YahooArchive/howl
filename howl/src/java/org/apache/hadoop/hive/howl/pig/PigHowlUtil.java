@@ -33,8 +33,6 @@ import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchemaUtils;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Type;
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -51,6 +49,7 @@ import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.UDFContext;
 
+@SuppressWarnings("deprecation")
 public class PigHowlUtil {
 
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";

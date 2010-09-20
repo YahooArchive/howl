@@ -26,12 +26,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.Pair;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat;
 import org.apache.hadoop.hive.howl.mapreduce.HowlTableInfo;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -53,6 +50,7 @@ import org.apache.pig.impl.util.UDFContext;
  * Pig {@link LoadFunc} to read data from Howl
  */
 
+@SuppressWarnings("deprecation")
 public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
 
   private static final String PRUNE_PROJECTION_INFO = "prune.projection.info";
@@ -110,7 +108,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     return location;
   }
 
-  @Override
+@Override
   public void setLocation(String location, Job job) throws IOException {
 
     Pair<String, String> dbTablePair = PigHowlUtil.getDBTableNames(location);

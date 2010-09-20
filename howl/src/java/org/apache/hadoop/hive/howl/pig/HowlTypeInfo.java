@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.howl.data.type;
+package org.apache.hadoop.hive.howl.pig;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
+@Deprecated
 public class HowlTypeInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;

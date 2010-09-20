@@ -35,8 +35,6 @@ import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchemaUtils;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Type;
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputCommitter;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputFormat;
 import org.apache.hadoop.hive.howl.mapreduce.HowlTableInfo;
@@ -69,6 +67,7 @@ import org.apache.pig.impl.util.Utils;
  */
 
 
+@SuppressWarnings("deprecation")
 public class HowlStorer extends StoreFunc implements StoreMetadata {
 
   /**
