@@ -120,10 +120,10 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   @Override
   public void setOriginalSchema(JobContext jobContext, HowlSchema dataSchema) throws IOException {
 
-    colsInData = dataSchema.getHowlFieldSchemas();
+    colsInData = dataSchema.getFields();
     namePosMapping = new HashMap<String, Integer>(colsInData.size());
     int index =0;
-    for(FieldSchema field : dataSchema.getHowlFieldSchemas()){
+    for(HowlFieldSchema field : dataSchema.getFields()){
       namePosMapping.put(field.getName(), index++);
     }
   }
@@ -132,10 +132,10 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   public void setOutputSchema(JobContext jobContext, HowlSchema desiredSchema) throws IOException {
 
     // Finds out which column ids needs to be projected and set them up for RCFile.
-    outCols = desiredSchema.getHowlFieldSchemas();
+    outCols = desiredSchema.getFields();
 
     ArrayList<Integer> prjColumns = new ArrayList<Integer>();
-    for(FieldSchema prjCol : outCols){
+    for(HowlFieldSchema prjCol : outCols){
       Integer pos = namePosMapping.get(prjCol.getName().toLowerCase());
       if(pos != null) {
         prjColumns.add(pos);

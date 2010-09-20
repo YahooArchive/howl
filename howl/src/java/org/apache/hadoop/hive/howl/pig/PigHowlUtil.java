@@ -31,11 +31,13 @@ import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.Pair;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
-import org.apache.hadoop.hive.howl.data.schema.HFieldSchema.Type;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchemaUtils;
+import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Type;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
 import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.pig.PigException;
@@ -121,7 +123,7 @@ public class PigHowlUtil {
 
     ArrayList<HowlFieldSchema> fcols = new ArrayList<HowlFieldSchema>();
     for(RequiredField rf: fields) {
-      fcols.add(howlTableSchema.getHowlFieldSchemas().get(rf.getIndex()));
+      fcols.add(howlTableSchema.getFields().get(rf.getIndex()));
     }
     return new HowlSchema(fcols);
   }
@@ -159,7 +161,7 @@ public class PigHowlUtil {
     }
 
     List<ResourceFieldSchema> rfSchemaList = new ArrayList<ResourceFieldSchema>();
-    for (HowlFieldSchema hfs : howlSchema.getHowlFieldSchemas()){
+    for (HowlFieldSchema hfs : howlSchema.getFields()){
       ResourceFieldSchema rfSchema;
       rfSchema = getResourceSchemaFromFieldSchema(hfs);
       rfSchemaList.add(rfSchema);
@@ -174,23 +176,23 @@ public class PigHowlUtil {
       throws IOException {
     ResourceFieldSchema rfSchema;
     // if we are dealing with a bag or tuple column - need to worry about subschema
-    if(hfs.getHowlTypeInfo().getType() == Type.STRUCT) {
+    if(hfs.getType() == Type.STRUCT) {
         rfSchema = new ResourceFieldSchema()
           .setName(hfs.getName())
           .setDescription(hfs.getComment())
-          .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType())))
-          .setSchema(getTupleSubSchema(hfs.getHowlTypeInfo()));
-    } else if(hfs.getHowlTypeInfo().getType() == Type.ARRAY) {
+          .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getTypeString())))
+          .setSchema(getTupleSubSchema(HowlTypeInfoUtils.getHowlTypeInfo(hfs.toString())));
+    } else if(hfs.getType() == Type.ARRAY) {
       rfSchema = new ResourceFieldSchema()
       .setName(hfs.getName())
       .setDescription(hfs.getComment())
-      .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType())))
-      .setSchema(getBagSubSchema(hfs.getHowlTypeInfo()));
+      .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getTypeString())))
+      .setSchema(getBagSubSchema(HowlTypeInfoUtils.getHowlTypeInfo(hfs.toString())));
     } else {
       rfSchema = new ResourceFieldSchema()
                 .setName(hfs.getName())
                 .setDescription(hfs.getComment())
-                .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getType()) ))
+                .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getTypeString()) ))
                 .setSchema(null); // no munging inner-schemas
     }
 
@@ -230,8 +232,9 @@ public class PigHowlUtil {
     List<HowlTypeInfo> structFieldTypeInfos = structTypeInfo.getAllStructFieldTypeInfos();
     List<String> structFieldNames = HowlTypeInfoUtils.getStructFieldNames(structTypeInfo);
     for(int i = 0; i < structFieldTypeInfos.size(); i++) {
-      HowlFieldSchema hfs = new HowlFieldSchema(structFieldNames.get(i),
-          structFieldTypeInfos.get(i).getTypeString(), "");
+      HowlFieldSchema hfs = HowlSchemaUtils.getHowlFieldSchema(
+              new FieldSchema(structFieldNames.get(i),structFieldTypeInfos.get(i).getTypeString(), "")
+              );
       lrfs.add(getResourceSchemaFromFieldSchema(hfs));
     }
     s.setFields(lrfs.toArray(new ResourceFieldSchema[0]));

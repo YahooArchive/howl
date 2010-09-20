@@ -17,42 +17,211 @@
  */
 package org.apache.hadoop.hive.howl.data.schema;
 
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfo;
-import org.apache.hadoop.hive.howl.data.type.HowlTypeInfoUtils;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import java.io.Serializable;
 
-/**
- * Class representing schema of a column in a table/partition
- */
-public class HowlFieldSchema extends FieldSchema {
+import org.apache.hadoop.hive.howl.common.HowlException;
+
+public class HowlFieldSchema implements Serializable {
+
+    public enum Type {
+        INT,
+        TINYINT,
+        SMALLINT,
+        BIGINT,
+        BOOLEAN,
+        FLOAT,
+        DOUBLE,
+        STRING,
+        ARRAY,
+        MAP,
+        STRUCT,
+    }
+
+    public enum Category {
+        PRIMITIVE,
+        ARRAY,
+        MAP,
+        STRUCT;
+
+        public static Category fromType(Type type) {
+            if (Type.ARRAY == type){
+                return ARRAY;
+            }else if(Type.STRUCT == type){
+                return STRUCT;
+            }else if (Type.MAP == type){
+                return MAP;
+            }else{
+                return PRIMITIVE;
+            }
+        }
+    };
+    
     /**
-     *
+     * 
      */
     private static final long serialVersionUID = 1L;
-    private final HowlTypeInfo howlTypeInfo;
 
+    String fieldName = null;
+    String comment = null;
+    Type type = null;
+    Category category = null;
+    
+    // Populated if column is struct, array or map types. 
+    // If struct type, contains schema of the struct. 
+    // If array type, contains schema of one of the elements.
+    // If map type, contains schema of the value element.
+    HowlSchema subSchema = null;
+    
+    // populated if column is Map type
+    Type mapKeyType = null;
 
-    /**
-     * @param other
-     */
-    public HowlFieldSchema(FieldSchema other) {
-        super(other);
-        howlTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(other.getType());
+    private String typeString = null;
+    
+    @SuppressWarnings("unused")
+    private HowlFieldSchema(){
+        // preventing empty ctor from being callable
     }
 
-
     /**
-     * @param name name of the field
-     * @param type string representing type of the field
-     * @param comment comment about the field
+     * Returns type of the field
+     * @return type of the field
      */
-    public HowlFieldSchema(String name, String type, String comment) {
-        super(name, type, comment);
-        howlTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(type);
+    public Type getType(){
+        return type;
+    }
+    
+    /**
+     * Returns category of the field
+     * @return category of the field
+     */
+    public Category getCategory(){
+        return category;
     }
 
+    /**
+     * Returns name of the field
+     * @return name of the field
+     */
+    public String getName(){
+        return fieldName;
+    }
+    
+    public String getComment(){
+        return comment;
+    }
 
-    public HowlTypeInfo getHowlTypeInfo() {
-        return howlTypeInfo;
+    /**
+     * Constructor constructing a primitive datatype HowlFieldSchema
+     * @param fieldName Name of the primitive field
+     * @param type Type of the primitive field
+     * @throws HowlException if call made on non-primitive types
+     */
+    public HowlFieldSchema(String fieldName, Type type, String comment) throws HowlException {
+        assertTypeInCategory(type,Category.PRIMITIVE);
+        this.fieldName = fieldName;
+        this.type = type;
+        this.category = Category.PRIMITIVE;
+        this.comment = comment;
+    }
+
+    /**
+     * Constructor for constructing a ARRAY type or STRUCT type HowlFieldSchema, passing type and subschema
+     * @param fieldName Name of the array or struct field
+     * @param type Type of the field - either Type.ARRAY or Type.STRUCT
+     * @param subSchema - subschema of the struct, or element schema of the elements in the array
+     * @throws HowlException if call made on Primitive or Map types
+     */
+    public HowlFieldSchema(String fieldName, Type type, HowlSchema subSchema,String comment) throws HowlException{
+        assertTypeNotInCategory(type,Category.PRIMITIVE);
+        assertTypeNotInCategory(type,Category.MAP);
+        this.fieldName = fieldName;
+        this.type = type;
+        this.category = Category.fromType(type);
+        this.subSchema = subSchema;
+        this.comment = comment;
+    }
+
+    /**
+     * Constructor for constructing a MAP type HowlFieldSchema, passing type of key and value
+     * @param fieldName Name of the array or struct field
+     * @param type Type of the field - must be Type.MAP
+     * @param mapKeyType - key type of the Map
+     * @param mapValueSchema - subschema of the value of the Map
+     * @throws HowlException if call made on non-Map types
+     */
+    public HowlFieldSchema(String fieldName, Type type, Type mapKeyType, HowlSchema mapValueSchema, String comment) throws HowlException{
+        assertTypeInCategory(type,Category.MAP);
+        assertTypeInCategory(mapKeyType,Category.PRIMITIVE);
+        this.fieldName = fieldName;
+        this.type = Type.MAP;
+        this.category = Category.MAP;
+        this.mapKeyType = mapKeyType;
+        this.subSchema = mapValueSchema;
+        this.comment = comment;
+    }
+
+    public HowlSchema getStructSubSchema() throws HowlException {
+        assertTypeInCategory(this.type,Category.STRUCT);
+        return subSchema;
+    }
+    
+    public HowlSchema getArrayElementSchema() throws HowlException {
+        assertTypeInCategory(this.type,Category.ARRAY);
+        return subSchema;
+    }
+    
+    public Type getMapKeyType() throws HowlException {
+        assertTypeInCategory(this.type,Category.MAP);
+        return mapKeyType;
+    }
+    
+    public HowlSchema getMapValueSchema() throws HowlException {
+        assertTypeInCategory(this.type,Category.MAP);
+        return subSchema;
+    }
+
+    private static void assertTypeInCategory(Type type, Category category) throws HowlException {
+        Category typeCategory = Category.fromType(type);
+        if (typeCategory != category){
+            throw new HowlException("Type category mismatch. Expected "+category+" but type "+type+" in category "+typeCategory);
+        }
+    }
+
+    private static void assertTypeNotInCategory(Type type, Category category) throws HowlException {
+        Category typeCategory = Category.fromType(type);
+        if (typeCategory == category){
+            throw new HowlException("Type category mismatch. Expected type "+type+" not in category "+category+" but was so.");
+        }
+    }
+
+    @Override
+    public String toString(){
+        return getTypeString();
+    }
+    
+    public String getTypeString(){
+        if (typeString != null){
+            return typeString;
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        if (Category.PRIMITIVE == category){
+            sb.append(type);
+        }else if (Category.STRUCT == category){
+            sb.append("struct<");
+            sb.append(subSchema.toString());
+            sb.append(">");
+        }else if (Category.ARRAY == category){
+            sb.append("array<");
+            sb.append(subSchema.toString());
+            sb.append(">");
+        }else if (Category.MAP == category){
+            sb.append("map<");
+            sb.append(mapKeyType);
+            sb.append(",");
+            sb.append(subSchema.toString());
+            sb.append(">");
+        }
+        return (typeString = sb.toString().toLowerCase());
     }
 }

@@ -21,7 +21,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.howl.data.schema.HFieldSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.typeinfo.ListTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.MapTypeInfo;
@@ -34,7 +34,7 @@ public class HowlTypeInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  HFieldSchema.Type type;
+  HowlFieldSchema.Type type;
 
   private TypeInfo baseTypeInfo = null;
 
@@ -74,41 +74,41 @@ public class HowlTypeInfo implements Serializable {
     if (baseTypeInfo.getCategory() == Category.MAP){
       mapKeyType = new HowlTypeInfo(((MapTypeInfo)baseTypeInfo).getMapKeyTypeInfo());
       mapValueType = new HowlTypeInfo(((MapTypeInfo)baseTypeInfo).getMapValueTypeInfo());
-      type = HFieldSchema.Type.MAP;
+      type = HowlFieldSchema.Type.MAP;
     }else if (baseTypeInfo.getCategory() == Category.LIST){
       listType = new HowlTypeInfo(((ListTypeInfo)baseTypeInfo).getListElementTypeInfo());
-      type = HFieldSchema.Type.ARRAY;
+      type = HowlFieldSchema.Type.ARRAY;
     }else if (baseTypeInfo.getCategory() == Category.STRUCT){
       structFields = new ArrayList<HowlTypeInfo>();
       for(TypeInfo ti : ((StructTypeInfo)baseTypeInfo).getAllStructFieldTypeInfos()){
         structFields.add(new HowlTypeInfo(ti));
       }
-      type = HFieldSchema.Type.STRUCT;
+      type = HowlFieldSchema.Type.STRUCT;
     } else if(baseTypeInfo.getCategory() == Category.PRIMITIVE) {
         switch(((PrimitiveTypeInfo)baseTypeInfo).getPrimitiveCategory()) {
         case BOOLEAN:
-            type = HFieldSchema.Type.BOOLEAN;
+            type = HowlFieldSchema.Type.BOOLEAN;
             break;
         case BYTE:
-            type = HFieldSchema.Type.TINYINT;
+            type = HowlFieldSchema.Type.TINYINT;
             break;
         case DOUBLE:
-            type = HFieldSchema.Type.DOUBLE;
+            type = HowlFieldSchema.Type.DOUBLE;
             break;
         case FLOAT:
-            type = HFieldSchema.Type.FLOAT;
+            type = HowlFieldSchema.Type.FLOAT;
             break;
         case INT:
-            type = HFieldSchema.Type.INT;
+            type = HowlFieldSchema.Type.INT;
             break;
         case LONG:
-            type = HFieldSchema.Type.BIGINT;
+            type = HowlFieldSchema.Type.BIGINT;
             break;
         case SHORT:
-            type = HFieldSchema.Type.SMALLINT;
+            type = HowlFieldSchema.Type.SMALLINT;
             break;
         case STRING:
-            type = HFieldSchema.Type.STRING;
+            type = HowlFieldSchema.Type.STRING;
             break;
         default:
             throw new
@@ -173,7 +173,7 @@ public class HowlTypeInfo implements Serializable {
   /**
    * @return the type
    */
-  public HFieldSchema.Type getType() {
+  public HowlFieldSchema.Type getType() {
     return type;
   }
 

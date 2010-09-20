@@ -20,8 +20,10 @@ package org.apache.hadoop.hive.howl.data.type;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.howl.data.schema.HFieldSchema;
+import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
+import org.apache.hadoop.hive.howl.data.schema.DeprecatedHowlSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
+import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
@@ -73,8 +75,12 @@ public class HowlTypeInfoUtils {
     return getHowlTypeInfo(s.getFieldSchemas());
   }
 
-  public static HowlTypeInfo getHowlTypeInfo(HowlSchema s){
+  public static HowlTypeInfo getHowlTypeInfo(DeprecatedHowlSchema s){
     return getHowlTypeInfo(s.getHowlFieldSchemas());
+  }
+  
+  public static HowlTypeInfo getHowlTypeInfo(HowlSchema s){
+      return getHowlTypeInfo(HowlUtil.getFieldSchemaList(s.getFields()));
   }
 
   public static HowlTypeInfo getHowlTypeInfo(List<? extends FieldSchema> fslist){
@@ -89,12 +95,12 @@ public class HowlTypeInfoUtils {
     return new HowlTypeInfo(typeString);
   }
 
-  public static boolean isComplex(HFieldSchema.Type type){
-    return type == HFieldSchema.Type.ARRAY || type == HFieldSchema.Type.MAP || type == HFieldSchema.Type.STRUCT;
+  public static boolean isComplex(HowlFieldSchema.Type type){
+    return type == HowlFieldSchema.Type.ARRAY || type == HowlFieldSchema.Type.MAP || type == HowlFieldSchema.Type.STRUCT;
   }
 
   public static List<String> getStructFieldNames(HowlTypeInfo structTypeInfo) {
-    if(structTypeInfo.type != HFieldSchema.Type.STRUCT) {
+    if(structTypeInfo.type != HowlFieldSchema.Type.STRUCT) {
       throw new IllegalArgumentException("Expected struct, got non struct type " +
           "info");
     }

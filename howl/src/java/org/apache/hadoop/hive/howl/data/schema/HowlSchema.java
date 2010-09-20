@@ -18,40 +18,80 @@
 package org.apache.hadoop.hive.howl.data.schema;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.hadoop.hive.howl.common.HowlException;
 
-/**
- * class representing schema of columns in a table/partition
- */
-public class HowlSchema implements Serializable {
+public class HowlSchema implements Serializable{
+    
     /**
-     *
+     * 
      */
     private static final long serialVersionUID = 1L;
-    private final List<HowlFieldSchema> fields;
 
-    /**
-     * @param fields
-     */
-    public HowlSchema(List<HowlFieldSchema> fields) {
-        super();
-        this.fields = fields;
+    private List<HowlFieldSchema> fieldSchemas;
+    private Map<String,Integer> fieldPositionMap;
+    private List<String> fieldNames = null;
+
+    public HowlSchema(List<HowlFieldSchema> fieldSchemas){
+        this.fieldSchemas = fieldSchemas;
+        int idx = 0;
+        fieldPositionMap = new HashMap<String,Integer>();
+        fieldNames = new ArrayList<String>();
+        for (HowlFieldSchema field : fieldSchemas){
+            fieldPositionMap.put(field.getName(), idx);
+            fieldNames.add(field.getName());
+            idx++;
+        }
     }
 
-    /**
-     * @return the fields
-     */
-    public List<HowlFieldSchema> getHowlFieldSchemas() {
-        return fields;
+    public HowlSchema(HowlSchema other){
+        this(other.getFields());
+    }
+    
+    public List<HowlFieldSchema> getFields(){
+        return this.fieldSchemas;
+    }
+    
+    public Integer getPosition(String fieldName) throws HowlException {
+        if (fieldPositionMap.containsKey(fieldName)){
+            return fieldPositionMap.get(fieldName);
+        }else{
+            throw new HowlException("No field called "+fieldName+" found in schema argument");
+        }
+    }
+    
+    public HowlFieldSchema get(String fieldName) throws HowlException {
+        return get(getPosition(fieldName));
+    }
+    
+    public List<String> getFieldNames(){
+        return this.fieldNames;
+    }
+    
+    public HowlFieldSchema get(int position) {
+        return fieldSchemas.get(position);
     }
 
     @Override
     public String toString() {
-      StringBuilder string = new StringBuilder();
-      for(HowlFieldSchema field : fields){
-        string.append(field.toString()+", ");
-      }
-    return string.toString();
+        boolean first = true;
+        StringBuilder sb = new StringBuilder();
+        for (HowlFieldSchema hfs : fieldSchemas){
+            if (!first){
+                sb.append(",");
+            }else{
+                first = false;
+            }
+            if (hfs.getName() != null){
+                sb.append(hfs.getName());
+                sb.append(":");
+            }
+            sb.append(hfs.toString());
+        }
+        return sb.toString();
     }
 }

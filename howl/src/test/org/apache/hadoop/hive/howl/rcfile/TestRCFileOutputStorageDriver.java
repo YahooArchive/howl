@@ -25,6 +25,7 @@ import java.util.Properties;
 import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputStorageDriver;
@@ -81,7 +82,7 @@ public class TestRCFileOutputStorageDriver extends TestCase {
     return bytes;
   }
 
-  private HowlSchema buildHiveSchema(){
+  private HowlSchema buildHiveSchema() throws HowlException{
 
     List<FieldSchema> fields = new ArrayList<FieldSchema>(8);
     fields.add(new FieldSchema("atinyint", "tinyint", ""));
