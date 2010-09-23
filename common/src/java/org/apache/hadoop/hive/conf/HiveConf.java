@@ -182,6 +182,7 @@ public class HiveConf extends Configuration {
     HIVEADDEDARCHIVES("hive.added.archives.path", ""),
 
     // for hive script operator
+    HIVES_AUTO_PROGRESS_TIMEOUT("hive.auto.progress.timeout", 0),
     HIVETABLENAME("hive.table.name", ""),
     HIVEPARTITIONNAME("hive.partition.name", ""),
     HIVESCRIPTAUTOPROGRESS("hive.script.auto.progress", false),
@@ -262,6 +263,8 @@ public class HiveConf extends Configuration {
     // Optimizer
     HIVEOPTCP("hive.optimize.cp", true), // column pruner
     HIVEOPTPPD("hive.optimize.ppd", true), // predicate pushdown
+    // push predicates down to storage handlers
+    HIVEOPTPPD_STORAGE("hive.optimize.ppd.storage", true),
     HIVEOPTGROUPBY("hive.optimize.groupby", true), // optimize group by
     HIVEOPTBUCKETMAPJOIN("hive.optimize.bucketmapjoin", false), // optimize bucket map join
     HIVEOPTSORTMERGEBUCKETMAPJOIN("hive.optimize.bucketmapjoin.sortedmerge", false), // try to use sorted merge bucket map join
@@ -275,6 +278,7 @@ public class HiveConf extends Configuration {
     HIVE_ZOOKEEPER_QUORUM("hive.zookeeper.quorum", ""),
     HIVE_ZOOKEEPER_CLIENT_PORT("hive.zookeeper.client.port", ""),
     HIVE_ZOOKEEPER_SESSION_TIMEOUT("hive.zookeeper.session.timeout", 600*1000),
+    HIVE_ZOOKEEPER_NAMESPACE("hive.zookeeper.namespace", "hive_zookeeper_namespace"),
 
     // For HBase storage handler
     HIVE_HBASE_WAL_ENABLED("hive.hbase.wal.enabled", true),
@@ -282,6 +286,7 @@ public class HiveConf extends Configuration {
     // For har files
     HIVEARCHIVEENABLED("hive.archive.enabled", false),
     HIVEHARPARENTDIRSETTABLE("hive.archive.har.parentdir.settable", false),
+    HIVEOUTERJOINSUPPORTSFILTERS("hive.outerjoin.supports.filters", true),
 
     ;
 
