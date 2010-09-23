@@ -141,15 +141,15 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
       if(type == org.apache.pig.data.DataType.BAG){
 
           // Find out if we need to throw away the tuple or not.
-          HowlFieldSchema typeInfo = removeTupleFromBag(tableSchema, fSchema) ?
-                  getTypeInfoFrom(fSchema.schema.getField(0).schema.getField(0)) : getTypeInfoFrom(fSchema);
-         howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,typeInfo.getTypeString(),""));
+          HowlFieldSchema howlFS = removeTupleFromBag(tableSchema, fSchema) ?
+                  getHowlFSFromPigFS(fSchema.schema.getField(0).schema.getField(0)) : getHowlFSFromPigFS(fSchema);
+         howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,howlFS.getTypeString(),""));
       }
       else if(type == org.apache.pig.data.DataType.TUPLE ){
-          howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,getTypeInfoFrom(fSchema).getTypeString(),""));
+          howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,getHowlFSFromPigFS(fSchema).getTypeString(),""));
       }
       else if( type == DataType.MAP){
-          howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,getTypeInfoFrom(fSchema).getTypeString(),""));
+          howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,getHowlFSFromPigFS(fSchema).getTypeString(),""));
       }
       else{
           howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,getHiveTypeString(type),""));
@@ -188,7 +188,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
   }
 
 
-  private HowlFieldSchema getTypeInfoFrom(FieldSchema fSchema) throws FrontendException, HowlException{
+  private HowlFieldSchema getHowlFSFromPigFS(FieldSchema fSchema) throws FrontendException, HowlException{
 
     byte type = fSchema.type;
     switch(type){
@@ -196,19 +196,17 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     case DataType.BAG:
       Schema bagSchema = fSchema.schema;
       List<HowlFieldSchema> arrFields = new ArrayList<HowlFieldSchema>(1);
-      arrFields.add(getTypeInfoFrom(bagSchema.getField(0)));
+      arrFields.add(getHowlFSFromPigFS(bagSchema.getField(0)));
       return new HowlFieldSchema(fSchema.alias, Type.ARRAY, new HowlSchema(arrFields), "");
-      //return HowlTypeInfoUtils.getListHowlTypeInfo(getTypeInfoFrom(bagSchema.getField(0)));
 
     case DataType.TUPLE:
       List<String> fieldNames = new ArrayList<String>();
-      List<HowlFieldSchema> typeInfos = new ArrayList<HowlFieldSchema>();
+      List<HowlFieldSchema> howlFSs = new ArrayList<HowlFieldSchema>();
       for( FieldSchema fieldSchema : fSchema.schema.getFields()){
         fieldNames.add( fieldSchema.alias);
-        typeInfos.add(getTypeInfoFrom(fieldSchema));
+        howlFSs.add(getHowlFSFromPigFS(fieldSchema));
       }
-      new HowlFieldSchema(fSchema.alias, Type.STRUCT, new HowlSchema(typeInfos), "");
-      //return HowlTypeInfoUtils.getStructHowlTypeInfo(fieldNames, typeInfos);
+      new HowlFieldSchema(fSchema.alias, Type.STRUCT, new HowlSchema(howlFSs), "");
 
     case DataType.MAP:
       // Pig's schema contain no type information about map's keys and
@@ -218,7 +216,6 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
       HowlFieldSchema valFS = null;
       List<HowlFieldSchema> valFSList = new ArrayList<HowlFieldSchema>(1);
       valFSList.add(valFS);
-      HowlSchema mapValSchema = new HowlSchema(valFSList);
       if(mapField != null){
         Type mapValType = mapField.getMapValueSchema().get(0).getType();
 
@@ -233,10 +230,10 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
         default:
           throw new FrontendException("Only pig primitive types are supported as map value types.", PigHowlUtil.PIG_EXCEPTION_CODE);
         }
-        return new HowlFieldSchema(fSchema.alias,Type.MAP,Type.STRING,mapValSchema,"");
+        return new HowlFieldSchema(fSchema.alias,Type.MAP,Type.STRING, new HowlSchema(valFSList),"");
       }
       valFS = new HowlFieldSchema(fSchema.alias, Type.STRING, "");
-      return new HowlFieldSchema(fSchema.alias,Type.MAP,Type.STRING,mapValSchema,"");
+      return new HowlFieldSchema(fSchema.alias,Type.MAP,Type.STRING, new HowlSchema(valFSList),"");
 
     default:
       return HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(fSchema.alias,getHiveTypeString(type),""));
@@ -289,11 +286,11 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     }
   }
 
-  private Object getJavaObj(Object pigObj, HowlFieldSchema typeInfo) throws ExecException, HowlException{
+  private Object getJavaObj(Object pigObj, HowlFieldSchema howlFS) throws ExecException, HowlException{
 
     // The real work-horse. Spend time and energy in this method if there is
     // need to keep HowlStorer lean and go fast.
-    Type type = typeInfo.getType();
+    Type type = howlFS.getType();
 
     switch(type){
 
@@ -311,17 +308,16 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     case ARRAY:
       // Unwrap the bag.
       DataBag pigBag = (DataBag)pigObj;
-      HowlFieldSchema tupTypeInfo = typeInfo.getArrayElementSchema().get(0);
+      HowlFieldSchema tupFS = howlFS.getArrayElementSchema().get(0);
       List<Object> bagContents = new ArrayList<Object>((int)pigBag.size());
       Iterator<Tuple> bagItr = pigBag.iterator();
 
       while(bagItr.hasNext()){
-        if(tupTypeInfo.getStructSubSchema() == null || tupTypeInfo.getStructSubSchema().getFields().size() == 0){
+        if(tupFS.getStructSubSchema() == null || tupFS.getStructSubSchema().getFields().size() == 0){
           // If there is only one element in tuple contained in bag, we throw away the tuple.
-          //bagContents.add(getJavaObj(bagItr.next().get(0),tupTypeInfo));
           bagContents.add(bagItr.next().get(0));
         } else {
-          bagContents.add(getJavaObj(bagItr.next(), tupTypeInfo));
+          bagContents.add(getJavaObj(bagItr.next(), tupFS));
         }
       }
       return bagContents;
