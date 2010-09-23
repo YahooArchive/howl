@@ -55,9 +55,13 @@ public class HowlFieldSchema implements Serializable {
             }
         }
     };
-    
+
+    public boolean isComplex(){
+      return (category == Category.PRIMITIVE) ? false : true;
+    }
+
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
@@ -65,18 +69,18 @@ public class HowlFieldSchema implements Serializable {
     String comment = null;
     Type type = null;
     Category category = null;
-    
-    // Populated if column is struct, array or map types. 
-    // If struct type, contains schema of the struct. 
+
+    // Populated if column is struct, array or map types.
+    // If struct type, contains schema of the struct.
     // If array type, contains schema of one of the elements.
     // If map type, contains schema of the value element.
     HowlSchema subSchema = null;
-    
+
     // populated if column is Map type
     Type mapKeyType = null;
 
     private String typeString = null;
-    
+
     @SuppressWarnings("unused")
     private HowlFieldSchema(){
         // preventing empty ctor from being callable
@@ -89,7 +93,7 @@ public class HowlFieldSchema implements Serializable {
     public Type getType(){
         return type;
     }
-    
+
     /**
      * Returns category of the field
      * @return category of the field
@@ -105,7 +109,7 @@ public class HowlFieldSchema implements Serializable {
     public String getName(){
         return fieldName;
     }
-    
+
     public String getComment(){
         return comment;
     }
@@ -164,17 +168,17 @@ public class HowlFieldSchema implements Serializable {
         assertTypeInCategory(this.type,Category.STRUCT);
         return subSchema;
     }
-    
+
     public HowlSchema getArrayElementSchema() throws HowlException {
         assertTypeInCategory(this.type,Category.ARRAY);
         return subSchema;
     }
-    
+
     public Type getMapKeyType() throws HowlException {
         assertTypeInCategory(this.type,Category.MAP);
         return mapKeyType;
     }
-    
+
     public HowlSchema getMapValueSchema() throws HowlException {
         assertTypeInCategory(this.type,Category.MAP);
         return subSchema;
@@ -198,12 +202,12 @@ public class HowlFieldSchema implements Serializable {
     public String toString(){
         return getTypeString();
     }
-    
+
     public String getTypeString(){
         if (typeString != null){
             return typeString;
         }
-        
+
         StringBuilder sb = new StringBuilder();
         if (Category.PRIMITIVE == category){
             sb.append(type);
