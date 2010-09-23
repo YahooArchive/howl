@@ -138,18 +138,17 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
       String alias = fSchema.alias;
 
       try {
-      if(type == org.apache.pig.data.DataType.BAG){
+      if(type == DataType.BAG){
 
           // Find out if we need to throw away the tuple or not.
-          HowlFieldSchema howlFS = removeTupleFromBag(tableSchema, fSchema) ?
+          howlFSchema = removeTupleFromBag(tableSchema, fSchema) ?
                   getHowlFSFromPigFS(fSchema.schema.getField(0).schema.getField(0)) : getHowlFSFromPigFS(fSchema);
-         howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,howlFS.getTypeString(),""));
       }
-      else if(type == org.apache.pig.data.DataType.TUPLE ){
-          howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,getHowlFSFromPigFS(fSchema).getTypeString(),""));
+      else if(type == DataType.TUPLE ){
+          howlFSchema = getHowlFSFromPigFS(fSchema);
       }
       else if( type == DataType.MAP){
-          howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,getHowlFSFromPigFS(fSchema).getTypeString(),""));
+          howlFSchema = getHowlFSFromPigFS(fSchema);
       }
       else{
           howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,getHiveTypeString(type),""));
@@ -206,7 +205,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
         fieldNames.add( fieldSchema.alias);
         howlFSs.add(getHowlFSFromPigFS(fieldSchema));
       }
-      new HowlFieldSchema(fSchema.alias, Type.STRUCT, new HowlSchema(howlFSs), "");
+      return new HowlFieldSchema(fSchema.alias, Type.STRUCT, new HowlSchema(howlFSs), "");
 
     case DataType.MAP:
       // Pig's schema contain no type information about map's keys and
