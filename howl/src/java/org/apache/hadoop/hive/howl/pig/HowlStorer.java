@@ -177,8 +177,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     String colName = bagFieldSchema.alias;
     for(HowlFieldSchema field : tableSchema.getFields()){
       if(colName.equalsIgnoreCase(field.getName())){
-        HowlSchema structFieldInBag = field.getArrayElementSchema().get(0).getStructSubSchema();
-        return (structFieldInBag == null || structFieldInBag.getFields().size() == 0 ) ? true : false;
+        return field.getArrayElementSchema().get(0).getType() == Type.STRUCT ? true : false;
       }
     }
     // Column was not found in table schema. Its a new column
