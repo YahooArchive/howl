@@ -142,7 +142,14 @@ public class HowlFieldSchema implements Serializable {
         this.type = type;
         this.category = Category.fromType(type);
         this.subSchema = subSchema;
+        if(type == Type.ARRAY){
+         this.subSchema.get(0).setName(null);
+        }
         this.comment = comment;
+    }
+
+    private void setName(String name) {
+      this.fieldName = name;
     }
 
     /**
@@ -161,6 +168,7 @@ public class HowlFieldSchema implements Serializable {
         this.category = Category.MAP;
         this.mapKeyType = mapKeyType;
         this.subSchema = mapValueSchema;
+        this.subSchema.get(0).setName(null);
         this.comment = comment;
     }
 
