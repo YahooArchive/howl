@@ -135,23 +135,16 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     for(FieldSchema fSchema : pigSchema.getFields()){
       byte type = fSchema.type;
       HowlFieldSchema howlFSchema;
-      String alias = fSchema.alias;
 
       try {
       if(type == DataType.BAG){
 
           // Find out if we need to throw away the tuple or not.
           howlFSchema = removeTupleFromBag(tableSchema, fSchema) ?
-                  getHowlFSFromPigFS(fSchema.schema.getField(0).schema.getField(0)) : getHowlFSFromPigFS(fSchema);
-      }
-      else if(type == DataType.TUPLE ){
-          howlFSchema = getHowlFSFromPigFS(fSchema);
-      }
-      else if( type == DataType.MAP){
-          howlFSchema = getHowlFSFromPigFS(fSchema);
+                  getHowlFSFromPigFS(fSchema.schema.getField(0)) : getHowlFSFromPigFS(fSchema);
       }
       else{
-          howlFSchema = HowlSchemaUtils.getHowlFieldSchema(new org.apache.hadoop.hive.metastore.api.FieldSchema(alias,getHiveTypeString(type),""));
+          howlFSchema = getHowlFSFromPigFS(fSchema);
       }
       fieldSchemas.add(howlFSchema);
       } catch (HowlException he){
