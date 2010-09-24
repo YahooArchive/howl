@@ -50,7 +50,6 @@ import org.apache.pig.impl.util.UDFContext;
  * Pig {@link LoadFunc} to read data from Howl
  */
 
-@SuppressWarnings("deprecation")
 public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
 
   private static final String PRUNE_PROJECTION_INFO = "prune.projection.info";
@@ -65,7 +64,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   private String partitionFilterString;
   private final PigHowlUtil phutil = new PigHowlUtil();
 
-  HowlTypeInfo outputTypeInfo = null;
+  HowlSchema outputSchema = null;
 
   @Override
   public InputFormat<?,?> getInputFormat() throws IOException {
@@ -79,7 +78,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   public Tuple getNext() throws IOException {
     try {
       HowlRecord hr =  (HowlRecord) (reader.nextKeyValue() ? reader.getCurrentValue() : null);
-      Tuple t = PigHowlUtil.transformToTuple(hr,outputTypeInfo);
+      Tuple t = PigHowlUtil.transformToTuple(hr,outputSchema);
       // TODO : we were discussing an iter interface, and also a LazyTuple
       // change this when plans for that solidifies.
       return t;
@@ -148,9 +147,8 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     if(requiredFieldsInfo != null) {
       // convert to owlschema and pass to OwlInputFormat
       try {
-        HowlSchema outputSchema = phutil.getHowlSchema(requiredFieldsInfo.getFields(),signature);
+        outputSchema = phutil.getHowlSchema(requiredFieldsInfo.getFields(),signature,this.getClass());
         HowlInputFormat.setOutputSchema(job, outputSchema);
-        outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(outputSchema);
       } catch (Exception e) {
         throw new IOException(e);
       }
@@ -161,7 +159,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
       if (HowlUtil.checkJobContextIfRunningFromBackend(job)){
         try {
           HowlSchema howlTableSchema = (HowlSchema) props.get(PigHowlUtil.HOWL_TABLE_SCHEMA);
-          outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
+          outputSchema = howlTableSchema;
         } catch (Exception e) {
           throw new IOException(e);
         }
@@ -198,7 +196,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
           ,PigHowlUtil.PIG_EXCEPTION_CODE, e);
     }
     storeInUDFContext(signature, PigHowlUtil.HOWL_TABLE_SCHEMA, howlTableSchema);
-    outputTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
+    outputSchema = howlTableSchema;
     return phutil.getResourceSchema(howlTableSchema,location);
   }
 

@@ -31,11 +31,9 @@ import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.Pair;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
-import org.apache.hadoop.hive.howl.data.schema.HowlSchemaUtils;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Type;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.pig.PigException;
@@ -179,26 +177,25 @@ public class PigHowlUtil {
         rfSchema = new ResourceFieldSchema()
           .setName(hfs.getName())
           .setDescription(hfs.getComment())
-          .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getTypeString())))
-          .setSchema(getTupleSubSchema(HowlTypeInfoUtils.getHowlTypeInfo(hfs.toString())));
+          .setType(getPigType( hfs))
+          .setSchema(getTupleSubSchema(hfs));
     } else if(hfs.getType() == Type.ARRAY) {
-      rfSchema = new ResourceFieldSchema()
-      .setName(hfs.getName())
-      .setDescription(hfs.getComment())
-      .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getTypeString())))
-      .setSchema(getBagSubSchema(HowlTypeInfoUtils.getHowlTypeInfo(hfs.toString())));
+        rfSchema = new ResourceFieldSchema()
+          .setName(hfs.getName())
+          .setDescription(hfs.getComment())
+          .setType(getPigType( hfs))
+          .setSchema(getBagSubSchema(hfs));
     } else {
       rfSchema = new ResourceFieldSchema()
-                .setName(hfs.getName())
-                .setDescription(hfs.getComment())
-                .setType(getPigType( HowlTypeInfoUtils.getHowlTypeInfo(hfs.getTypeString()) ))
-                .setSchema(null); // no munging inner-schemas
+          .setName(hfs.getName())
+          .setDescription(hfs.getComment())
+          .setType(getPigType( hfs))
+          .setSchema(null); // no munging inner-schemas
     }
-
     return rfSchema;
   }
 
-  private ResourceSchema getBagSubSchema(HowlTypeInfo howlTypeInfo) throws IOException {
+  private ResourceSchema getBagSubSchema(HowlFieldSchema hfs) throws IOException {
     // there are two cases - array<Type> and array<struct<...>>
     // in either case the element type of the array is represented in a
     // tuple field schema in the bag's field schema - the second case (struct)
@@ -208,14 +205,14 @@ public class PigHowlUtil {
     bagSubFieldSchemas[0] = new ResourceFieldSchema().setName("innerTuple")
       .setDescription("The tuple in the bag")
       .setType(DataType.TUPLE);
-    HowlTypeInfo arrayElementTypeInfo = howlTypeInfo.getListElementTypeInfo();
-    if(arrayElementTypeInfo.getType() == Type.STRUCT) {
-      bagSubFieldSchemas[0].setSchema(getTupleSubSchema(arrayElementTypeInfo));
+    HowlFieldSchema arrayElementFieldSchema = hfs.getArrayElementSchema().get(0);
+    if(arrayElementFieldSchema.getType() == Type.STRUCT) {
+      bagSubFieldSchemas[0].setSchema(getTupleSubSchema(arrayElementFieldSchema));
     } else {
       ResourceFieldSchema[] innerTupleFieldSchemas = new ResourceFieldSchema[1];
       innerTupleFieldSchemas[0] = new ResourceFieldSchema().setName("innerField")
         .setDescription("The inner field in the tuple in the bag")
-        .setType(getPigType(arrayElementTypeInfo))
+        .setType(getPigType(arrayElementFieldSchema))
         .setSchema(null); // the element type is not a tuple - so no subschema
       bagSubFieldSchemas[0].setSchema(new ResourceSchema().setFields(innerTupleFieldSchemas));
     }
@@ -223,18 +220,12 @@ public class PigHowlUtil {
 
   }
 
-  private ResourceSchema getTupleSubSchema(HowlTypeInfo structTypeInfo) throws IOException {
-    // for each struct subfield, create equivalent HowlFieldSchema corresponding
-    // to the relevant HowlTypeInfo and then create equivalent ResourceFieldSchema
+  private ResourceSchema getTupleSubSchema(HowlFieldSchema hfs) throws IOException {
+    // for each struct subfield, create equivalent ResourceFieldSchema
     ResourceSchema s = new ResourceSchema();
     List<ResourceFieldSchema> lrfs = new ArrayList<ResourceFieldSchema>();
-    List<HowlTypeInfo> structFieldTypeInfos = structTypeInfo.getAllStructFieldTypeInfos();
-    List<String> structFieldNames = HowlTypeInfoUtils.getStructFieldNames(structTypeInfo);
-    for(int i = 0; i < structFieldTypeInfos.size(); i++) {
-      HowlFieldSchema hfs = HowlSchemaUtils.getHowlFieldSchema(
-              new FieldSchema(structFieldNames.get(i),structFieldTypeInfos.get(i).getTypeString(), "")
-              );
-      lrfs.add(getResourceSchemaFromFieldSchema(hfs));
+    for(HowlFieldSchema subField : hfs.getStructSubSchema().getFields()) {
+      lrfs.add(getResourceSchemaFromFieldSchema(subField));
     }
     s.setFields(lrfs.toArray(new ResourceFieldSchema[0]));
     return s;
@@ -245,11 +236,10 @@ public class PigHowlUtil {
    * @return corresponding pig type
    * @throws IOException
    */
-  static public byte getPigType(HowlTypeInfo typeInfo) throws IOException {
-
-    Type type = typeInfo.getType();
-    return getPigType(type);
+  static public byte getPigType(HowlFieldSchema hfs) throws IOException {
+    return getPigType(hfs.getType());
   }
+  
   static public byte getPigType(Type type) throws IOException {
     String errMsg;
 
@@ -295,129 +285,129 @@ public class PigHowlUtil {
     throw new PigException(errMsg, PIG_EXCEPTION_CODE);
   }
 
-
-  public static Tuple transformToTuple(HowlRecord hr, HowlTypeInfo hti) throws Exception {
-    if (hr == null){
-      return null;
-    }
-    return transformToTuple(hr.getAll(),hti);
-  }
-
-  @SuppressWarnings("unchecked")
-  public static Object extractPigObject(Object o, HowlTypeInfo hti) throws Exception{
-    Type itemType = hti.getType();
-    if ( ! HowlTypeInfoUtils.isComplex(itemType)){
-      return o;
-    } else  if (itemType == Type.STRUCT) {
-      return transformToTuple((List<Object>)o,hti);
-    } else  if (itemType == Type.ARRAY) {
-      return transformToBag((List<? extends Object>) o,hti);
-    } else  if (itemType == Type.MAP) {
-      return transformToPigMap((Map<String, Object>)o,hti);
-    }
-    return null; // never invoked.
-  }
-
-
-  public static Tuple transformToTuple(List<? extends Object> objList, HowlTypeInfo hti) throws Exception {
-    if (objList == null){
-      return null;
-    }
-    Tuple t = new DefaultTuple();
-    List<HowlTypeInfo> subtypes;
-    try {
-      subtypes = hti.getAllStructFieldTypeInfos();
-    } catch (Exception e){
-      if (hti.getType() != Type.STRUCT){
-        throw new Exception("Expected Struct type, got "+hti.getType());
-      } else {
-        throw e;
+  public static Tuple transformToTuple(HowlRecord hr, HowlSchema hs) throws Exception {
+      if (hr == null){
+        return null;
       }
+      return transformToTuple(hr.getAll(),hs);
     }
-    for (int i = 0; i < subtypes.size(); i++){
-      t.append(
-            extractPigObject(objList.get(i), subtypes.get(i))
-          );
-    }
-    return t;
-  }
-
-  public static Map<String,Object> transformToPigMap(Map<String,Object> map, HowlTypeInfo hti) throws Exception {
-    return map;
-  }
 
   @SuppressWarnings("unchecked")
-  public static DataBag transformToBag(List<? extends Object> list, HowlTypeInfo hti) throws Exception {
+public static Object extractPigObject(Object o, HowlFieldSchema hfs) throws Exception {
+      Type itemType = hfs.getType();
+      if ( ! hfs.isComplex()){
+        return o;
+      } else  if (itemType == Type.STRUCT) {
+        return transformToTuple((List<Object>)o,hfs);
+      } else  if (itemType == Type.ARRAY) {
+        return transformToBag((List<? extends Object>) o,hfs);
+      } else  if (itemType == Type.MAP) {
+        return transformToPigMap((Map<String, Object>)o,hfs);
+      }
+      return null; // never invoked.
+  }
+  
+  public static Tuple transformToTuple(List<? extends Object> objList, HowlFieldSchema hfs) throws Exception {
+      try {
+          return transformToTuple(objList,hfs.getStructSubSchema());
+      } catch (Exception e){
+          if (hfs.getType() != Type.STRUCT){
+              throw new Exception("Expected Struct type, got "+hfs.getType());
+          } else {
+              throw e;
+          }
+      }
+  }
+  
+  public static Tuple transformToTuple(List<? extends Object> objList, HowlSchema hs) throws Exception {
+      if (objList == null){
+          return null;
+        }
+        Tuple t = new DefaultTuple();
+        List<HowlFieldSchema> subFields = hs.getFields();
+        for (int i = 0; i < subFields.size(); i++){
+          t.append(
+                extractPigObject(objList.get(i), subFields.get(i))
+              );
+        }
+        return t;
+  }
+
+  public static Map<String,Object> transformToPigMap(Map<String,Object> map, HowlFieldSchema hfs) throws Exception {
+      return map;
+    }
+
+  @SuppressWarnings("unchecked")
+  public static DataBag transformToBag(List<? extends Object> list, HowlFieldSchema hfs) throws Exception {
     if (list == null){
       return null;
     }
 
-    HowlTypeInfo elementTypeInfo;
-    if ((elementTypeInfo = hti.getListElementTypeInfo()).getType() == Type.STRUCT){
+    HowlFieldSchema elementSubFieldSchema = hfs.getArrayElementSchema().getFields().get(0);
+    if (elementSubFieldSchema.getType() == Type.STRUCT){
       DataBag db = new DefaultDataBag();
       for (Object o : list){
-        db.add(transformToTuple((List<Object>)o,elementTypeInfo));
+        db.add(transformToTuple((List<Object>)o,elementSubFieldSchema));
       }
       return db;
-    }else {
+    } else {
       return  new HowlArrayBag(list);
     }
   }
 
+  
   public static void validateHowlTableSchemaFollowsPigRules(HowlSchema howlTableSchema) throws IOException {
-    HowlTypeInfo tableTypeInfo = HowlTypeInfoUtils.getHowlTypeInfo(howlTableSchema);
-    if (tableTypeInfo.getType() != Type.STRUCT){
-      throw new PigException("Table level schema was not a struct type schema!");
-    }
-    for (HowlTypeInfo hti : tableTypeInfo.getAllStructFieldTypeInfos()){
-      Type htype = hti.getType();
-      if (htype == Type.ARRAY){
-        validateIsPigCompatibleArrayWithPrimitivesOrSimpleComplexTypes(hti);
-      }else if (htype == Type.STRUCT){
-        validateIsPigCompatibleStructWithPrimitives(hti);
-      }else if (htype == Type.MAP){
-        validateIsPigCompatibleMapWithPrimitives(hti);
-      }else {
-        validateIsPigCompatiblePrimitive(hti);
+      for (HowlFieldSchema hfs : howlTableSchema.getFields()){
+          Type htype = hfs.getType();
+          if (htype == Type.ARRAY){
+              validateIsPigCompatibleArrayWithPrimitivesOrSimpleComplexTypes(hfs);
+          }else if (htype == Type.STRUCT){
+              validateIsPigCompatibleStructWithPrimitives(hfs);
+          }else if (htype == Type.MAP){
+              validateIsPigCompatibleMapWithPrimitives(hfs);
+          }else {
+              validateIsPigCompatiblePrimitive(hfs);
+          }
       }
-    }
   }
 
   private static void validateIsPigCompatibleArrayWithPrimitivesOrSimpleComplexTypes(
-      HowlTypeInfo hti) throws IOException {
-    HowlTypeInfo subTypeInfo = hti.getListElementTypeInfo();
-    if (subTypeInfo.getType() == Type.STRUCT){
-      validateIsPigCompatibleStructWithPrimitives(subTypeInfo);
-    } else if (subTypeInfo.getType() == Type.MAP) {
-      validateIsPigCompatiblePrimitive(subTypeInfo.getMapValueTypeInfo());
-    }
+          HowlFieldSchema hfs) throws IOException {
+      HowlFieldSchema subFieldSchema = hfs.getArrayElementSchema().getFields().get(0);
+      if (subFieldSchema.getType() == Type.STRUCT){
+          validateIsPigCompatibleStructWithPrimitives(subFieldSchema);
+      }else if (subFieldSchema.getType() == Type.MAP) {
+          validateIsPigCompatiblePrimitive(subFieldSchema.getMapValueSchema().getFields().get(0));
+      }else {
+          validateIsPigCompatiblePrimitive(subFieldSchema);
+      }
   }
 
-  private static void validateIsPigCompatibleMapWithPrimitives(HowlTypeInfo hti) throws IOException{
-    if ( hti.getMapKeyTypeInfo().getType() != Type.STRING){
-      throw new PigException("Incompatible type in schema, found map with " +
-      		"non-string key type in :"+hti.getTypeString(), PIG_EXCEPTION_CODE);
-    }
-    validateIsPigCompatiblePrimitive(hti.getMapValueTypeInfo());
+  private static void validateIsPigCompatibleMapWithPrimitives(HowlFieldSchema hfs) throws IOException{
+      if (hfs.getMapKeyType() != Type.STRING){
+          throw new PigException("Incompatible type in schema, found map with " +
+                  "non-string key type in :"+hfs.getTypeString(), PIG_EXCEPTION_CODE);
+      }
+      validateIsPigCompatiblePrimitive(hfs.getMapValueSchema().getFields().get(0));
   }
 
-  private static void validateIsPigCompatibleStructWithPrimitives(HowlTypeInfo hti)
-      throws IOException {
-    for (HowlTypeInfo subFieldType : hti.getAllStructFieldTypeInfos()){
-      validateIsPigCompatiblePrimitive(subFieldType);
-    }
+  private static void validateIsPigCompatibleStructWithPrimitives(HowlFieldSchema hfs) throws IOException {
+      for ( HowlFieldSchema subField : hfs.getStructSubSchema().getFields()){
+          validateIsPigCompatiblePrimitive(subField);
+      }
   }
+  
+  private static void validateIsPigCompatiblePrimitive(HowlFieldSchema hfs) throws IOException {
+      Type htype = hfs.getType();
+      if (
+              (hfs.isComplex()) ||
+              (htype == Type.TINYINT) ||
+              (htype == Type.SMALLINT)
+              ){
+            throw new PigException("Incompatible type in schema, expected pig " +
+                      "compatible primitive for:" + hfs.getTypeString());
+          }
 
-  private static void validateIsPigCompatiblePrimitive(HowlTypeInfo hti) throws IOException {
-    Type htype = hti.getType();
-    if (
-        (HowlTypeInfoUtils.isComplex(htype)) ||
-        (htype == Type.TINYINT) ||
-        (htype == Type.SMALLINT)
-        ){
-      throw new PigException("Incompatible type in schema, expected pig " +
-      		"compatible primitive for:" + hti.getTypeString());
-    }
   }
 
 }
