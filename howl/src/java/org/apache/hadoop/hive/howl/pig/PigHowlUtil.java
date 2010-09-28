@@ -47,7 +47,6 @@ import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.UDFContext;
 
-@SuppressWarnings("deprecation")
 public class PigHowlUtil {
 
   public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
