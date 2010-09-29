@@ -151,6 +151,9 @@ public class HiveConf extends Configuration {
     METASTORE_INT_EXTRACTED("hive.metastore.archive.intermediate.extracted",
         "_INTERMEDIATE_EXTRACTED"),
 
+    // Default parameters for creating tables
+    NEWTABLEDEFAULTPARA("hive.table.parameters.default",""),
+
     // CLI
     CLIIGNOREERRORS("hive.cli.errors.ignore", false),
 
@@ -270,6 +273,16 @@ public class HiveConf extends Configuration {
     HIVEOPTSORTMERGEBUCKETMAPJOIN("hive.optimize.bucketmapjoin.sortedmerge", false), // try to use sorted merge bucket map join
     HIVEOPTREDUCEDEDUPLICATION("hive.optimize.reducededuplication", true),
 
+    // Statistics
+    HIVESTATSAUTOGATHER("hive.stats.autogather", true),
+    HIVESTATSDBCLASS("hive.stats.dbclass",
+        "jdbc:derby"), // other options are jdbc:mysql and hbase as defined in StatsSetupConst.java
+    HIVESTATSJDBCDRIVER("hive.stats.jdbcdriver",
+        "org.apache.derby.jdbc.EmbeddedDriver"), // JDBC driver specific to the dbclass
+    HIVESTATSDBCONNECTIONSTRING("hive.stats.dbconnectionstring",
+        "jdbc:derby:;databaseName=TempStatsStore;create=true"), // automatically create database
+
+    // Concurrency
     HIVE_SUPPORT_CONCURRENCY("hive.support.concurrency", false),
     HIVE_LOCK_MANAGER("hive.lock.manager", "org.apache.hadoop.hive.ql.lockmgr.zookeeper.ZooKeeperHiveLockManager"),
     HIVE_LOCK_NUMRETRIES("hive.lock.numretries", 100),
@@ -288,6 +301,8 @@ public class HiveConf extends Configuration {
     HIVEHARPARENTDIRSETTABLE("hive.archive.har.parentdir.settable", false),
     HIVEOUTERJOINSUPPORTSFILTERS("hive.outerjoin.supports.filters", true),
 
+    // Serde for FetchTask
+    HIVEFETCHOUTPUTSERDE("hive.fetch.output.serde", "org.apache.hadoop.hive.serde2.DelimitedJSONSerDe")
     ;
 
 

@@ -77,6 +77,15 @@ Trunk -  Unreleased
     HIVE-1609. Support partition filtering in metastore
     (Ajay Kidave via jvs)
 
+    HIVE-1661. Default values for parameters
+    (Siying Dong via He Yongqiang)
+
+    HIVE-1659. parse_url_tuple: a UDTF version of parse_url
+    (Xing Jin via Ning Zhang)
+
+    HIVE-1361. table/partition level statistics
+    (Ning Zhang, Ahmed M Aly via He Yongqiang)
+
   IMPROVEMENTS
 
     HIVE-1394. Do not update transient_lastDdlTime if the partition is modified by a housekeeping
@@ -147,6 +156,9 @@ Trunk -  Unreleased
     HIVE-1628. Fix Base64TextInputFormat to be compatible with commons
     codec 1.4
     (Todd Lipcon via jvs)
+
+    HIVE-1378. Return value for map, array, and struct needs to return a string
+    (Steven Wong via Ning Zhang)
 
   OPTIMIZATIONS
 
@@ -290,6 +302,12 @@ Trunk -  Unreleased
 
     HIVE-1655.  Adding consistency check at jobClose() when committing dynamic
     partitions (Ning Zhang via namit)
+
+    HIVE-1664. Eclipse build broken
+    (Steven Wong via jvs)
+
+    HIVE-1671 multithreading on Context.pathToCS
+    (Bennie Schut via namit)
 
   TESTS
 
