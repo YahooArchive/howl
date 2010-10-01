@@ -28,8 +28,10 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.MiniCluster;
 import org.apache.hadoop.hive.ql.Driver;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.UDFContext;
 
 public class TestHowlStorer extends TestCase {
@@ -115,7 +117,9 @@ public class TestHowlStorer extends TestCase {
       server.executeBatch();
     }
     catch(FrontendException fe){
-      assertEquals(PigHowlUtil.PIG_EXCEPTION_CODE, fe.getErrorCode());
+      PigException pe = LogUtils.getPigException(fe);
+      assertEquals(PigHowlUtil.PIG_EXCEPTION_CODE, pe.getErrorCode());
+      assertTrue(pe.getMessage().contains("Column name for a field is not specified. Please provide the full schema as an argument to HowlStorer."));
       errCaught = true;
     }
     assertTrue(errCaught);
@@ -128,7 +132,9 @@ public class TestHowlStorer extends TestCase {
       server.executeBatch();
     }
     catch(FrontendException fe){
-      assertEquals(PigHowlUtil.PIG_EXCEPTION_CODE, fe.getErrorCode());
+      PigException pe = LogUtils.getPigException(fe);
+      assertEquals(PigHowlUtil.PIG_EXCEPTION_CODE, pe.getErrorCode());
+      assertTrue(pe.getMessage().contains("Column names should all be in lowercase. Invalid name found: B"));
       errCaught = true;
     }
     driver.run("drop table junit_parted");
