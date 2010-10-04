@@ -201,7 +201,7 @@ public class PigHowlUtil {
     // more naturally translates to the tuple - in the first case (array<Type>)
     // we simulate the tuple by putting the single field in a tuple
     ResourceFieldSchema[] bagSubFieldSchemas = new ResourceFieldSchema[1];
-    bagSubFieldSchemas[0] = new ResourceFieldSchema().setName("innerTuple")
+    bagSubFieldSchemas[0] = new ResourceFieldSchema().setName("innertuple")
       .setDescription("The tuple in the bag")
       .setType(DataType.TUPLE);
     HowlFieldSchema arrayElementFieldSchema = hfs.getArrayElementSchema().get(0);
@@ -209,7 +209,7 @@ public class PigHowlUtil {
       bagSubFieldSchemas[0].setSchema(getTupleSubSchema(arrayElementFieldSchema));
     } else {
       ResourceFieldSchema[] innerTupleFieldSchemas = new ResourceFieldSchema[1];
-      innerTupleFieldSchemas[0] = new ResourceFieldSchema().setName("innerField")
+      innerTupleFieldSchemas[0] = new ResourceFieldSchema().setName("innerfield")
         .setDescription("The inner field in the tuple in the bag")
         .setType(getPigType(arrayElementFieldSchema))
         .setSchema(null); // the element type is not a tuple - so no subschema
@@ -238,7 +238,7 @@ public class PigHowlUtil {
   static public byte getPigType(HowlFieldSchema hfs) throws IOException {
     return getPigType(hfs.getType());
   }
-  
+
   static public byte getPigType(Type type) throws IOException {
     String errMsg;
 
@@ -305,7 +305,7 @@ public static Object extractPigObject(Object o, HowlFieldSchema hfs) throws Exce
       }
       return null; // never invoked.
   }
-  
+
   public static Tuple transformToTuple(List<? extends Object> objList, HowlFieldSchema hfs) throws Exception {
       try {
           return transformToTuple(objList,hfs.getStructSubSchema());
@@ -317,7 +317,7 @@ public static Object extractPigObject(Object o, HowlFieldSchema hfs) throws Exce
           }
       }
   }
-  
+
   public static Tuple transformToTuple(List<? extends Object> objList, HowlSchema hs) throws Exception {
       if (objList == null){
           return null;
@@ -354,7 +354,7 @@ public static Object extractPigObject(Object o, HowlFieldSchema hfs) throws Exce
     }
   }
 
-  
+
   public static void validateHowlTableSchemaFollowsPigRules(HowlSchema howlTableSchema) throws IOException {
       for (HowlFieldSchema hfs : howlTableSchema.getFields()){
           Type htype = hfs.getType();
@@ -395,7 +395,7 @@ public static Object extractPigObject(Object o, HowlFieldSchema hfs) throws Exce
           validateIsPigCompatiblePrimitive(subField);
       }
   }
-  
+
   private static void validateIsPigCompatiblePrimitive(HowlFieldSchema hfs) throws IOException {
       Type htype = hfs.getType();
       if (
