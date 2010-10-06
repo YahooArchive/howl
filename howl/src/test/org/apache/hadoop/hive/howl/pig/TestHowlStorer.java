@@ -116,8 +116,9 @@ public class TestHowlStorer extends TestCase {
       server.registerQuery("store B into 'junit_parted' using org.apache.hadoop.hive.howl.pig.HowlStorer('ds=20100101');");
       server.executeBatch();
     }
-    catch(FrontendException fe){
+    catch(PigException fe){
       PigException pe = LogUtils.getPigException(fe);
+      assertTrue(pe instanceof FrontendException);
       assertEquals(PigHowlUtil.PIG_EXCEPTION_CODE, pe.getErrorCode());
       assertTrue(pe.getMessage().contains("Column name for a field is not specified. Please provide the full schema as an argument to HowlStorer."));
       errCaught = true;
@@ -131,8 +132,9 @@ public class TestHowlStorer extends TestCase {
       server.registerQuery("store B into 'junit_parted' using org.apache.hadoop.hive.howl.pig.HowlStorer('ds=20100101');");
       server.executeBatch();
     }
-    catch(FrontendException fe){
+    catch(PigException fe){
       PigException pe = LogUtils.getPigException(fe);
+      assertTrue(pe instanceof FrontendException);
       assertEquals(PigHowlUtil.PIG_EXCEPTION_CODE, pe.getErrorCode());
       assertTrue(pe.getMessage().contains("Column names should all be in lowercase. Invalid name found: B"));
       errCaught = true;
