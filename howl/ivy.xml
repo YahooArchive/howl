@@ -19,12 +19,7 @@
     </configurations>
 
     <dependencies>
-        <!--
-        <dependency org="hadoop" name="core" rev="${hadoop.version.ant-internal}">
-            <artifact name="hadoop" type="source" ext="tar.gz"/>
-        </dependency> 
-        <dependency org="junit" name="junit" rev="${junit.version}" conf="common->default"/>
-        -->
         <dependency org="commons-daemon" name="commons-daemon" rev="${commons-daemon.version}" conf="common->default"/>
+	<dependency org="org.apache.hadoop" name="pig" rev="0.8.0-SNAPSHOT" conf="common->master" />
     </dependencies>
 </ivy-module>
