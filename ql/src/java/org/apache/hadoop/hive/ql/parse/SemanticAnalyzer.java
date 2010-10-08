@@ -29,9 +29,9 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -92,7 +92,6 @@ import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.optimizer.GenMRFileSink1;
 import org.apache.hadoop.hive.ql.optimizer.GenMROperator;
 import org.apache.hadoop.hive.ql.optimizer.GenMRProcContext;
-import org.apache.hadoop.hive.ql.optimizer.GenMRProcContext.GenMapRedCtx;
 import org.apache.hadoop.hive.ql.optimizer.GenMRRedSink1;
 import org.apache.hadoop.hive.ql.optimizer.GenMRRedSink2;
 import org.apache.hadoop.hive.ql.optimizer.GenMRRedSink3;
@@ -102,6 +101,7 @@ import org.apache.hadoop.hive.ql.optimizer.GenMRUnion1;
 import org.apache.hadoop.hive.ql.optimizer.GenMapRedUtils;
 import org.apache.hadoop.hive.ql.optimizer.MapJoinFactory;
 import org.apache.hadoop.hive.ql.optimizer.Optimizer;
+import org.apache.hadoop.hive.ql.optimizer.GenMRProcContext.GenMapRedCtx;
 import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalContext;
 import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalOptimizer;
 import org.apache.hadoop.hive.ql.optimizer.ppr.PartitionPruner;
@@ -121,7 +121,6 @@ import org.apache.hadoop.hive.ql.plan.ExtractDesc;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.FilterDesc;
-import org.apache.hadoop.hive.ql.plan.FilterDesc.sampleDesc;
 import org.apache.hadoop.hive.ql.plan.ForwardDesc;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
@@ -143,11 +142,13 @@ import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.ql.plan.UDTFDesc;
 import org.apache.hadoop.hive.ql.plan.UnionDesc;
+import org.apache.hadoop.hive.ql.plan.FilterDesc.sampleDesc;
 import org.apache.hadoop.hive.ql.session.SessionState;
+import org.apache.hadoop.hive.ql.session.SessionState.ResourceType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.Mode;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFHash;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.Mode;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.MetadataTypedColumnsetSerDe;
@@ -155,9 +156,9 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -1372,33 +1373,30 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return HiveConf.getColumnInternalName(pos);
   }
 
-  /**
-   * If the user script command needs any modifications - do it here.
-   */
-  private String getFixedCmd(String cmd) {
+  private String getScriptProgName(String cmd) {
+    int end = cmd.indexOf(" ");
+    return (end == -1) ? cmd : cmd.substring(0, end);
+  }
+
+  private String getScriptArgs(String cmd) {
+    int end = cmd.indexOf(" ");
+    return (end == -1) ? "" : cmd.substring(end, cmd.length());
+  }
+
+  private String fetchFilesNotInLocalFilesystem(String cmd) {
     SessionState ss = SessionState.get();
-    if (ss == null) {
-      return cmd;
-    }
+    String progName = getScriptProgName(cmd);
 
-    // for local mode - replace any references to packaged files by name with
-    // the reference to the original file path
-    if (ss.getConf().get("mapred.job.tracker", "local").equals("local")) {
-      Set<String> files = ss
-          .list_resource(SessionState.ResourceType.FILE, null);
-      if ((files != null) && !files.isEmpty()) {
-        int end = cmd.indexOf(" ");
-        String prog = (end == -1) ? cmd : cmd.substring(0, end);
-        String args = (end == -1) ? "" : cmd.substring(end, cmd.length());
-
-        for (String oneFile : files) {
-          Path p = new Path(oneFile);
-          if (p.getName().equals(prog)) {
-            cmd = oneFile + args;
-            break;
-          }
-        }
+    if (progName.matches("("+ SessionState.getMatchingSchemaAsRegex() +")://.*")) {
+      String filePath = ss.add_resource(ResourceType.FILE, progName, true);
+      if (filePath == null) {
+        throw new RuntimeException("Could not download the resource: " + progName);
       }
+      Path p = new Path(filePath);
+      String fileName = p.getName();
+      String scriptArgs = getScriptArgs(cmd);
+      String finalCmd = fileName + scriptArgs;
+      return finalCmd;
     }
 
     return cmd;
@@ -1638,8 +1636,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     Operator output = putOpInsertMap(OperatorFactory.getAndMakeChild(
         new ScriptDesc(
-        getFixedCmd(stripQuotes(trfm.getChild(execPos).getText())), inInfo,
-        inRecordWriter, outInfo, outRecordReader, errRecordReader, errInfo),
+        fetchFilesNotInLocalFilesystem(stripQuotes(trfm.getChild(execPos).getText())),
+        inInfo, inRecordWriter, outInfo, outRecordReader, errRecordReader, errInfo),
         new RowSchema(out_rwsch.getColumnInfos()), input), out_rwsch);
 
     return output;
@@ -3350,7 +3348,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         }
         dpCtx = qbm.getDPCtx(dest);
         if (dpCtx == null) {
-          validatePartSpec(dest_tab, partSpec);
+          // validatePartSpec(dest_tab, partSpec);
           dpCtx = new DynamicPartitionCtx(dest_tab, partSpec,
               conf.getVar(HiveConf.ConfVars.DEFAULTPARTITIONNAME),
               conf.getIntVar(HiveConf.ConfVars.DYNAMICPARTITIONMAXPARTSPERNODE));
@@ -3649,19 +3647,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return output;
   }
 
-  private void validatePartSpec(Table tbl, Map<String, String> partSpec)
-      throws SemanticException {
-    List<FieldSchema> parts = tbl.getPartitionKeys();
-    Set<String> partCols = new HashSet<String>(parts.size());
-    for (FieldSchema col: parts) {
-      partCols.add(col.getName());
-    }
-    for (String col: partSpec.keySet()) {
-      if (!partCols.contains(col)) {
-        throw new SemanticException(ErrorMsg.NONEXISTPARTCOL.getMsg());
-      }
-    }
-  }
 
   /**
    * Generate the conversion SelectOperator that converts the columns into the
@@ -6890,6 +6875,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
               shared.serdeProps);
         }
         break;
+
+      case HiveParser.TOK_FILEFORMAT_GENERIC:
+        handleGenericFileFormat(child);
+        break;
+
       default:
         assert false;
       }
