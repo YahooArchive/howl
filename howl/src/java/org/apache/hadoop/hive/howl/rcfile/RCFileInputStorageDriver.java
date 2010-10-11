@@ -12,9 +12,6 @@ import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
@@ -41,7 +38,6 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.util.StringUtils;
 
 public class RCFileInputStorageDriver extends HowlInputStorageDriver{
 
@@ -63,58 +59,7 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
   @Override
   public void setInputPath(JobContext jobContext, String location) throws IOException {
 
-    // ideally we should just call FileInputFormat.setInputPaths() here - but
-    // that won't work since FileInputFormat.setInputPaths() needs
-    // a Job object instead of a JobContext which we are handed here
-
-    int length = location.length();
-    int curlyOpen = 0;
-    int pathStart = 0;
-    boolean globPattern = false;
-    List<String> pathStrings = new ArrayList<String>();
-
-    for (int i=0; i<length; i++) {
-      char ch = location.charAt(i);
-      switch(ch) {
-      case '{' : {
-        curlyOpen++;
-        if (!globPattern) {
-          globPattern = true;
-        }
-        break;
-      }
-      case '}' : {
-        curlyOpen--;
-        if (curlyOpen == 0 && globPattern) {
-          globPattern = false;
-        }
-        break;
-      }
-      case ',' : {
-        if (!globPattern) {
-          pathStrings.add(location.substring(pathStart, i));
-          pathStart = i + 1 ;
-        }
-        break;
-      }
-      }
-    }
-    pathStrings.add(location.substring(pathStart, length));
-
-    Path[] paths = StringUtils.stringToPath(pathStrings.toArray(new String[0]));
-
-    Configuration conf = jobContext.getConfiguration();
-
-    FileSystem fs = FileSystem.get(conf);
-    Path path = paths[0].makeQualified(fs);
-    StringBuilder str = new StringBuilder(StringUtils.escapeString(path.toString()));
-    for(int i = 1; i < paths.length;i++) {
-      str.append(StringUtils.COMMA_STR);
-      path = paths[i].makeQualified(fs);
-      str.append(StringUtils.escapeString(path.toString()));
-    }
-
-    conf.set("mapred.input.dir", str.toString());
+    super.setInputPath(jobContext, location);
   }
 
   @Override
