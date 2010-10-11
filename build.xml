@@ -97,7 +97,7 @@
       <subant target="@{target}">
         <property name="build.dir.hive" location="${build.dir.hive}"/>
         <property name="is-offline" value="${is-offline}"/>
-        <filelist dir="." files="ant/build.xml,shims/build.xml,common/build.xml,serde/build.xml,metastore/build.xml,ql/build.xml,howl/build.xml,cli/build.xml,contrib/build.xml,service/build.xml,jdbc/build.xml,hwi/build.xml${hbase.iterate},ant/build.xml"/>
+        <filelist dir="." files="ant/build.xml,shims/build.xml,common/build.xml,serde/build.xml,metastore/build.xml,ql/build.xml,cli/build.xml,contrib/build.xml,service/build.xml,jdbc/build.xml,hwi/build.xml${hbase.iterate},ant/build.xml,howl/build.xml"/>
       </subant>
     </sequential>
   </macrodef>
@@ -108,7 +108,7 @@
       <subant target="@{target}">
         <property name="build.dir.hive" location="${build.dir.hive}"/>
         <property name="is-offline" value="${is-offline}"/>
-        <filelist dir="." files="shims/build.xml,common/build.xml,serde/build.xml,metastore/build.xml,ql/build.xml,howl/build.xml,cli/build.xml,contrib/build.xml,service/build.xml,jdbc/build.xml,hwi/build.xml${hbase.iterate}"/>
+        <filelist dir="." files="shims/build.xml,common/build.xml,serde/build.xml,metastore/build.xml,ql/build.xml,cli/build.xml,contrib/build.xml,service/build.xml,jdbc/build.xml,hwi/build.xml${hbase.iterate},howl/build.xml"/>
       </subant>
     </sequential>
   </macrodef>
