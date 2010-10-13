@@ -20,7 +20,7 @@ public class TestHowlSchemaUtils extends TestCase {
         
         TypeInfo ti = TypeInfoUtils.getTypeInfoFromTypeString(typeString);
 
-        HowlSchema hsch = HowlSchemaUtils.getHowlSchema(typeString);
+        HowlSchema hsch = HowlSchemaUtils.getHowlSchemaFromTypeString(typeString);
         System.out.println(ti.getTypeName());
         System.out.println(hsch.toString());
         assertEquals(ti.getTypeName(),hsch.toString());

@@ -197,8 +197,13 @@ public class HowlSchemaUtils {
         }
     }
 
-    public static HowlSchema getHowlSchema(String typeString) throws HowlException {
+    public static HowlSchema getHowlSchemaFromTypeString(String typeString) throws HowlException {
         return getHowlSchema(TypeInfoUtils.getTypeInfoFromTypeString(typeString));
+    }
+    
+    public static HowlSchema getHowlSchema(String schemaString) throws HowlException {
+        HowlSchema outerSchema = getHowlSchemaFromTypeString("struct<"+schemaString+">");
+        return outerSchema.get(0).getStructSubSchema();
     }
 
     public static FieldSchema getFieldSchema(HowlFieldSchema howlFieldSchema){
