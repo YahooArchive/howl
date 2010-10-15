@@ -304,6 +304,32 @@ public class TestHowlLoader extends TestCase {
       }
     }
     assertEquals(valuesReadFromHiveDriver.size(),valuesRead.size());
+
+    server.registerQuery("P1 = load '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+    server.registerQuery("P1filter = filter P1 by bkt == '0';");
+    Iterator<Tuple> P1Iter = server.openIterator("P1filter");
+    int count1 = 0;
+    while( P1Iter.hasNext() ) {
+      Tuple t = P1Iter.next();
+
+      assertEquals("0", t.get(2));
+      assertEquals(1, t.get(0));
+      count1++;
+    }
+    assertEquals(3, count1);
+
+    server.registerQuery("P2 = load '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+    server.registerQuery("P2filter = filter P2 by bkt == '1';");
+    Iterator<Tuple> P2Iter = server.openIterator("P2filter");
+    int count2 = 0;
+    while( P2Iter.hasNext() ) {
+      Tuple t = P2Iter.next();
+
+      assertEquals("1", t.get(2));
+      assertTrue(((Integer) t.get(0)) > 1);
+      count2++;
+    }
+    assertEquals(6, count2);
   }
 
   public void testProjectionsBasic() throws IOException {

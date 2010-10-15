@@ -272,8 +272,11 @@ public abstract class HowlMapReduceTest extends TestCase {
     Assert.assertEquals(writeCount, MapCreate.writeCount);
   }
 
-
   List<HowlRecord> runMRRead(int readCount) throws Exception {
+    return runMRRead(readCount, null);
+  }
+
+  List<HowlRecord> runMRRead(int readCount, String filter) throws Exception {
 
     MapRead.readCount = 0;
     readRecords.clear();
@@ -287,7 +290,8 @@ public abstract class HowlMapReduceTest extends TestCase {
     job.setInputFormatClass(HowlInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
 
-    HowlTableInfo inputInfo = HowlTableInfo.getInputTableInfo(thriftUri, dbName, tableName);
+    HowlTableInfo inputInfo = HowlTableInfo.getInputTableInfo(
+          thriftUri, dbName, tableName, filter);
     HowlInputFormat.setInput(job, inputInfo);
 
     job.setMapOutputKeyClass(BytesWritable.class);

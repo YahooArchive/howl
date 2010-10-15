@@ -87,7 +87,9 @@ public class InitializeInput {
 
       if( table.getPartitionKeys().size() != 0 ) {
         //Partitioned table
-        List<Partition> parts = client.listPartitions(inputInfo.getDatabaseName(), inputInfo.getTableName(), MAX_PARTS);
+        List<Partition> parts = client.listPartitionsByFilter(
+            inputInfo.getDatabaseName(), inputInfo.getTableName(),
+            inputInfo.getFilter(), (short) -1);
 
         // populate partition info
         for (Partition ptn : parts){

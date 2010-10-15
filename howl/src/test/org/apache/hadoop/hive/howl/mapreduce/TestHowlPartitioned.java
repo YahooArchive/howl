@@ -130,6 +130,11 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     //Read should get 10 + 20 rows
     runMRRead(30);
 
+    //Read with partition filter
+    runMRRead(10, "part1 = \"p1value1\"");
+    runMRRead(20, "pARt1 = \"p1value2\"");
+    runMRRead(30, "part1 = \"p1value1\" or PART1 = \"p1value2\"");
+
     tableSchemaTest();
     columnOrderChangeTest();
     hiveReadTest();
