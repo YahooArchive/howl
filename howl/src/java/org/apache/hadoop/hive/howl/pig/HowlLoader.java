@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat;
 import org.apache.hadoop.hive.howl.mapreduce.HowlTableInfo;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -40,6 +41,7 @@ import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
+import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
@@ -50,7 +52,7 @@ import org.apache.pig.impl.util.UDFContext;
  * Pig {@link LoadFunc} to read data from Howl
  */
 
-public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
+public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown {
 
   private static final String PRUNE_PROJECTION_INFO = "prune.projection.info";
   private static final String PARTITION_FILTER = "partition.filter"; // for future use
@@ -124,9 +126,11 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     if (!HowlUtil.checkJobContextIfRunningFromBackend(job)){
 
       HowlInputFormat.setInput(job, HowlTableInfo.getInputTableInfo(
-          howlServerUri!=null?howlServerUri:(howlServerUri = PigHowlUtil.getHowlServerUri()),
+              howlServerUri!=null ? howlServerUri :
+                  (howlServerUri = PigHowlUtil.getHowlServerUri()),
               dbName,
-              tableName));
+              tableName,
+              getPartitionFilterString()));
     }
 
     // Need to also push projections by calling setOutputSchema on
@@ -170,17 +174,14 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
   @Override
   public String[] getPartitionKeys(String location, Job job)
   throws IOException {
-    // Right now we don't have partition filtering enabled in howl - so retun null
-    // but when we do have, it the code below should be uncommented.
-    return null;
-    // TODO:UNCOMMENT LATER - see above comment
-//    Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());
-//    List<FieldSchema> tablePartitionKeys = table.getPartitionKeys();
-//    String[] partitionKeys = new String[tablePartitionKeys.size()];
-//    for(int i = 0; i < tablePartitionKeys.size(); i++) {
-//      partitionKeys[i] = tablePartitionKeys.get(i).getName();
-//    }
-//    return partitionKeys;
+    Table table = phutil.getTable(location,
+        howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());
+    List<FieldSchema> tablePartitionKeys = table.getPartitionKeys();
+    String[] partitionKeys = new String[tablePartitionKeys.size()];
+    for(int i = 0; i < tablePartitionKeys.size(); i++) {
+      partitionKeys[i] = tablePartitionKeys.get(i).getName();
+    }
+    return partitionKeys;
   }
 
   @Override
@@ -211,13 +212,12 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     // convert the partition filter expression into a string expected by
     // howl and pass it in setLocation()
 
-    // partitionFilterString = getHowlComparisonString(partitionFilter);
-
-    partitionFilterString = ""; // NOTE : While this was relevant for owl, there's no equivalent for hive metastore(yet).
+    partitionFilterString = getHowlComparisonString(partitionFilter);
 
     // store this in the udf context so we can get it later
     storeInUDFContext(signature,
-        PARTITION_FILTER, partitionFilterString);  }
+        PARTITION_FILTER, partitionFilterString);
+  }
 
   @Override
   public List<OperatorSet> getFeatures() {
@@ -247,6 +247,42 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown{
     Properties props = udfContext.getUDFProperties(
         this.getClass(), new String[] {signature});
     props.put(key, value);
+  }
+
+
+  private String getPartitionFilterString() {
+    if(partitionFilterString == null) {
+      Properties props = UDFContext.getUDFContext().getUDFProperties(
+          this.getClass(), new String[] {signature});
+      partitionFilterString = props.getProperty(PARTITION_FILTER);
+    }
+    return partitionFilterString;
+  }
+
+  private String getHowlComparisonString(Expression expr) {
+    if(expr instanceof BinaryExpression){
+      // call getOwlComparisonString on lhs and rhs, and and join the
+      // results with OpType string
+
+      // we can just use OpType.toString() on all Expression types except
+      // Equal, NotEqualt since Equal has '==' in toString() and
+      // we need '='
+      String opStr = null;
+      switch(expr.getOpType()){
+        case OP_EQ :
+          opStr = " = ";
+          break;
+        default:
+          opStr = expr.getOpType().toString();
+      }
+      BinaryExpression be = (BinaryExpression)expr;
+      return "(" + getHowlComparisonString(be.getLhs()) +
+                  opStr +
+                  getHowlComparisonString(be.getRhs()) + ")";
+    } else {
+      // should be a constant or column
+      return expr.toString();
+    }
   }
 
 }

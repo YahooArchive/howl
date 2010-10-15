@@ -42,6 +42,9 @@ public class HowlTableInfo implements Serializable {
   private final String dbName;
   private final String tableName;
 
+  /** The partition filter */
+  private String filter;
+
   /** The partition predicates to filter on, an arbitrary AND/OR filter, if used to input from*/
   private final String partitionPredicates;
 
@@ -60,16 +63,30 @@ public class HowlTableInfo implements Serializable {
    */
   public static HowlTableInfo getInputTableInfo(String serverUri, String dbName,
           String tableName) {
-    return new HowlTableInfo(serverUri, dbName, tableName);
+    return new HowlTableInfo(serverUri, dbName, tableName, (String) null);
   }
 
-  private HowlTableInfo(String serverUri, String dbName, String tableName) {
+  /**
+   * Initializes a new HowlTableInfo instance to be used with {@link HowlInputFormat}
+   * for reading data from a table.
+   * @param serverUri the Metadata server uri
+   * @param dbName the db name
+   * @param tableName the table name
+   * @param filter the partition filter
+   */
+  public static HowlTableInfo getInputTableInfo(String serverUri, String dbName,
+          String tableName, String filter) {
+    return new HowlTableInfo(serverUri, dbName, tableName, filter);
+  }
+
+  private HowlTableInfo(String serverUri, String dbName, String tableName, String filter) {
       this.serverUri = serverUri;
       this.dbName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : dbName;
       this.tableName = tableName;
       this.partitionPredicates = null;
       this.partitionValues = null;
       this.tableInfoType = TableInfoType.INPUT_INFO;
+      this.filter = filter;
   }
   /**
    * Initializes a new HowlTableInfo instance to be used with {@link HowlOutputFormat}
@@ -161,6 +178,14 @@ public class HowlTableInfo implements Serializable {
    */
   void setPartitionValues(Map<String, String>  partitionValues) {
     this.partitionValues = partitionValues;
+  }
+
+  /**
+   * Gets the value of partition filter
+   * @return the filter string
+   */
+  public String getFilter() {
+    return filter;
   }
 }
 
