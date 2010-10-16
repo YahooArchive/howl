@@ -202,6 +202,9 @@ public class HowlSchemaUtils {
     }
     
     public static HowlSchema getHowlSchema(String schemaString) throws HowlException {
+        if ((schemaString == null) || (schemaString.trim().isEmpty())){
+            return new HowlSchema(new ArrayList<HowlFieldSchema>()); // empty HSchema construct
+        }
         HowlSchema outerSchema = getHowlSchemaFromTypeString("struct<"+schemaString+">");
         return outerSchema.get(0).getStructSubSchema();
     }
