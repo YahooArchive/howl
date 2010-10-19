@@ -423,7 +423,7 @@ public class Partition implements Serializable {
   public String toString() {
     String pn = "Invalid Partition";
     try {
-      pn = Warehouse.makePartName(getSpec());
+      pn = Warehouse.makePartName(getSpec(), false);
     } catch (MetaException e) {
       // ignore as we most probably in an exception path already otherwise this
       // error wouldn't occur
@@ -488,6 +488,10 @@ public class Partition implements Serializable {
   public ProtectMode getProtectMode(){
     Map<String, String> parameters = tPartition.getParameters();
 
+    if (parameters == null) {
+      return null;
+    }
+
     if (!parameters.containsKey(ProtectMode.PARAMETER_NAME)) {
       return new ProtectMode();
     } else {
@@ -500,7 +504,12 @@ public class Partition implements Serializable {
    * @return True protect mode indicates the partition if offline.
    */
   public boolean isOffline(){
-    return getProtectMode().offline;
+    ProtectMode pm = getProtectMode();
+    if (pm == null) {
+      return false;
+    } else {
+      return pm.offline;
+    }
   }
 
   /**

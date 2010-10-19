@@ -85,6 +85,8 @@ TOK_STRING;
 TOK_LIST;
 TOK_STRUCT;
 TOK_MAP;
+TOK_UNIONTYPE;
+TOK_COLTYPELIST;
 TOK_CREATEDATABASE;
 TOK_CREATETABLE;
 TOK_CREATEINDEX;
@@ -622,7 +624,7 @@ partTypeExpr
 descStatement
 @init { msgs.push("describe statement"); }
 @after { msgs.pop(); }
-    : (KW_DESCRIBE|KW_DESC) (isExtended=KW_EXTENDED)? (parttype=partTypeExpr) -> ^(TOK_DESCTABLE $parttype $isExtended?)
+    : (KW_DESCRIBE|KW_DESC) (descOptions=KW_FORMATTED|descOptions=KW_EXTENDED)? (parttype=partTypeExpr) -> ^(TOK_DESCTABLE $parttype $descOptions?)
     | (KW_DESCRIBE|KW_DESC) KW_FUNCTION KW_EXTENDED? (name=descFuncNames) -> ^(TOK_DESCFUNCTION $name KW_EXTENDED?)
     ;
     
@@ -949,11 +951,18 @@ colType
     : type
     ;
 
+colTypeList
+@init { msgs.push("column type list"); }
+@after { msgs.pop(); }
+    : colType (COMMA colType)* -> ^(TOK_COLTYPELIST colType+)
+    ;
+
 type
     : primitiveType
     | listType
     | structType
-    | mapType;
+    | mapType 
+    | unionType;
 
 primitiveType
 @init { msgs.push("primitive type specification"); }
@@ -988,6 +997,12 @@ mapType
 @after { msgs.pop(); }
     : KW_MAP LESSTHAN left=primitiveType COMMA right=type GREATERTHAN
     -> ^(TOK_MAP $left $right)
+    ;
+
+unionType
+@init { msgs.push("uniontype type"); }
+@after { msgs.pop(); }
+    : KW_UNIONTYPE LESSTHAN colTypeList GREATERTHAN -> ^(TOK_UNIONTYPE colTypeList)
     ;
 
 queryOperator
@@ -1414,7 +1429,7 @@ functionName
 @init { msgs.push("function name"); }
 @after { msgs.pop(); }
     : // Keyword IF is also a function name
-    Identifier | KW_IF | KW_ARRAY | KW_MAP | KW_STRUCT
+    Identifier | KW_IF | KW_ARRAY | KW_MAP | KW_STRUCT | KW_UNIONTYPE
     ;
 
 castExpression
@@ -1664,6 +1679,7 @@ sysFuncNames
     | KW_ARRAY
     | KW_MAP
     | KW_STRUCT
+    | KW_UNIONTYPE
     | EQUAL
     | NOTEQUAL
     | LESSTHANOREQUALTO
@@ -1773,6 +1789,7 @@ KW_STRING: 'STRING';
 KW_ARRAY: 'ARRAY';
 KW_STRUCT: 'STRUCT';
 KW_MAP: 'MAP';
+KW_UNIONTYPE: 'UNIONTYPE';
 KW_REDUCE: 'REDUCE';
 KW_PARTITIONED: 'PARTITIONED';
 KW_CLUSTERED: 'CLUSTERED';
@@ -1819,6 +1836,7 @@ KW_TEMPORARY: 'TEMPORARY';
 KW_FUNCTION: 'FUNCTION';
 KW_EXPLAIN: 'EXPLAIN';
 KW_EXTENDED: 'EXTENDED';
+KW_FORMATTED: 'FORMATTED';	 
 KW_SERDE: 'SERDE';
 KW_WITH: 'WITH';
 KW_DEFERRED: 'DEFERRED';

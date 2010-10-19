@@ -106,6 +106,7 @@ import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalContext;
 import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalOptimizer;
 import org.apache.hadoop.hive.ql.optimizer.ppr.PartitionPruner;
 import org.apache.hadoop.hive.ql.optimizer.unionproc.UnionProcContext;
+import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer.tableSpec.SpecType;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.ql.plan.CreateTableDesc;
 import org.apache.hadoop.hive.ql.plan.CreateTableLikeDesc;
@@ -702,6 +703,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         // Allow analyze the whole table and dynamic partitions
         HiveConf.setVar(conf, HiveConf.ConfVars.DYNAMICPARTITIONINGMODE, "nonstrict");
         HiveConf.setVar(conf, HiveConf.ConfVars.HIVEMAPREDMODE, "nonstrict");
+
         break;
 
       case HiveParser.TOK_UNION:
@@ -784,6 +786,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
         if (qb.getParseInfo().isAnalyzeCommand()) {
           tableSpec ts = new tableSpec(db, conf, (ASTNode) ast.getChild(0));
+          if (ts.specType == SpecType.DYNAMIC_PARTITION) { // dynamic partitions
+            try {
+              ts.partitions = db.getPartitionsByNames(ts.tableHandle, ts.partSpec);
+            } catch (HiveException e) {
+              throw new SemanticException("Cannot get partitions for " + ts.partSpec, e);
+            }
+          }
           qb.getParseInfo().addTableSpec(alias, ts);
         }
       }
@@ -818,8 +827,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           // tableSpec ts is got from the query (user specified),
           // which means the user didn't specify partitions in their query,
           // but whether the table itself is partitioned is not know.
-          if (ts.partHandle == null) {
-            // This is a table
+          if (ts.specType != SpecType.STATIC_PARTITION) {
+            // This is a table or dynamic partition
             qb.getMetaData().setDestForAlias(name, ts.tableHandle);
             // has dynamic as well as static partitions
             if (ts.partSpec != null && ts.partSpec.size() > 0) {
@@ -3348,7 +3357,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         }
         dpCtx = qbm.getDPCtx(dest);
         if (dpCtx == null) {
-          // validatePartSpec(dest_tab, partSpec);
+          Utilities.validatePartSpec(dest_tab, partSpec);
           dpCtx = new DynamicPartitionCtx(dest_tab, partSpec,
               conf.getVar(HiveConf.ConfVars.DEFAULTPARTITIONNAME),
               conf.getIntVar(HiveConf.ConfVars.DYNAMICPARTITIONMAXPARTSPERNODE));
@@ -3426,8 +3435,14 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
       dest_part = qbm.getDestPartitionForAlias(dest);
       dest_tab = dest_part.getTable();
+      Path tabPath = dest_tab.getPath();
+      Path partPath = dest_part.getPartitionPath(); 
+      
+        // if the table is in a different dfs than the partition,
+        // replace the partition's dfs with the table's dfs.
+      dest_path = new Path(tabPath.toUri().getScheme(), tabPath.toUri()
+          .getAuthority(), partPath.toUri().getPath());
 
-      dest_path = dest_part.getPath()[0];
       if ("har".equalsIgnoreCase(dest_path.toUri().getScheme())) {
         throw new SemanticException(ErrorMsg.OVERWRITE_ARCHIVED_PART
             .getMsg());
@@ -3622,7 +3637,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     if (dest_part != null) {
       try {
-        String staticSpec = Warehouse.makePartName(dest_part.getSpec());
+        String staticSpec = Warehouse.makePartPath(dest_part.getSpec());
         fileSinkDesc.setStaticSpec(staticSpec);
       } catch (MetaException e) {
         throw new SemanticException(e);
@@ -5744,16 +5759,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     	  if (partSpec == null) {
     	    throw new SemanticException(ErrorMsg.NEED_PARTITION_SPECIFICATION.getMsg());
     	  }
-    	  // get all partitions that matches with the partition spec
-    	  try {
-    	    List<Partition> partitions = db.getPartitions(tab, partSpec);
+    	  List<Partition> partitions = qbp.getTableSpec().partitions;
+    	  if (partitions != null) {
     	    for (Partition partn : partitions) {
     	      // inputs.add(new ReadEntity(partn)); // is this needed at all?
     	      outputs.add(new WriteEntity(partn));
-    	    }
-    	  } catch (HiveException e) {
-    	    throw new SemanticException(e);
-    	  }
+          }
+        }
     	}
     }
   }
@@ -7136,7 +7148,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     for (ExecDriver mrtask: mrtasks) {
       try {
         ContentSummary inputSummary = Utilities.getInputSummary
-          (ctx, (MapredWork)mrtask.getWork(), p);
+          (ctx, mrtask.getWork(), p);
         int numReducers = getNumberOfReducers(mrtask.getWork(), conf);
 
         if (LOG.isDebugEnabled()) {

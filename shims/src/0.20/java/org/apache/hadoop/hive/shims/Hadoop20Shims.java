@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
+import javax.security.auth.login.LoginException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -48,6 +49,8 @@ import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapred.lib.CombineFileInputFormat;
 import org.apache.hadoop.mapred.lib.CombineFileSplit;
 import org.apache.hadoop.mapred.lib.NullOutputFormat;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.UnixUserGroupInformation;
 import org.apache.hadoop.tools.HadoopArchives;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -435,5 +438,15 @@ public class Hadoop20Shims implements HadoopShims {
     // option to bypass job setup and cleanup was introduced in hadoop-21 (MAPREDUCE-463)
     // but can be backported. So we disable setup/cleanup in all versions >= 0.19
     conf.setBoolean("mapred.committer.job.setup.cleanup.needed", false);
+  }
+
+  @Override
+  public UserGroupInformation getUGIForConf(Configuration conf) throws LoginException {
+    UserGroupInformation ugi =
+      UnixUserGroupInformation.readFromConf(conf, UnixUserGroupInformation.UGI_PROPERTY_NAME);
+    if(ugi == null) {
+      ugi = UserGroupInformation.login(conf);
+    }
+    return ugi;
   }
 }
