@@ -130,17 +130,23 @@ final class CreateTableHook  extends AbstractSemanticAnalyzerHook{
 
   @Override
   public void postAnalyze(HiveSemanticAnalyzerHookContext context, List<Task<? extends Serializable>> rootTasks) throws SemanticException {
-    CreateTableDesc desc = ((DDLTask)rootTasks.get(rootTasks.size()-1)).getWork().getCreateTblDesc();
-    if(desc != null){
-      // Desc will be null if its CREATE TABLE LIKE
-      Map<String,String> tblProps = desc.getTblProps();
-      if(tblProps == null) {
-        // tblProps will be null if user didnt use tblprops in his CREATE TABLE cmd.
-        tblProps = new HashMap<String, String>();
-      }
-      tblProps.put(InitializeInput.HOWL_ISD_CLASS, inStorageDriver);
-      tblProps.put(InitializeInput.HOWL_OSD_CLASS, outStorageDriver);
-      desc.setTblProps(tblProps);
+
+    if(rootTasks.size() == 0){
+      // There will be no DDL task created in case if its CREATE TABLE IF NOT EXISTS
+      return;
     }
+    CreateTableDesc desc = ((DDLTask)rootTasks.get(rootTasks.size()-1)).getWork().getCreateTblDesc();
+    if(desc == null){
+      // Desc will be null if its CREATE TABLE LIKE
+      return;
+    }
+    Map<String,String> tblProps = desc.getTblProps();
+    if(tblProps == null) {
+      // tblProps will be null if user didnt use tblprops in his CREATE TABLE cmd.
+      tblProps = new HashMap<String, String>();
+    }
+    tblProps.put(InitializeInput.HOWL_ISD_CLASS, inStorageDriver);
+    tblProps.put(InitializeInput.HOWL_OSD_CLASS, outStorageDriver);
+    desc.setTblProps(tblProps);
   }
 }
