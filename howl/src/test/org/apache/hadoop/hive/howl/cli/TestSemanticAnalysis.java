@@ -45,6 +45,35 @@ public class TestSemanticAnalysis extends TestCase{
   String query;
   private final String tblName = "junit_sem_analysis";
 
+  public void testCreateTableIfNotExists() throws MetaException, TException, NoSuchObjectException{
+
+    howlDriver.run("drop table "+tblName);
+    howlDriver.run("create table junit_sem_analysis (a int) stored as RCFILE");
+    Table tbl = msc.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tblName);
+    List<FieldSchema> cols = tbl.getSd().getCols();
+    assertEquals(1, cols.size());
+    assertTrue(cols.get(0).equals(new FieldSchema("a", "int", null)));
+    assertEquals("org.apache.hadoop.hive.ql.io.RCFileInputFormat",tbl.getSd().getInputFormat());
+    assertEquals("org.apache.hadoop.hive.ql.io.RCFileOutputFormat",tbl.getSd().getOutputFormat());
+    Map<String, String> tblParams = tbl.getParameters();
+    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver", tblParams.get("howl.isd"));
+    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver", tblParams.get("howl.osd"));
+
+    CommandProcessorResponse resp = howlDriver.run("create table if not exists junit_sem_analysis (a int) stored as RCFILE");
+    assertEquals(0, resp.getResponseCode());
+    assertNull(resp.getErrorMessage());
+    tbl = msc.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tblName);
+    cols = tbl.getSd().getCols();
+    assertEquals(1, cols.size());
+    assertTrue(cols.get(0).equals(new FieldSchema("a", "int",null)));
+    assertEquals("org.apache.hadoop.hive.ql.io.RCFileInputFormat",tbl.getSd().getInputFormat());
+    assertEquals("org.apache.hadoop.hive.ql.io.RCFileOutputFormat",tbl.getSd().getOutputFormat());
+    tblParams = tbl.getParameters();
+    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver", tblParams.get("howl.isd"));
+    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver", tblParams.get("howl.osd"));
+    howlDriver.run("drop table junit_sem_analysis");
+  }
+
   public void testAlterTblTouch(){
 
     howlDriver.run("drop table junit_sem_analysis");
