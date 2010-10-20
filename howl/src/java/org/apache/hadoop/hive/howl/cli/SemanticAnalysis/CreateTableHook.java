@@ -8,7 +8,6 @@ import java.util.Map;
 import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
 import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
 import org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.exec.DDLTask;
 import org.apache.hadoop.hive.ql.exec.Task;
@@ -65,18 +64,21 @@ final class CreateTableHook  extends AbstractSemanticAnalyzerHook{
         "You may specify it through INPUT/OUTPUT storage drivers.");
 
       case HiveParser.TOK_LIKETABLE:
+
         String likeTableName;
         if (child.getChildCount() > 0 && (likeTableName = BaseSemanticAnalyzer.unescapeIdentifier(child.getChild(0).getText())) != null) {
-          Map<String, String> tblProps;
-          try {
-            tblProps = db.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, likeTableName).getParameters();
-          } catch (HiveException he) {
-            throw new SemanticException(he);
-          }
-          if(!(tblProps.containsKey(InitializeInput.HOWL_ISD_CLASS) && tblProps.containsKey(InitializeInput.HOWL_OSD_CLASS))){
-            throw new SemanticException("Operation not supported. Table "+likeTableName+" should have been created through Howl. Seems like its not.");
-          }
-          return ast;
+
+          throw new SemanticException("Operation not supported. CREATE TABLE LIKE is not supported.");
+//          Map<String, String> tblProps;
+//          try {
+//            tblProps = db.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, likeTableName).getParameters();
+//          } catch (HiveException he) {
+//            throw new SemanticException(he);
+//          }
+//          if(!(tblProps.containsKey(InitializeInput.HOWL_ISD_CLASS) && tblProps.containsKey(InitializeInput.HOWL_OSD_CLASS))){
+//            throw new SemanticException("Operation not supported. Table "+likeTableName+" should have been created through Howl. Seems like its not.");
+//          }
+//          return ast;
         }
         break;
 
