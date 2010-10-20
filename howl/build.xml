@@ -36,7 +36,8 @@ to call at top-level: ant deploy-contrib compile-core-test
     <pathelement location="conf"/>
     <pathelement location="${test.src.data.dir}/conf"/>
     <pathelement location="${hive.conf.dir}"/>
-    <pathelement location="${hadoop.test.jar}"/>
+    <pathelement location="${hadoop.oldstyle-name.test.jar}"/>
+    <pathelement location="${hadoop.newstyle-name.test.jar}"/>
     <pathelement location="${common.jar}"/>
     <pathelement location="${jsp.test.jar}"/>
     <pathelement location="${hadoop.root}/lib/jsp-2.1/jsp-api-2.1.jar"/>

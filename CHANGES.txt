@@ -92,8 +92,14 @@ Trunk -  Unreleased
     HIVE-1427. Add metastore schema migration scripts (0.5 -> 0.6)
     (Carl Steinback via namit)
 
-    HIVE-1546 Ability to plug custom Semantic Analyzers for Hive Grammar
+    HIVE-1546. Ability to plug custom Semantic Analyzers for Hive Grammar
     (Ashutosh Chauhan via namit)
+
+    HIVE-537. Hive TypeInfo/ObjectInspector to support union
+    (Amareshwari Sriramadasu via namit)
+
+    HIVE-1709. Add Postgres metastore schema migration scripts (0.5 -> 0.6)
+    (Yuanjun Li via namit)
 
   IMPROVEMENTS
 
@@ -177,6 +183,21 @@ Trunk -  Unreleased
 
     HIVE-1697. Migration scripts should increase size of PARAM_VALUE in
     PARTITION_PARAMS (Paul Yang via namit)
+
+    HIVE-1264. Make Hive work with Hadoop security
+    (Todd Lipcon via jvs)
+
+    HIVE-1701. drop support for pre-0.20 Hadoop versions
+    (jvs via Ning Zhang)
+
+    HIVE-1704. remove Hadoop 0.17 specific test reference logs
+    (jvs via Ning Zhang)
+
+    HIVE-1638. convert commonly used udfs to generic udfs
+    (Siying Dong via namit)
+
+    HIVE-1660. Change get_partitions_ps to pass partition filter to
+    database (Paul Yang via namit)
 
   OPTIMIZATIONS
 
@@ -345,6 +366,31 @@ Trunk -  Unreleased
     HIVE-1376 Simple UDAFs with more than 1 parameter crash on empty row query
     (Ning Zhang via He Yongqiang)
 
+    HIVE-1699 Incorrect partition pruning ANALYZE TABLE
+    (Ning Zhang via namit)
+
+    HIVE-1713 Duplicated MapRedTask in Multi-table inserts mixed with FileSinkOperator
+    and ReduceSinkOperator (Ning Zhang via namit)
+
+    HIVE-307 "LOAD DATA LOCAL INPATH" fails when the table already contains a file of
+    the same name (Kirk True via namit)
+
+    HIVE-1681. ObjectStore.commitTransaction() does not properly handle transactions
+    that have already been rolled back
+    (Carl Steinbach via Ning Zhang)
+
+    HIVE-1717. ant clean should delete stats database
+    (Ning Zhang via namit)
+
+    HIVE-1707. Bug when different partitions are present in different dfs
+    (Yongqiang He via namit)
+
+    HIVE-1720. hbase_stats.q is failing
+    (Ning Zhang via jvs)
+
+    HIVE-1711. CREATE TABLE LIKE should not set stats in the new table
+    (Ning Zhang via namit)
+
   TESTS
 
     HIVE-1464. improve  test query performance
@@ -360,6 +406,9 @@ Trunk -  Unreleased
 
     HIVE-1601. Hadoop 0.17 ant test broken by HIVE-1523
     (Joydeep Sen Sarma via jvs)
+
+    HIVE-1658. Fix describe [extended] column formatting
+    (Thiruvel Thirumoolan via Ning Zhang)
 
 Release 0.6.0 -  Unreleased
 
@@ -601,6 +650,12 @@ Release 0.6.0 -  Unreleased
     (Edward Capriolo via jvs)
 
     HIVE-1531. Make Hive build work with Ivy versions < 2.1.0
+    (Carl Steinbach via jvs)
+
+    HIVE-1725. Include metastore upgrade scripts in release tarball
+    (Carl Steinbach via jvs)
+
+    HIVE-1726. Update README file for 0.6.0 release
     (Carl Steinbach via jvs)
 
   OPTIMIZATIONS
