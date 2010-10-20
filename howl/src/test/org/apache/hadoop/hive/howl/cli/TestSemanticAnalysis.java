@@ -311,8 +311,7 @@ public class TestSemanticAnalysis extends TestCase{
     query = "create table like_table like junit_sem_analysis";
     CommandProcessorResponse response = howlDriver.run(query);
     assertEquals(10,response.getResponseCode());
-    assertEquals("FAILED: Error in semantic analysis: Operation not supported. Table junit_sem_analysis should have been created through Howl. Seems like its not.",
-        response.getErrorMessage());
+    assertEquals("FAILED: Error in semantic analysis: Operation not supported. CREATE TABLE LIKE is not supported.", response.getErrorMessage());
   }
 
   public void testCTLPass() throws IOException, MetaException, TException, NoSuchObjectException{
@@ -329,19 +328,37 @@ public class TestSemanticAnalysis extends TestCase{
     String likeTbl = "like_table";
     howlDriver.run("drop table "+likeTbl);
     query = "create table like_table like junit_sem_analysis";
-    assertEquals(0, howlDriver.run(query).getResponseCode());
-    Table tbl = msc.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, likeTbl);
-    assertEquals(likeTbl,tbl.getTableName());
-    List<FieldSchema> cols = tbl.getSd().getCols();
-    assertEquals(1, cols.size());
-    assertEquals(new FieldSchema("a", "int", null), cols.get(0));
-    assertEquals("org.apache.hadoop.hive.ql.io.RCFileInputFormat",tbl.getSd().getInputFormat());
-    assertEquals("org.apache.hadoop.hive.ql.io.RCFileOutputFormat",tbl.getSd().getOutputFormat());
-    Map<String, String> tblParams = tbl.getParameters();
-    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver", tblParams.get("howl.isd"));
-    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver", tblParams.get("howl.osd"));
-
-    howlDriver.run("drop table junit_sem_analysis");
-    howlDriver.run("drop table "+likeTbl);
+    CommandProcessorResponse resp = howlDriver.run(query);
+    assertEquals(10, resp.getResponseCode());
+    assertEquals("FAILED: Error in semantic analysis: Operation not supported. CREATE TABLE LIKE is not supported.", resp.getErrorMessage());
+//    Table tbl = msc.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, likeTbl);
+//    assertEquals(likeTbl,tbl.getTableName());
+//    List<FieldSchema> cols = tbl.getSd().getCols();
+//    assertEquals(1, cols.size());
+//    assertEquals(new FieldSchema("a", "int", null), cols.get(0));
+//    assertEquals("org.apache.hadoop.hive.ql.io.RCFileInputFormat",tbl.getSd().getInputFormat());
+//    assertEquals("org.apache.hadoop.hive.ql.io.RCFileOutputFormat",tbl.getSd().getOutputFormat());
+//    Map<String, String> tblParams = tbl.getParameters();
+//    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver", tblParams.get("howl.isd"));
+//    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver", tblParams.get("howl.osd"));
+//
+//    howlDriver.run("drop table junit_sem_analysis");
+//    howlDriver.run("drop table "+likeTbl);
   }
+
+// This test case currently fails, since add partitions don't inherit anything from tables.
+
+//  public void testAddPartInheritDrivers() throws MetaException, TException, NoSuchObjectException{
+//
+//    howlDriver.run("drop table "+tblName);
+//    howlDriver.run("create table junit_sem_analysis (a int) partitioned by (b string) stored as RCFILE");
+//    howlDriver.run("alter table "+tblName+" add partition (b='2010-10-10')");
+//
+//    List<String> partVals = new ArrayList<String>(1);
+//    partVals.add("2010-10-10");
+//
+//    Map<String,String> map = msc.getPartition(MetaStoreUtils.DEFAULT_DATABASE_NAME, tblName, partVals).getParameters();
+//    assertEquals(map.get(InitializeInput.HOWL_ISD_CLASS), RCFileInputStorageDriver.class.getName());
+//    assertEquals(map.get(InitializeInput.HOWL_OSD_CLASS), RCFileOutputStorageDriver.class.getName());
+//  }
 }
