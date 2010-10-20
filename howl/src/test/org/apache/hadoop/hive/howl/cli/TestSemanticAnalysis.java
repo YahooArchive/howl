@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.howl.cli;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -9,14 +10,22 @@ import junit.framework.TestCase;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.howl.cli.SemanticAnalysis.HowlSemanticAnalyzer;
+import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
+import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.Driver;
+import org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat;
+import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
+import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
+import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.thrift.TException;
 
 public class TestSemanticAnalysis extends TestCase{
@@ -44,6 +53,34 @@ public class TestSemanticAnalysis extends TestCase{
 
   String query;
   private final String tblName = "junit_sem_analysis";
+
+  public void testAlterTblFFpart() throws MetaException, TException, NoSuchObjectException {
+
+    hiveDriver.run("drop table junit_sem_analysis");
+    hiveDriver.run("create table junit_sem_analysis (a int) partitioned by (b string) stored as TEXTFILE");
+    hiveDriver.run("alter table junit_sem_analysis add partition (b='2010-10-10')");
+    howlDriver.run("alter table junit_sem_analysis partition (b='2010-10-10') set fileformat RCFILE");
+
+    Table tbl = msc.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tblName);
+    assertEquals(TextInputFormat.class.getName(),tbl.getSd().getInputFormat());
+    assertEquals(HiveIgnoreKeyTextOutputFormat.class.getName(),tbl.getSd().getOutputFormat());
+    Map<String, String> tblParams = tbl.getParameters();
+    assertNull(tblParams.get(InitializeInput.HOWL_ISD_CLASS));
+    assertNull(tblParams.get(InitializeInput.HOWL_OSD_CLASS));
+
+    List<String> partVals = new ArrayList<String>(1);
+    partVals.add("2010-10-10");
+    Partition part = msc.getPartition(MetaStoreUtils.DEFAULT_DATABASE_NAME, tblName, partVals);
+
+    assertEquals(RCFileInputFormat.class.getName(),part.getSd().getInputFormat());
+    assertEquals(RCFileOutputFormat.class.getName(),part.getSd().getOutputFormat());
+
+    Map<String,String> partParams = part.getParameters();
+    assertEquals(RCFileInputStorageDriver.class.getName(), partParams.get(InitializeInput.HOWL_ISD_CLASS));
+    assertEquals(RCFileOutputStorageDriver.class.getName(), partParams.get(InitializeInput.HOWL_OSD_CLASS));
+
+    howlDriver.run("drop table junit_sem_analysis");
+  }
 
   public void testCreateTableIfNotExists() throws MetaException, TException, NoSuchObjectException{
 
