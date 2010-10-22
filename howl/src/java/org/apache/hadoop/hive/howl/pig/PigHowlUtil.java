@@ -153,10 +153,7 @@ public class PigHowlUtil {
     return table;
   }
 
-  public ResourceSchema getResourceSchema(HowlSchema howlSchema, String location) throws IOException {
-    if(howlSchema == null) {
-      return null;
-    }
+  public static ResourceSchema getResourceSchema(HowlSchema howlSchema) throws IOException {
 
     List<ResourceFieldSchema> rfSchemaList = new ArrayList<ResourceFieldSchema>();
     for (HowlFieldSchema hfs : howlSchema.getFields()){
@@ -170,7 +167,7 @@ public class PigHowlUtil {
 
   }
 
-  private ResourceFieldSchema getResourceSchemaFromFieldSchema(HowlFieldSchema hfs)
+  private static ResourceFieldSchema getResourceSchemaFromFieldSchema(HowlFieldSchema hfs)
       throws IOException {
     ResourceFieldSchema rfSchema;
     // if we are dealing with a bag or tuple column - need to worry about subschema
@@ -196,7 +193,7 @@ public class PigHowlUtil {
     return rfSchema;
   }
 
-  private ResourceSchema getBagSubSchema(HowlFieldSchema hfs) throws IOException {
+  private static ResourceSchema getBagSubSchema(HowlFieldSchema hfs) throws IOException {
     // there are two cases - array<Type> and array<struct<...>>
     // in either case the element type of the array is represented in a
     // tuple field schema in the bag's field schema - the second case (struct)
@@ -221,7 +218,7 @@ public class PigHowlUtil {
 
   }
 
-  private ResourceSchema getTupleSubSchema(HowlFieldSchema hfs) throws IOException {
+  private static ResourceSchema getTupleSubSchema(HowlFieldSchema hfs) throws IOException {
     // for each struct subfield, create equivalent ResourceFieldSchema
     ResourceSchema s = new ResourceSchema();
     List<ResourceFieldSchema> lrfs = new ArrayList<ResourceFieldSchema>();
