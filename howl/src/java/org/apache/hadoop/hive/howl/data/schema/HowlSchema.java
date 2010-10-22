@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.howl.data.schema;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +27,14 @@ import java.util.Map;
 import org.apache.hadoop.hive.howl.common.HowlException;
 
 public class HowlSchema implements Serializable{
-    
+
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
-    private List<HowlFieldSchema> fieldSchemas;
-    private Map<String,Integer> fieldPositionMap;
+    private final List<HowlFieldSchema> fieldSchemas;
+    private final Map<String,Integer> fieldPositionMap;
     private List<String> fieldNames = null;
 
     public HowlSchema(List<HowlFieldSchema> fieldSchemas){
@@ -48,14 +49,29 @@ public class HowlSchema implements Serializable{
         }
     }
 
+    public void append(HowlFieldSchema hfs) throws HowlException{
+
+      if(hfs == null || fieldSchemas == null){
+        throw new HowlException("Attempt to append null HowlFieldSchema in HowlSchema.");
+      }
+      //TODO Addition of existing field should not be allowed in Schema.
+      //Need to enforce that. For that to happen, field schema needs to implement Comparable.
+      // Also, HowlSchema needs to implement Comparable.
+
+      this.fieldSchemas.add(hfs);
+      String fieldName = hfs.getName();
+      this.fieldNames.add(fieldName);
+      this.fieldPositionMap.put(fieldName, fieldSchemas.size()-1);
+    }
+
     public HowlSchema(HowlSchema other){
         this(other.getFields());
     }
-    
+
     public List<HowlFieldSchema> getFields(){
-        return this.fieldSchemas;
+        return Collections.unmodifiableList(this.fieldSchemas);
     }
-    
+
     public Integer getPosition(String fieldName) throws HowlException {
         if (fieldPositionMap.containsKey(fieldName)){
             return fieldPositionMap.get(fieldName);
@@ -63,15 +79,15 @@ public class HowlSchema implements Serializable{
             throw new HowlException("No field called "+fieldName+" found in schema argument");
         }
     }
-    
+
     public HowlFieldSchema get(String fieldName) throws HowlException {
         return get(getPosition(fieldName));
     }
-    
+
     public List<String> getFieldNames(){
         return this.fieldNames;
     }
-    
+
     public HowlFieldSchema get(int position) {
         return fieldSchemas.get(position);
     }

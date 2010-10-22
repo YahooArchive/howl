@@ -140,8 +140,6 @@ public abstract class HowlInputStorageDriver {
    * have this schema. Nulls should be inserted for columns not present in the data.
    * @param jobContext the job context object
    * @param howlSchema the schema to use as the consolidated schema
-   * @return true, if projections are supported. Default implementation in
-   *               HowlInputStorageDriver  always returns false.
    * @throws IOException Signals that an I/O exception has occurred.
    */
   public abstract void setOutputSchema(JobContext jobContext, HowlSchema howlSchema) throws IOException;
