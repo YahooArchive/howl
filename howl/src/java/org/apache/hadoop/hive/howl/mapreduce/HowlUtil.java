@@ -141,7 +141,7 @@ public class HowlUtil {
         // add partition keys to table schema
         // NOTE : this assumes that we do not ever have ptn keys as columns inside the table schema as well!
         for (FieldSchema fs : table.getPartitionKeys()){
-            tableSchema.getFields().add(HowlSchemaUtils.getHowlFieldSchema(fs));
+            tableSchema.append(HowlSchemaUtils.getHowlFieldSchema(fs));
         }
       }
       return tableSchema;

@@ -43,8 +43,8 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultDataBag;
-import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.UDFContext;
 
 public class PigHowlUtil {
@@ -57,6 +57,8 @@ public class PigHowlUtil {
 
   private final  Map<Pair<String,String>, Table> howlTableCache =
     new HashMap<Pair<String,String>, Table>();
+
+  private static final TupleFactory tupFac = TupleFactory.getInstance();
 
   static public Pair<String, String> getDBTableNames(String location) throws IOException {
     // the location string will be of the form:
@@ -322,12 +324,10 @@ public static Object extractPigObject(Object o, HowlFieldSchema hfs) throws Exce
       if (objList == null){
           return null;
         }
-        Tuple t = new DefaultTuple();
+        Tuple t = tupFac.newTuple(objList.size());
         List<HowlFieldSchema> subFields = hs.getFields();
         for (int i = 0; i < subFields.size(); i++){
-          t.append(
-                extractPigObject(objList.get(i), subFields.get(i))
-              );
+          t.set(i,extractPigObject(objList.get(i), subFields.get(i)));
         }
         return t;
   }
