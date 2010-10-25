@@ -11,15 +11,13 @@
         <conf name="default" extends="master,runtime"/>
         <conf name="master" description="contains the artifact but no dependencies"/>
         <conf name="runtime" description="runtime but not the artifact" />
-
         <conf name="common" visibility="private" 
             extends="runtime"
             description="artifacts needed to compile/test the application"/>
         <conf name="test" visibility="private" extends="runtime"/>
     </configurations>
-
     <dependencies>
         <dependency org="commons-daemon" name="commons-daemon" rev="${commons-daemon.version}" conf="common->default"/>
-	<dependency org="org.apache.hadoop" name="pig" rev="0.8.0-SNAPSHOT" conf="common->master" />
+        <dependency org="org.apache.hadoop" name="pig" rev="0.8.0-SNAPSHOT" conf="common->master" />
     </dependencies>
 </ivy-module>
