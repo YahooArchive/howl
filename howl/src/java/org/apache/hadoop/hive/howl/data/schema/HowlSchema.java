@@ -72,12 +72,13 @@ public class HowlSchema implements Serializable{
         return Collections.unmodifiableList(this.fieldSchemas);
     }
 
-    public Integer getPosition(String fieldName) throws HowlException {
-        if (fieldPositionMap.containsKey(fieldName)){
-            return fieldPositionMap.get(fieldName);
-        }else{
-            throw new HowlException("No field called "+fieldName+" found in schema argument");
-        }
+    /**
+     * @param fieldName
+     * @return the index of field named fieldName in Schema. If field is not
+     * present, returns null.
+     */
+    public Integer getPosition(String fieldName) {
+      return fieldPositionMap.get(fieldName);
     }
 
     public HowlFieldSchema get(String fieldName) throws HowlException {
@@ -90,6 +91,10 @@ public class HowlSchema implements Serializable{
 
     public HowlFieldSchema get(int position) {
         return fieldSchemas.get(position);
+    }
+
+    public int size(){
+      return fieldSchemas.size();
     }
 
     @Override
