@@ -318,7 +318,7 @@ public static Object extractPigObject(Object o, HowlFieldSchema hfs) throws Exce
   }
 
   public static Tuple transformToTuple(List<? extends Object> objList, HowlSchema hs) throws Exception {
-      if (objList == null){
+        if (objList == null){
           return null;
         }
         Tuple t = tupFac.newTuple(objList.size());

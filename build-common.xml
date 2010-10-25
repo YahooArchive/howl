@@ -303,7 +303,7 @@
     <javac
      encoding="${build.encoding}"
      srcdir="${test.src.dir}"
-     includes="org/apache/hadoop/**/*.java"
+     includes="**/*.java"
      excludes="**/TestSerDe.java"
      destdir="${test.build.classes}"
      debug="${javac.debug}"
@@ -317,7 +317,7 @@
     <javac
      encoding="${build.encoding}"
      srcdir="${test.build.src}"
-     includes="org/apache/hadoop/**/*.java"
+     includes="**/*.java"
      destdir="${test.build.classes}"
      debug="${javac.debug}"
      optimize="${javac.optimize}"
