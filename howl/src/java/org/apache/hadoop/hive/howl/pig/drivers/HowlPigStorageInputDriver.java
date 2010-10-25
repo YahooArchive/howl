@@ -8,10 +8,13 @@ import org.apache.pig.builtin.PigStorage;
 
 public class HowlPigStorageInputDriver extends LoadFuncBasedInputDriver {
 
+  public static final String delim = "howl.pigstorage.delim";
+
   @Override
   public void initialize(JobContext context, Properties storageDriverArgs) throws IOException {
 
-    lf = new PigStorage();
+    lf = storageDriverArgs.containsKey(delim) ?
+        new PigStorage(storageDriverArgs.getProperty(delim)) : new PigStorage();
     super.initialize(context, storageDriverArgs);
   }
 }
