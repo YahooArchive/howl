@@ -26,16 +26,17 @@ import java.util.Map;
 
 import org.apache.hadoop.hive.howl.common.HowlException;
 
+/**
+ * HowlSchema. This class is NOT thread-safe.
+ */
+
 public class HowlSchema implements Serializable{
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 1L;
 
     private final List<HowlFieldSchema> fieldSchemas;
     private final Map<String,Integer> fieldPositionMap;
-    private List<String> fieldNames = null;
+    private final List<String> fieldNames;
 
     public HowlSchema(List<HowlFieldSchema> fieldSchemas){
         this.fieldSchemas = fieldSchemas;
@@ -61,13 +62,17 @@ public class HowlSchema implements Serializable{
       this.fieldSchemas.add(hfs);
       String fieldName = hfs.getName();
       this.fieldNames.add(fieldName);
-      this.fieldPositionMap.put(fieldName, fieldSchemas.size()-1);
+      this.fieldPositionMap.put(fieldName, this.size()-1);
     }
 
     public HowlSchema(HowlSchema other){
         this(other.getFields());
     }
 
+    /**
+     *  Users are not allowed to modify the list directly, since HowlSchema
+     *  maintains internal state. Use append/remove to modify the schema.
+     */
     public List<HowlFieldSchema> getFields(){
         return Collections.unmodifiableList(this.fieldSchemas);
     }
@@ -95,6 +100,17 @@ public class HowlSchema implements Serializable{
 
     public int size(){
       return fieldSchemas.size();
+    }
+
+    public void remove(HowlFieldSchema howlFieldSchema) throws HowlException {
+
+      if(!fieldSchemas.contains(howlFieldSchema)){
+        throw new HowlException("Attempt to delete a non-existent column from Howl Schema: "+ howlFieldSchema);
+      }
+
+      fieldSchemas.remove(howlFieldSchema);
+      fieldPositionMap.remove(howlFieldSchema);
+      fieldNames.remove(howlFieldSchema.getName());
     }
 
     @Override

@@ -34,13 +34,13 @@ public abstract class HowlRecord implements HowlRecordable {
 
     public abstract Object get(String fieldName, HowlSchema recordSchema) throws HowlException;
     public abstract void set(String fieldName, HowlSchema recordSchema, Object value ) throws HowlException;
+    public abstract void remove(int idx) throws HowlException;
 
-    
     protected Object get(String fieldName, HowlSchema recordSchema, Class clazz) throws HowlException{
         // TODO : if needed, verify that recordschema entry for fieldname matches appropriate type.
         return get(fieldName,recordSchema);
     }
-    
+
     public Boolean getBoolean(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (Boolean) get(fieldName, recordSchema, Boolean.class);
     }
@@ -57,7 +57,7 @@ public abstract class HowlRecord implements HowlRecordable {
     public void setByte(String fieldName, HowlSchema recordSchema, Byte value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
-    
+
     public Short getShort(String fieldName, HowlSchema recordSchema) throws HowlException {
         // SMALLINT
         return (Short) get(fieldName, recordSchema, Short.class);
@@ -66,7 +66,7 @@ public abstract class HowlRecord implements HowlRecordable {
     public void setShort(String fieldName, HowlSchema recordSchema, Short value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
-    
+
     public Integer getInteger(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (Integer) get(fieldName,recordSchema, Integer.class);
     }
@@ -74,7 +74,7 @@ public abstract class HowlRecord implements HowlRecordable {
     public void setInteger(String fieldName, HowlSchema recordSchema, Integer value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
-    
+
     public Long getLong(String fieldName, HowlSchema recordSchema) throws HowlException {
         // BIGINT
         return (Long) get(fieldName,recordSchema,Long.class);
@@ -116,7 +116,7 @@ public abstract class HowlRecord implements HowlRecordable {
     public void setStruct(String fieldName, HowlSchema recordSchema, List<? extends Object> value) throws HowlException {
         set(fieldName,recordSchema,value);
     }
-    
+
     public List<?> getList(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (List<?>) get(fieldName,recordSchema,List.class);
     }
@@ -128,7 +128,7 @@ public abstract class HowlRecord implements HowlRecordable {
     public Map<?,?> getMap(String fieldName, HowlSchema recordSchema) throws HowlException {
         return (Map<?,?>) get(fieldName,recordSchema,Map.class);
     }
-    
+
     public void setMap(String fieldName, HowlSchema recordSchema, Map<?,?> value) throws HowlException {
         set(fieldName,recordSchema,value);
     }

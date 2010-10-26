@@ -38,16 +38,17 @@ public class DefaultHowlRecord extends HowlRecord {
     public DefaultHowlRecord(int size){
         contents = new ArrayList<Object>(size);
         for(int i=0; i < size; i++){
-            contents.add(null);
+            contents.set(i,null);
         }
+    }
+
+    @Override
+    public void remove(int idx) throws HowlException {
+      contents.remove(idx);
     }
 
     public DefaultHowlRecord(List<Object> list) {
         contents = list;
-    }
-
-    public DefaultHowlRecord(HowlRecordable other){
-        this(other.getAll());
     }
 
     @Override
