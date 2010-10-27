@@ -78,7 +78,6 @@ public class RCFileInputStorageDriver extends HowlInputStorageDriver{
 
     // Finds out which column ids needs to be projected and set them up for RCFile.
     outCols = desiredSchema.getFields();
-
     ArrayList<Integer> prjColumns = new ArrayList<Integer>();
     for(HowlFieldSchema prjCol : outCols){
       Integer pos = namePosMapping.get(prjCol.getName().toLowerCase());

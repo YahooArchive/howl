@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.Serializable;
+import java.util.List;
 
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -30,22 +31,43 @@ class OutputJobInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** The table info provided by user. */
-    private HowlTableInfo tableInfo;
+    private final HowlTableInfo tableInfo;
 
-    /** The output schema. */
+    /** The output schema. This is given to us by user.  This wont contain any
+     * partition columns ,even if user has specified them.
+     * */
     private HowlSchema outputSchema;
 
-    /** The table level schema. */
-    private HowlSchema tableSchema;
+    /** This is table schema, retrieved from metastore. */
+    private final HowlSchema tableSchema;
 
     /** The storer info */
-    private StorerInfo storerInfo;
+    private final StorerInfo storerInfo;
 
     /** The location of the partition being written */
-    private String location;
+    private final String location;
 
     /** The table being written to */
-    private Table table;
+    private final Table table;
+
+    /** This is a list of partition columns which will be deleted from data, if
+     * data contains partition columns.*/
+
+    private List<Integer> posOfPartCols;
+
+    /**
+     * @return the posOfPartCols
+     */
+    protected List<Integer> getPosOfPartCols() {
+      return posOfPartCols;
+    }
+
+    /**
+     * @param posOfPartCols the posOfPartCols to set
+     */
+    protected void setPosOfPartCols(List<Integer> posOfPartCols) {
+      this.posOfPartCols = posOfPartCols;
+    }
 
     public OutputJobInfo(HowlTableInfo tableInfo, HowlSchema outputSchema, HowlSchema tableSchema,
         StorerInfo storerInfo, String location, Table table) {
@@ -55,7 +77,7 @@ class OutputJobInfo implements Serializable {
       this.tableSchema = tableSchema;
       this.storerInfo = storerInfo;
       this.location = location;
-      this.setTable(table);
+      this.table = table;
     }
 
     /**
@@ -63,13 +85,6 @@ class OutputJobInfo implements Serializable {
      */
     public HowlTableInfo getTableInfo() {
       return tableInfo;
-    }
-
-    /**
-     * @param tableInfo the tableInfo to set
-     */
-    public void setTableInfo(HowlTableInfo tableInfo) {
-      this.tableInfo = tableInfo;
     }
 
     /**
@@ -94,13 +109,6 @@ class OutputJobInfo implements Serializable {
     }
 
     /**
-     * @param tableSchema the tableSchema to set
-     */
-    public void setTableSchema(HowlSchema tableSchema) {
-      this.tableSchema = tableSchema;
-    }
-
-    /**
      * @return the storerInfo
      */
     public StorerInfo getStorerInfo() {
@@ -108,32 +116,10 @@ class OutputJobInfo implements Serializable {
     }
 
     /**
-     * @param storerInfo the storerInfo to set
-     */
-    public void setStorerInfo(StorerInfo storerInfo) {
-      this.storerInfo = storerInfo;
-    }
-
-    /**
-     * @param location the location to set
-     */
-    public void setLocation(String location) {
-      this.location = location;
-    }
-
-    /**
      * @return the location
      */
     public String getLocation() {
       return location;
-    }
-
-    /**
-     * Set the value of table
-     * @param table the table to set
-     */
-    public void setTable(Table table) {
-      this.table = table;
     }
 
     /**

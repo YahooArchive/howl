@@ -74,6 +74,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
   @Override
   public Writable convertValue(HowlRecord value) throws IOException {
     try {
+
       return serde.serialize(value.getAll(), objectInspector);
     } catch(SerDeException e) {
       throw new IOException(e);
@@ -135,6 +136,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
   public void initialize(JobContext context,Properties howlProperties) throws IOException {
 
     super.initialize(context, howlProperties);
+
     List<FieldSchema> fields = HowlUtil.getFieldSchemaList(outputSchema.getFields());
     howlProperties.setProperty(Constants.LIST_COLUMNS,
           MetaStoreUtils.getColumnNamesFromFieldSchema(fields));

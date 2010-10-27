@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.ql.Driver;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.UDFContext;
@@ -94,8 +95,83 @@ public class TestHowlStorer extends TestCase {
 //
 //  }
 
-  // This test currently fails because of a Pig bug. Once thats fixed and the
-  // new jar is checked in, this should pass.
+  public void testPartColsInData() throws IOException{
+
+    driver.run("drop table junit_unparted");
+    String createTable = "create table junit_unparted(a int) partitioned by (b string) stored as RCFILE " +
+        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
+    int retCode = driver.run(createTable).getResponseCode();
+    if(retCode != 0) {
+      throw new IOException("Failed to create table.");
+    }
+    MiniCluster.deleteFile(cluster, fileName);
+    int LOOP_SIZE = 11;
+    String[] input = new String[LOOP_SIZE];
+    for(int i = 0; i < LOOP_SIZE; i++) {
+        input[i] = i + "\t1";
+    }
+    MiniCluster.createInputFile(cluster, fileName, input);
+    PigServer server = new PigServer(ExecType.LOCAL, props);
+    UDFContext.getUDFContext().setClientSystemProps();
+    server.registerQuery("A = load '"+fullFileName+"' as (a:int, b:chararray);");
+    server.registerQuery("store A into 'default.junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer('b=1');");
+    server.registerQuery("B = load 'default.junit_unparted' using "+HowlLoader.class.getName()+"();");
+    Iterator<Tuple> itr= server.openIterator("B");
+
+    int i = 0;
+
+    while(itr.hasNext()){
+      Tuple t = itr.next();
+      assertEquals(2, t.size());
+      assertEquals(t.get(0), i);
+      assertEquals(t.get(1), "1");
+      i++;
+    }
+
+    assertFalse(itr.hasNext());
+    assertEquals(11, i);
+    MiniCluster.deleteFile(cluster, fileName);
+  }
+
+  public void testStoreInPartiitonedTbl() throws IOException{
+
+    driver.run("drop table junit_unparted");
+    String createTable = "create table junit_unparted(a int) partitioned by (b string) stored as RCFILE " +
+        "tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
+        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
+    int retCode = driver.run(createTable).getResponseCode();
+    if(retCode != 0) {
+      throw new IOException("Failed to create table.");
+    }
+    MiniCluster.deleteFile(cluster, fileName);
+    int LOOP_SIZE = 11;
+    String[] input = new String[LOOP_SIZE];
+    for(int i = 0; i < LOOP_SIZE; i++) {
+        input[i] = i+"";
+    }
+    MiniCluster.createInputFile(cluster, fileName, input);
+    PigServer server = new PigServer(ExecType.LOCAL, props);
+    UDFContext.getUDFContext().setClientSystemProps();
+    server.registerQuery("A = load '"+fullFileName+"' as (a:int);");
+    server.registerQuery("store A into 'default.junit_unparted' using org.apache.hadoop.hive.howl.pig.HowlStorer('b=1');");
+    server.registerQuery("B = load 'default.junit_unparted' using "+HowlLoader.class.getName()+"();");
+    Iterator<Tuple> itr= server.openIterator("B");
+
+    int i = 0;
+
+    while(itr.hasNext()){
+      Tuple t = itr.next();
+      assertEquals(2, t.size());
+      assertEquals(t.get(0), i);
+      assertEquals(t.get(1), "1");
+      i++;
+    }
+
+    assertFalse(itr.hasNext());
+    assertEquals(11, i);
+    MiniCluster.deleteFile(cluster, fileName);
+  }
 
   public void testNoAlias() throws IOException{
     driver.run("drop table junit_parted");
