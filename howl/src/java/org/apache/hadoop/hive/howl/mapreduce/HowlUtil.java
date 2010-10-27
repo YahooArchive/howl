@@ -25,8 +25,11 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.hadoop.hive.howl.common.ErrorType;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
@@ -35,6 +38,8 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.mapreduce.JobContext;
 
 public class HowlUtil {
@@ -95,7 +100,7 @@ public class HowlUtil {
     }
     return bytes;
   }
-  
+
   public static List<HowlFieldSchema> getHowlFieldSchemaList(List<FieldSchema> fields) throws HowlException {
       if(fields == null) {
           return null;
@@ -147,5 +152,62 @@ public class HowlUtil {
       return tableSchema;
     }
 
-  
+  /**
+   * Validate partition schema, checks if the column types match between the partition
+   * and the existing table schema. Returns the list of columns present in the partition
+   * but not in the table.
+   * @param table the table
+   * @param partitionSchema the partition schema
+   * @return the list of newly added fields
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  static List<FieldSchema> validatePartitionSchema(Table table, HowlSchema partitionSchema) throws IOException {
+    Map<String, FieldSchema> partitionKeyMap = new HashMap<String, FieldSchema>();
+
+    for(FieldSchema field : table.getPartitionKeys()) {
+      partitionKeyMap.put(field.getName().toLowerCase(), field);
+    }
+
+    List<FieldSchema> tableCols = table.getSd().getCols();
+    List<FieldSchema> newFields = new ArrayList<FieldSchema>();
+
+    for(int i = 0;i <  partitionSchema.getFields().size();i++) {
+
+      FieldSchema field = HowlSchemaUtils.getFieldSchema(partitionSchema.getFields().get(i));
+
+      FieldSchema tableField;
+      if( i < tableCols.size() ) {
+        tableField = tableCols.get(i);
+
+        if( ! tableField.getName().equalsIgnoreCase(field.getName())) {
+          throw new HowlException(ErrorType.ERROR_SCHEMA_COLUMN_MISMATCH, "Expected column <" + tableField.getName() +
+              "> at position " + (i + 1) + ", found column <" + field.getName() + ">");
+        }
+      } else {
+        tableField = partitionKeyMap.get(field.getName().toLowerCase());
+
+        if( tableField != null ) {
+          throw new HowlException(ErrorType.ERROR_SCHEMA_PARTITION_KEY, "Key <" +  field.getName() + ">");
+        }
+      }
+
+      if( tableField == null ) {
+        //field present in partition but not in table
+        newFields.add(field);
+      } else {
+        //field present in both. validate type has not changed
+        TypeInfo partitionType = TypeInfoUtils.getTypeInfoFromTypeString(field.getType());
+        TypeInfo tableType = TypeInfoUtils.getTypeInfoFromTypeString(tableField.getType());
+
+        if( ! partitionType.equals(tableType) ) {
+          throw new HowlException(ErrorType.ERROR_SCHEMA_TYPE_MISMATCH, "Column <" + field.getName() + ">, expected <" +
+              tableType.getTypeName() + ">, got <" + partitionType.getTypeName() + ">");
+        }
+      }
+    }
+
+    return newFields;
+  }
+
+
 }

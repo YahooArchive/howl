@@ -38,8 +38,13 @@ public class HowlSchema implements Serializable{
     private final Map<String,Integer> fieldPositionMap;
     private final List<String> fieldNames;
 
-    public HowlSchema(List<HowlFieldSchema> fieldSchemas){
-        this.fieldSchemas = fieldSchemas;
+    /**
+     *
+     * @param fieldSchemas is now owned by HowlSchema. Any subsequent modifications
+     * on fieldSchemas won't get reflected in HowlSchema.
+     */
+    public HowlSchema(final List<HowlFieldSchema> fieldSchemas){
+        this.fieldSchemas = new ArrayList<HowlFieldSchema>(fieldSchemas);
         int idx = 0;
         fieldPositionMap = new HashMap<String,Integer>();
         fieldNames = new ArrayList<String>();
@@ -50,7 +55,7 @@ public class HowlSchema implements Serializable{
         }
     }
 
-    public void append(HowlFieldSchema hfs) throws HowlException{
+    public void append(final HowlFieldSchema hfs) throws HowlException{
 
       if(hfs == null || fieldSchemas == null){
         throw new HowlException("Attempt to append null HowlFieldSchema in HowlSchema.");
@@ -63,10 +68,6 @@ public class HowlSchema implements Serializable{
       String fieldName = hfs.getName();
       this.fieldNames.add(fieldName);
       this.fieldPositionMap.put(fieldName, this.size()-1);
-    }
-
-    public HowlSchema(HowlSchema other){
-        this(other.getFields());
     }
 
     /**
@@ -102,7 +103,7 @@ public class HowlSchema implements Serializable{
       return fieldSchemas.size();
     }
 
-    public void remove(HowlFieldSchema howlFieldSchema) throws HowlException {
+    public void remove(final HowlFieldSchema howlFieldSchema) throws HowlException {
 
       if(!fieldSchemas.contains(howlFieldSchema)){
         throw new HowlException("Attempt to delete a non-existent column from Howl Schema: "+ howlFieldSchema);

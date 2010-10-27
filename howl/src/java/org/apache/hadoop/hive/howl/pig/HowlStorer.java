@@ -272,7 +272,6 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     for(HowlFieldSchema fSchema : computedSchema.getFields()){
       outgoing.add(getJavaObj(tuple.get(i++), fSchema));
     }
-
     try {
       writer.write(null, new DefaultHowlRecord(outgoing));
     } catch (InterruptedException e) {
@@ -501,6 +500,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
       if(config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
         p.setProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF, config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
       }
+
       p.setProperty(COMPUTED_OUTPUT_SCHEMA,ObjectSerializer.serialize(computedSchema));
 
     }else{

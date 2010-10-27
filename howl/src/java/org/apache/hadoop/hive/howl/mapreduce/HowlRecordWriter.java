@@ -18,7 +18,9 @@
 package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.IOException;
+import java.util.List;
 
+import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -29,11 +31,22 @@ public class HowlRecordWriter extends RecordWriter<WritableComparable<?>, HowlRe
 
     private final HowlOutputStorageDriver storageDriver;
     private final RecordWriter<? super WritableComparable<?>, ? super Writable> baseWriter;
+    private final List<Integer> partColsToDel;
 
-    public HowlRecordWriter(HowlOutputStorageDriver storageDriver,
-        RecordWriter<? super WritableComparable<?>, ? super Writable> baseWriter) {
-        this.storageDriver = storageDriver;
-        this.baseWriter = baseWriter;
+    public HowlRecordWriter(TaskAttemptContext context) throws IOException, InterruptedException {
+
+      OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(context);
+
+      // If partition columns occur in data, we want to remove them.
+      partColsToDel = jobInfo.getPosOfPartCols();
+
+      if(partColsToDel == null){
+        throw new HowlException("It seems that setSchema() is not called on " +
+        		"HowlOutputFormat. Please make sure that method is called.");
+      }
+
+      this.storageDriver = HowlOutputFormat.getOutputDriverInstance(context, jobInfo);
+      this.baseWriter = storageDriver.getOutputFormat().getRecordWriter(context);
     }
 
     @Override
@@ -45,6 +58,10 @@ public class HowlRecordWriter extends RecordWriter<WritableComparable<?>, HowlRe
     @Override
     public void write(WritableComparable<?> key, HowlRecord value) throws IOException,
             InterruptedException {
+
+      for(Integer colToDel : partColsToDel){
+        value.remove(colToDel);
+      }
         //The key given by user is ignored
         WritableComparable<?> generatedKey = storageDriver.generateKey(value);
         Writable convertedValue = storageDriver.convertValue(value);

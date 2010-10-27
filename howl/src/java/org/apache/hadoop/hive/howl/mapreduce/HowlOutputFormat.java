@@ -181,12 +181,30 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
      * @param job the job object
      * @param schema the schema for the data
      */
-    public static void setSchema(Job job, HowlSchema schema) throws IOException {
+    public static void setSchema(final Job job, final HowlSchema schema) throws IOException {
 
         OutputJobInfo jobInfo = getJobInfo(job);
-        HowlOutputCommitter.validatePartitionSchema(jobInfo.getTable(), schema);
+        Map<String,String> partMap = jobInfo.getTableInfo().getPartitionValues();
+        List<Integer> posOfPartCols = new ArrayList<Integer>();
 
-        jobInfo.setOutputSchema(schema);
+        // If partition columns occur in data, we want to remove them.
+        // So, find out positions of partition columns in schema provided by user.
+        // We also need to update the output Schema with these deletions.
+
+        // Note that, output storage drivers never sees partition columns in data
+        // or schema.
+
+        HowlSchema schemaWithoutParts = new HowlSchema(schema.getFields());
+        for(String partKey : partMap.keySet()){
+          Integer idx;
+          if((idx = schema.getPosition(partKey)) != null){
+            posOfPartCols.add(idx);
+            schemaWithoutParts.remove(schema.get(partKey));
+          }
+        }
+        HowlUtil.validatePartitionSchema(jobInfo.getTable(), schemaWithoutParts);
+        jobInfo.setPosOfPartCols(posOfPartCols);
+        jobInfo.setOutputSchema(schemaWithoutParts);
         job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
     }
 
@@ -213,12 +231,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     public RecordWriter<WritableComparable<?>, HowlRecord>
       getRecordWriter(TaskAttemptContext context
                       ) throws IOException, InterruptedException {
-      OutputJobInfo jobInfo = getJobInfo(context);
-      HowlOutputStorageDriver  driver = getOutputDriverInstance(context, jobInfo);
-
-      OutputFormat<? super WritableComparable<?>, ? super Writable> outputFormat
-            = driver.getOutputFormat();
-      return new HowlRecordWriter(driver, outputFormat.getRecordWriter(context));
+      return new HowlRecordWriter(context);
     }
 
     /**

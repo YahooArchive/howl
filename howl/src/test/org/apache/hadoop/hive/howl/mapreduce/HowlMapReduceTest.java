@@ -101,6 +101,7 @@ public abstract class HowlMapReduceTest extends TestCase {
     hiveConf.set(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY.varname, "false");
     driver = new Driver(hiveConf);
 
+
     thriftUri = System.getenv("HOWL_METASTORE_URI");
 
     if( thriftUri != null ) {
@@ -201,12 +202,12 @@ public abstract class HowlMapReduceTest extends TestCase {
       {
         try {
           HowlRecord rec = writeRecords.get(writeCount);
-
           context.write(null, rec);
-          //System.out.println("Wrote row " + writeCount);
           writeCount++;
+
         }catch(Exception e) {
-          e.printStackTrace(); //print since otherwise exception is lost
+
+          e.printStackTrace(System.err); //print since otherwise exception is lost
           throw new IOException(e);
         }
       }
@@ -268,7 +269,6 @@ public abstract class HowlMapReduceTest extends TestCase {
     //new HowlOutputCommitter(null).setupJob(job);
     job.waitForCompletion(true);
     new HowlOutputCommitter(null).cleanupJob(job);
-
     Assert.assertEquals(writeCount, MapCreate.writeCount);
   }
 

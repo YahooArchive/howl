@@ -201,18 +201,38 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
     partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c1", Constants.INT_TYPE_NAME, "")));
     partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c2", Constants.STRING_TYPE_NAME, "")));
     partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("c3", Constants.STRING_TYPE_NAME, "")));
-    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("part1", Constants.INT_TYPE_NAME, "")));
+    partitionColumns.add(HowlSchemaUtils.getHowlFieldSchema(new FieldSchema("part1", Constants.STRING_TYPE_NAME, "")));
+
+    List<HowlRecord> recordsContainingPartitionCols = new ArrayList<HowlRecord>(20);
+    for(int i = 0;i < 20;i++) {
+      List<Object> objList = new ArrayList<Object>();
+
+      objList.add(i);
+      objList.add("c2value" + i);
+      objList.add("c3value" + i);
+      objList.add("p1value6");
+
+      recordsContainingPartitionCols.add(new DefaultHowlRecord(objList));
+    }
 
     exc = null;
     try {
-      runMRCreate(partitionMap, partitionColumns, writeRecords, 20);
+      runMRCreate(partitionMap, partitionColumns, recordsContainingPartitionCols, 20);
     } catch(IOException e) {
       exc = e;
     }
 
-    assertTrue(exc != null);
-    assertTrue(exc instanceof HowlException);
-    assertEquals(ErrorType.ERROR_SCHEMA_PARTITION_KEY, ((HowlException) exc).getErrorType());
+    List<HowlRecord> records= runMRRead(20,"part1 = \"p1value6\"");
+    assertEquals(20, records.size());
+    Integer i =0;
+    for(HowlRecord rec : records){
+      assertEquals(4, rec.size());
+      assertTrue(rec.get(0).equals(i));
+      assertTrue(rec.get(1).equals("c2value"+i));
+      assertTrue(rec.get(2).equals("c3value"+i));
+      assertTrue(rec.get(3).equals("p1value6"));
+      i++;
+    }
   }
 
   //check behavior while change the order of columns
@@ -273,8 +293,8 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     runMRCreate(partitionMap, partitionColumns, writeRecords, 10);
 
-    //Read should get 10 + 20 + 10 + 10 rows
-    runMRRead(50);
+    //Read should get 10 + 20 + 10 + 10 + 20 rows
+    runMRRead(70);
   }
 
   //Test that data inserted through howloutputformat is readable from hive
@@ -289,6 +309,6 @@ public class TestHowlPartitioned extends HowlMapReduceTest {
 
     ArrayList<String> res = new ArrayList<String>();
     driver.getResults(res);
-    assertEquals(50, res.size());
+    assertEquals(70, res.size());
   }
 }
