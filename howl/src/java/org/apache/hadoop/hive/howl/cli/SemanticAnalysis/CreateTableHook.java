@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
-import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
-import org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.exec.DDLTask;
 import org.apache.hadoop.hive.ql.exec.Task;
@@ -116,8 +116,8 @@ final class CreateTableHook  extends AbstractSemanticAnalyzerHook{
       case HiveParser.TOK_TBLRCFILE:
         inputFormat      = RCFileInputFormat.class.getName();
         outputFormat     = RCFileOutputFormat.class.getName();
-        inStorageDriver  = RCFileInputStorageDriver.class.getName();
-        outStorageDriver = RCFileOutputStorageDriver.class.getName();
+        inStorageDriver  = RCFileInputDriver.class.getName();
+        outStorageDriver = RCFileOutputDriver.class.getName();
         break;
 
       }

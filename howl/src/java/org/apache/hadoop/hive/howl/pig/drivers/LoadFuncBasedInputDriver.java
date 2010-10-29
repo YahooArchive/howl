@@ -24,7 +24,7 @@ import org.apache.pig.data.Tuple;
  * This is a base class which wraps a Load func in HowlInputStorageDriver.
  * If you already have a LoadFunc, then this class along with LoadFuncBasedInputFormat
  * is doing all the heavy lifting. For a new Howl Input Storage Driver just extend it
- * and override the initialize(). {@link HowlPigStorageInputDriver} illustrates
+ * and override the initialize(). {@link PigStorageInputDriver} illustrates
  * that well.
  */
 public abstract class LoadFuncBasedInputDriver extends HowlInputStorageDriver{

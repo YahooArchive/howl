@@ -6,7 +6,7 @@ import java.util.Properties;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.builtin.PigStorage;
 
-public class HowlPigStorageInputDriver extends LoadFuncBasedInputDriver {
+public class PigStorageInputDriver extends LoadFuncBasedInputDriver {
 
   public static final String delim = "howl.pigstorage.delim";
 

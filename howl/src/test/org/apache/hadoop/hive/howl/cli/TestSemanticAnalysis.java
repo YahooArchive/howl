@@ -11,8 +11,8 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.howl.cli.SemanticAnalysis.HowlSemanticAnalyzer;
 import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
-import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
-import org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -76,8 +76,8 @@ public class TestSemanticAnalysis extends TestCase{
     assertEquals(RCFileOutputFormat.class.getName(),part.getSd().getOutputFormat());
 
     Map<String,String> partParams = part.getParameters();
-    assertEquals(RCFileInputStorageDriver.class.getName(), partParams.get(InitializeInput.HOWL_ISD_CLASS));
-    assertEquals(RCFileOutputStorageDriver.class.getName(), partParams.get(InitializeInput.HOWL_OSD_CLASS));
+    assertEquals(RCFileInputDriver.class.getName(), partParams.get(InitializeInput.HOWL_ISD_CLASS));
+    assertEquals(RCFileOutputDriver.class.getName(), partParams.get(InitializeInput.HOWL_OSD_CLASS));
 
     howlDriver.run("drop table junit_sem_analysis");
   }
@@ -90,11 +90,11 @@ public class TestSemanticAnalysis extends TestCase{
     List<FieldSchema> cols = tbl.getSd().getCols();
     assertEquals(1, cols.size());
     assertTrue(cols.get(0).equals(new FieldSchema("a", "int", null)));
-    assertEquals("org.apache.hadoop.hive.ql.io.RCFileInputFormat",tbl.getSd().getInputFormat());
-    assertEquals("org.apache.hadoop.hive.ql.io.RCFileOutputFormat",tbl.getSd().getOutputFormat());
+    assertEquals(RCFileInputFormat.class.getName(),tbl.getSd().getInputFormat());
+    assertEquals(RCFileOutputFormat.class.getName(),tbl.getSd().getOutputFormat());
     Map<String, String> tblParams = tbl.getParameters();
-    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver", tblParams.get("howl.isd"));
-    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver", tblParams.get("howl.osd"));
+    assertEquals(RCFileInputDriver.class.getName(), tblParams.get("howl.isd"));
+    assertEquals(RCFileOutputDriver.class.getName(), tblParams.get("howl.osd"));
 
     CommandProcessorResponse resp = howlDriver.run("create table if not exists junit_sem_analysis (a int) stored as RCFILE");
     assertEquals(0, resp.getResponseCode());
@@ -103,11 +103,12 @@ public class TestSemanticAnalysis extends TestCase{
     cols = tbl.getSd().getCols();
     assertEquals(1, cols.size());
     assertTrue(cols.get(0).equals(new FieldSchema("a", "int",null)));
-    assertEquals("org.apache.hadoop.hive.ql.io.RCFileInputFormat",tbl.getSd().getInputFormat());
-    assertEquals("org.apache.hadoop.hive.ql.io.RCFileOutputFormat",tbl.getSd().getOutputFormat());
+    assertEquals(RCFileInputFormat.class.getName(),tbl.getSd().getInputFormat());
+    assertEquals(RCFileOutputFormat.class.getName(),tbl.getSd().getOutputFormat());
+
     tblParams = tbl.getParameters();
-    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver", tblParams.get("howl.isd"));
-    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver", tblParams.get("howl.osd"));
+    assertEquals(RCFileInputDriver.class.getName(), tblParams.get("howl.isd"));
+    assertEquals(RCFileOutputDriver.class.getName(), tblParams.get("howl.osd"));
     howlDriver.run("drop table junit_sem_analysis");
   }
 
@@ -179,11 +180,12 @@ public class TestSemanticAnalysis extends TestCase{
     howlDriver.run("create table junit_sem_analysis (a int) partitioned by (b string) stored as RCFILE");
 
     Table tbl = msc.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tblName);
-    assertEquals("org.apache.hadoop.hive.ql.io.RCFileInputFormat",tbl.getSd().getInputFormat());
-    assertEquals("org.apache.hadoop.hive.ql.io.RCFileOutputFormat",tbl.getSd().getOutputFormat());
-    Map<String, String> tblParams = tbl.getParameters();
-    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver", tblParams.get("howl.isd"));
-    assertEquals("org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver", tblParams.get("howl.osd"));
+    assertEquals(RCFileInputFormat.class.getName(),tbl.getSd().getInputFormat());
+    assertEquals(RCFileOutputFormat.class.getName(),tbl.getSd().getOutputFormat());
+
+    Map<String,String> tblParams = tbl.getParameters();
+    assertEquals(RCFileInputDriver.class.getName(), tblParams.get("howl.isd"));
+    assertEquals(RCFileOutputDriver.class.getName(), tblParams.get("howl.osd"));
 
     howlDriver.run("alter table junit_sem_analysis set fileformat INPUTFORMAT 'org.apache.hadoop.hive.ql.io.RCFileInputFormat' OUTPUTFORMAT " +
         "'org.apache.hadoop.hive.ql.io.RCFileOutputFormat' inputdriver 'mydriver' outputdriver 'yourdriver'");

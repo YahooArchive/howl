@@ -35,7 +35,7 @@ import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
-import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.io.RCFile;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
@@ -104,7 +104,7 @@ public class TestRCFileInputStorageDriver extends TestCase{
     BytesRefArrayWritable[] bytesArr = new BytesRefArrayWritable[]{bytes,bytes2};
 
     HowlSchema schema = buildHiveSchema();
-    RCFileInputStorageDriver sd = new RCFileInputStorageDriver();
+    RCFileInputDriver sd = new RCFileInputDriver();
     JobContext jc = new JobContext(conf, new JobID());
     sd.setInputPath(jc, file.toString());
     InputFormat<?,?> iF = sd.getInputFormat(null);
@@ -159,7 +159,7 @@ public class TestRCFileInputStorageDriver extends TestCase{
     writer.close();
     BytesRefArrayWritable[] bytesArr = new BytesRefArrayWritable[]{bytes,bytes2};
 
-    RCFileInputStorageDriver sd = new RCFileInputStorageDriver();
+    RCFileInputDriver sd = new RCFileInputDriver();
     JobContext jc = new JobContext(conf, new JobID());
     sd.setInputPath(jc, file.toString());
     InputFormat<?,?> iF = sd.getInputFormat(null);
@@ -217,7 +217,7 @@ public class TestRCFileInputStorageDriver extends TestCase{
     writer.close();
     BytesRefArrayWritable[] bytesArr = new BytesRefArrayWritable[]{bytes,bytes2};
 
-    RCFileInputStorageDriver sd = new RCFileInputStorageDriver();
+    RCFileInputDriver sd = new RCFileInputDriver();
     JobContext jc = new JobContext(conf, new JobID());
     sd.setInputPath(jc, file.toString());
     InputFormat<?,?> iF = sd.getInputFormat(null);

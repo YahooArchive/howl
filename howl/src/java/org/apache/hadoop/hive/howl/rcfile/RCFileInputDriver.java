@@ -39,11 +39,11 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.JobContext;
 
-public class RCFileInputStorageDriver extends HowlInputStorageDriver{
+public class RCFileInputDriver extends HowlInputStorageDriver{
 
 
   private SerDe serde;
-  private static final Log LOG = LogFactory.getLog(RCFileInputStorageDriver.class);
+  private static final Log LOG = LogFactory.getLog(RCFileInputDriver.class);
   private List<HowlFieldSchema> colsInData;
   private StructObjectInspector oi;
   private Map<String,String> partValues;

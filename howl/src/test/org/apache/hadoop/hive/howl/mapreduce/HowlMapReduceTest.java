@@ -37,8 +37,8 @@ import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
-import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
-import org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -69,8 +69,8 @@ public abstract class HowlMapReduceTest extends TestCase {
 
   protected String inputFormat = RCFileInputFormat.class.getName();
   protected String outputFormat = RCFileOutputFormat.class.getName();
-  protected String inputSD = RCFileInputStorageDriver.class.getName();
-  protected String outputSD = RCFileOutputStorageDriver.class.getName();
+  protected String inputSD = RCFileInputDriver.class.getName();
+  protected String outputSD = RCFileOutputDriver.class.getName();
   protected String serdeClass = ColumnarSerDe.class.getName();
 
   private static List<HowlRecord> writeRecords = new ArrayList<HowlRecord>();
