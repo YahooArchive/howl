@@ -33,7 +33,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.thrift.TException;
 
-public class TestHowlPigStorageDriver extends TestCase {
+public class TestPigStorageDriver extends TestCase {
 
   private HiveConf howlConf;
   private Driver howlDriver;
@@ -94,9 +94,17 @@ public class TestHowlPigStorageDriver extends TestCase {
     while(itr.hasNext()){
       Tuple t = itr.next();
       assertEquals(2, t.size());
-      assertTrue(t.get(0) instanceof String);
+      if(t.get(0) != null) {
+        // If underlying data-field is empty. PigStorage inserts null instead
+        // of empty String objects.
+        assertTrue(t.get(0) instanceof String);
+        assertEquals(stream.readLine(), t.get(0));
+      }
+      else{
+        assertTrue(stream.readLine().isEmpty());
+      }
       assertTrue(t.get(1) instanceof String);
-      assertEquals(stream.readLine(), t.get(0));
+
       assertEquals("2010-10-10", t.get(1));
     }
     assertEquals(0,stream.available());

@@ -6,6 +6,7 @@
             Apache Hadoop Howl
         </description>
     </info>
+
     <configurations defaultconfmapping="default">
     <!--these match the Maven configurations-->
         <conf name="default" extends="master,runtime"/>
