@@ -105,32 +105,46 @@ public class LoadFuncBasedInputFormat extends InputFormat<BytesWritable,Tuple> {
 
          DataByteArray dba = (DataByteArray) tupleFromDisk.get(i);
 
+         if(dba == null) {
+           // PigStorage will insert nulls for empty fields.
+          tupleFromDisk.set(i, null);
+          continue;
+        }
+
          switch(fields[i].getType()) {
+
+         case DataType.CHARARRAY:
+           tupleFromDisk.set(i, caster.bytesToCharArray(dba.get()));
+           break;
+
+         case DataType.INTEGER:
+           tupleFromDisk.set(i, caster.bytesToInteger(dba.get()));
+           break;
+
+         case DataType.FLOAT:
+           tupleFromDisk.set(i, caster.bytesToFloat(dba.get()));
+           break;
+
+         case DataType.LONG:
+           tupleFromDisk.set(i, caster.bytesToLong(dba.get()));
+           break;
+
+         case DataType.DOUBLE:
+           tupleFromDisk.set(i, caster.bytesToDouble(dba.get()));
+           break;
+
+         case DataType.MAP:
+           tupleFromDisk.set(i, caster.bytesToMap(dba.get()));
+           break;
 
          case DataType.BAG:
            tupleFromDisk.set(i, caster.bytesToBag(dba.get(), fields[i]));
            break;
-         case DataType.DOUBLE:
-           tupleFromDisk.set(i, caster.bytesToDouble(dba.get()));
-           break;
-         case DataType.INTEGER:
-           tupleFromDisk.set(i, caster.bytesToInteger(dba.get()));
-           break;
-         case DataType.FLOAT:
-           tupleFromDisk.set(i, caster.bytesToFloat(dba.get()));
-           break;
-         case DataType.LONG:
-           tupleFromDisk.set(i, caster.bytesToLong(dba.get()));
-           break;
-         case DataType.MAP:
-           tupleFromDisk.set(i, caster.bytesToMap(dba.get()));
-           break;
+
          case DataType.TUPLE:
            tupleFromDisk.set(i, caster.bytesToTuple(dba.get(), fields[i]));
            break;
-         case DataType.CHARARRAY:
-           tupleFromDisk.set(i, caster.bytesToCharArray(dba.get()));
-           break;
+
          default:
            throw new IOException("Unknown Pig type in data: "+fields[i].getType());
          }
