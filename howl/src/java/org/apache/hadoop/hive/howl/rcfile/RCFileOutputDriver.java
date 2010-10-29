@@ -54,7 +54,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 /**
  * The storage driver for writing RCFile data through HowlOutputFormat.
  */
- public class RCFileOutputStorageDriver extends HowlOutputStorageDriver {
+ public class RCFileOutputDriver extends HowlOutputStorageDriver {
 
    /** The serde for serializing the HowlRecord to bytes writable */
    private SerDe serde;

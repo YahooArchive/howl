@@ -31,8 +31,8 @@ import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputStorageDriver;
 import org.apache.hadoop.hive.howl.mapreduce.HowlOutputStorageDriver;
 import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
-import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
-import org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.serde2.columnar.BytesRefArrayWritable;
 import org.apache.hadoop.hive.serde2.columnar.BytesRefWritable;
@@ -46,7 +46,7 @@ public class TestRCFileOutputStorageDriver extends TestCase {
     JobContext jc = new JobContext(conf, new JobID());
 
     HowlSchema schema = buildHiveSchema();
-    HowlInputStorageDriver isd = new RCFileInputStorageDriver();
+    HowlInputStorageDriver isd = new RCFileInputDriver();
 
     isd.setOriginalSchema(jc, schema);
     isd.setOutputSchema(jc, schema);
@@ -64,7 +64,7 @@ public class TestRCFileOutputStorageDriver extends TestCase {
     //using osd, compare the two arrays
     HowlRecord record = isd.convertToHowlRecord(null, bytesWritable);
 
-    HowlOutputStorageDriver osd = new RCFileOutputStorageDriver();
+    HowlOutputStorageDriver osd = new RCFileOutputDriver();
 
     osd.setSchema(jc, schema);
     osd.initialize(jc, new Properties());

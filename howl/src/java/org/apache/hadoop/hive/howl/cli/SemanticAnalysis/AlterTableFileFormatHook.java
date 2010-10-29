@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
-import org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver;
-import org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.ql.exec.Task;
@@ -55,8 +55,8 @@ public class AlterTableFileFormatHook extends AbstractSemanticAnalyzerHook {
     case HiveParser.TOK_TBLRCFILE:
       inputFormat = RCFileInputFormat.class.getName();
       outputFormat = RCFileOutputFormat.class.getName();
-      inDriver = RCFileInputStorageDriver.class.getName();
-      outDriver = RCFileOutputStorageDriver.class.getName();
+      inDriver = RCFileInputDriver.class.getName();
+      outDriver = RCFileOutputDriver.class.getName();
       break;
     }
 

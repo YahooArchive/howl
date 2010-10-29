@@ -14,7 +14,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.howl.cli.SemanticAnalysis.HowlSemanticAnalyzer;
-import org.apache.hadoop.hive.howl.pig.drivers.HowlPigStorageInputDriver;
+import org.apache.hadoop.hive.howl.pig.drivers.PigStorageInputDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
@@ -78,7 +78,7 @@ public class TestHowlPigStorageDriver extends TestCase {
     assertNull(resp.getErrorMessage());
 
     resp = howlDriver.run("alter table junit_pigstorage partition (b='2010-10-10') set fileformat inputformat '" + RCFileInputFormat.class.getName()
-        +"' outputformat '"+RCFileOutputFormat.class.getName()+"' inputdriver '"+HowlPigStorageInputDriver.class.getName()+"' outputdriver 'non-existent'");
+        +"' outputformat '"+RCFileOutputFormat.class.getName()+"' inputdriver '"+PigStorageInputDriver.class.getName()+"' outputdriver 'non-existent'");
     assertEquals(0, resp.getResponseCode());
     assertNull(resp.getErrorMessage());
 
@@ -124,7 +124,7 @@ public class TestHowlPigStorageDriver extends TestCase {
 
     Partition part = msc.getPartition(MetaStoreUtils.DEFAULT_DATABASE_NAME, "junit_pigstorage_delim", "b=2010-10-10");
     Map<String,String> partParms = part.getParameters();
-    partParms.put(HowlPigStorageInputDriver.delim, "control-A");
+    partParms.put(PigStorageInputDriver.delim, "control-A");
 
     msc.alter_partition(MetaStoreUtils.DEFAULT_DATABASE_NAME, "junit_pigstorage_delim", part);
 

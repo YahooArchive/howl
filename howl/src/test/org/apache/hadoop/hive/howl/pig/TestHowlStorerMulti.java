@@ -55,8 +55,8 @@ public class TestHowlStorerMulti extends TestCase {
     if ((partitionedBy != null)&&(!partitionedBy.trim().isEmpty())){
       createTable = createTable + "partitioned by ("+partitionedBy+") ";
     }
-    createTable = createTable + "stored as RCFILE tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputStorageDriver'," +
-    "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputStorageDriver') ";
+    createTable = createTable + "stored as RCFILE tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver'," +
+    "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table. ["+createTable+"], return code from hive driver : ["+retCode+"]");
