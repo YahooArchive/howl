@@ -38,7 +38,7 @@ public class DefaultHowlRecord extends HowlRecord {
     public DefaultHowlRecord(int size){
         contents = new ArrayList<Object>(size);
         for(int i=0; i < size; i++){
-            contents.set(i,null);
+            contents.add(null);
         }
     }
 
