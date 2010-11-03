@@ -40,9 +40,9 @@ public class HowlCli {
    * @param args
    */
 
-  public static final String HOWL_CREATE_TBL_PERMS = "howl.create.table.perms";
+  public static final String HOWL_PERMS = "howl.perms";
 
-  public static final String HOWL_CREATE_TBL_GRP = "howl.create.table.grp";
+  public static final String HOWL_GROUP = "howl.group";
 
   public static void main(String[] args) {
 
@@ -70,9 +70,9 @@ public class HowlCli {
     // -f
     Option fileOption = createOptionWithArg(builder, "file", "f","execute commands from the following file", argBuilder.withMinimum(1).withMaximum(1).create());
     // -g
-    Option grpOption = createOptionWithArg(builder, "group", "g","group for the table specified in CREATE TABLE statement", argBuilder.withMinimum(1).withMaximum(1).create());
+    Option grpOption = createOptionWithArg(builder, "group", "g","group for the db/table specified in CREATE statement", argBuilder.withMinimum(1).withMaximum(1).create());
     // -p
-    Option permOption = createOptionWithArg(builder, "perms", "p","permissions for the table specified in CREATE TABLE statement",
+    Option permOption = createOptionWithArg(builder, "perms", "p","permissions for the db/table specified in CREATE statement",
         argBuilder.withMinimum(1).withMaximum(1).create());
 
     builder.reset();
@@ -111,10 +111,10 @@ public class HowlCli {
     if(perms != null){
       perms = perms.trim();
       if(perms.matches("^\\s*([r,w,x,-]{9})\\s*$")){
-        conf.set(HOWL_CREATE_TBL_PERMS,"d"+perms);
+        conf.set(HOWL_PERMS,"d"+perms);
       }
       else if(perms.matches("^\\s*([0-7]{3})\\s*$")){
-          conf.set(HOWL_CREATE_TBL_PERMS, "d"+new FsPermission(Short.decode("0"+perms)).toString());
+          conf.set(HOWL_PERMS, "d"+new FsPermission(Short.decode("0"+perms)).toString());
         }
       else{
         ss.err.println("Invalid permission specification: "+perms);
@@ -125,7 +125,7 @@ public class HowlCli {
     // -g
     String grp = (String) cmdLine.getValue(grpOption);
     if(grp != null){
-      conf.set(HOWL_CREATE_TBL_GRP, grp);
+      conf.set(HOWL_GROUP, grp);
     }
 
     if (execString != null) {
