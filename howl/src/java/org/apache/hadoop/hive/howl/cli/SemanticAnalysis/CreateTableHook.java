@@ -5,10 +5,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.hive.howl.common.AuthUtils;
+import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
 import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
 import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
+import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.ql.exec.DDLTask;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
@@ -25,7 +32,7 @@ import org.apache.hadoop.hive.ql.plan.CreateTableDesc;
 
 final class CreateTableHook  extends AbstractSemanticAnalyzerHook{
 
-  private String inStorageDriver, outStorageDriver;
+  private String inStorageDriver, outStorageDriver, tableName;
 
   @Override
   public ASTNode preAnalyze(HiveSemanticAnalyzerHookContext context, ASTNode ast)
@@ -41,7 +48,7 @@ final class CreateTableHook  extends AbstractSemanticAnalyzerHook{
     // Analyze and create tbl properties object
     int numCh = ast.getChildCount();
 
-    String inputFormat = null, outputFormat = null,
+    String inputFormat = null, outputFormat = null;
     tableName = BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText());
 
     for (int num = 1; num < numCh; num++) {
@@ -138,8 +145,14 @@ final class CreateTableHook  extends AbstractSemanticAnalyzerHook{
       return;
     }
     CreateTableDesc desc = ((DDLTask)rootTasks.get(rootTasks.size()-1)).getWork().getCreateTblDesc();
+
+    // first check if we will allow the user to create table.
+    authorize(context, desc.getLocation());
+
     if(desc == null){
-      // Desc will be null if its CREATE TABLE LIKE
+      // Desc will be null if its CREATE TABLE LIKE. Desc will be contained
+      // in CreateTableLikeDesc. Currently, Howl disallows CTLT in pre-hook.
+      // So, desc can never be null.
       return;
     }
     Map<String,String> tblProps = desc.getTblProps();
@@ -150,5 +163,31 @@ final class CreateTableHook  extends AbstractSemanticAnalyzerHook{
     tblProps.put(InitializeInput.HOWL_ISD_CLASS, inStorageDriver);
     tblProps.put(InitializeInput.HOWL_OSD_CLASS, outStorageDriver);
     desc.setTblProps(tblProps);
+  }
+
+  private void authorize(HiveSemanticAnalyzerHookContext context, String loc) throws SemanticException{
+
+    Path tblDir;
+    Configuration conf = context.getConf();
+    try {
+      Warehouse wh = new Warehouse(conf);
+      if (loc == null || loc.isEmpty()){
+        tblDir = wh.getDnsPath(wh.getDefaultTablePath(context.getHive().getCurrentDatabase(), tableName).getParent());
+      }
+      else{
+        tblDir = wh.getDnsPath(new Path(loc));
+      }
+
+      try {
+        AuthUtils.authorize(tblDir, FsAction.WRITE, conf);
+      } catch (HowlException e) {
+        throw new SemanticException(e);
+      }
+    }
+    catch (MetaException e) {
+      throw new SemanticException(e);
+    } catch (HiveException e) {
+      throw new SemanticException(e);
+    }
   }
 }

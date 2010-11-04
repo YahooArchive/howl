@@ -67,7 +67,7 @@ public class TestPigStorageDriver extends TestCase {
 
     howlDriver.run("drop table junit_pigstorage");
     CommandProcessorResponse resp;
-    String createTable = "create external table junit_pigstorage (a string) partitioned by (b string) stored as RCFILE";
+    String createTable = "create table junit_pigstorage (a string) partitioned by (b string) stored as RCFILE";
 
     resp = howlDriver.run(createTable);
     assertEquals(0, resp.getResponseCode());
@@ -117,9 +117,10 @@ public class TestPigStorageDriver extends TestCase {
     howlDriver.run("drop table junit_pigstorage_delim");
 
     CommandProcessorResponse resp;
-    String createTable = "create external table junit_pigstorage_delim (a string) partitioned by (b string) stored as RCFILE";
+    String createTable = "create table junit_pigstorage_delim (a string) partitioned by (b string) stored as RCFILE";
 
     resp = howlDriver.run(createTable);
+
     assertEquals(0, resp.getResponseCode());
     assertNull(resp.getErrorMessage());
 
