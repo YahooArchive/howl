@@ -1,5 +1,6 @@
 package org.apache.hadoop.hive.howl.common;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import javax.security.auth.login.LoginException;
@@ -38,7 +39,11 @@ public class AuthUtils {
 
     try {
       stat = path.getFileSystem(conf).getFileStatus(path);
-    } catch (AccessControlException ace) {
+    } catch (FileNotFoundException fnfe){
+      // File named by path doesn't exist; nothing to validate.
+      return;
+    }
+    catch (AccessControlException ace) {
       throw new HowlException(ErrorType.ERROR_ACCESS_CONTROL, ace);
     } catch (org.apache.hadoop.fs.permission.AccessControlException ace){
       // Older hadoop version will throw this @deprecated Exception.

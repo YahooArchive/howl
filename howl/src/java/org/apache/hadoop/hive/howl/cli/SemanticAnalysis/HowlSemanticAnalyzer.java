@@ -45,8 +45,8 @@ public class HowlSemanticAnalyzer extends AbstractSemanticAnalyzerHook {
     case HiveParser.TOK_ALTERTABLE_PROPERTIES:
     case HiveParser.TOK_ALTERTABLE_SERIALIZER:
     case HiveParser.TOK_ALTERTABLE_SERDEPROPERTIES:
-    case HiveParser.TOK_SHOWTABLES:
     case HiveParser.TOK_SHOW_TABLESTATUS:
+    case HiveParser.TOK_SHOWTABLES:
     case HiveParser.TOK_SHOWPARTITIONS:
       return ast;
 
@@ -85,13 +85,6 @@ public class HowlSemanticAnalyzer extends AbstractSemanticAnalyzerHook {
         action = FsAction.READ;
         break;
 
-      case HiveParser.TOK_SHOWTABLES:
-        // We do no checks for show tables. Its always allowed.
-        tblName = null;
-        action = null;
-        break;
-
-      case HiveParser.TOK_SHOW_TABLESTATUS:
       case HiveParser.TOK_SHOWPARTITIONS:
         action = FsAction.READ;
         tblName = BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText());
@@ -114,6 +107,9 @@ public class HowlSemanticAnalyzer extends AbstractSemanticAnalyzerHook {
         tblName =  BaseSemanticAnalyzer.unescapeIdentifier(((ASTNode)ast.getChild(0)).getChild(0).getText());
         break;
 
+      case HiveParser.TOK_SHOW_TABLESTATUS:
+      case HiveParser.TOK_SHOWTABLES:
+        // We do no checks for show tables. Its always allowed.
       case HiveParser.TOK_CREATETABLE:
         // No checks for Create Table, since its not possible to compute location
         // here easily. So, it is especially handled in CreateTable post hook.
@@ -128,14 +124,22 @@ public class HowlSemanticAnalyzer extends AbstractSemanticAnalyzerHook {
       if(tblName != null){
         Path path;
         try {
-          path = new Warehouse(context.getConf()).getDnsPath(context.getHive().getTable(tblName).getPath());
+          path = context.getHive().getTable(tblName).getPath();
+          if(path != null){
+            AuthUtils.authorize(new Warehouse(context.getConf()).getDnsPath(path), action, context.getConf());
+          }
+          else{
+            // This will happen, if table exists in metastore for a given
+            // tablename, but has no path associated with it, so there is nothing to check.
+            // In such cases, do no checks and allow whatever hive behavior is for it.
+          }
         } catch (MetaException e) {
           throw new SemanticException("Failed to compute location for: "+tblName,e);
         }
         catch (HiveException e) {
           throw new SemanticException("Failed to compute location for: "+tblName,e);
         }
-        AuthUtils.authorize(path, action, context.getConf());
+
       }
     }
 
