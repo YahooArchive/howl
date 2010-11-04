@@ -42,6 +42,9 @@ public enum ErrorType {
     ERROR_MOVE_FAILED                   (2012, "Moving of data failed during commit"),
 
 
+    /* Authorization Errors 3000 - 3999 */
+    ERROR_ACCESS_CONTROL           (3000, "Permission denied"),
+
     /* Miscellaneous errors, range 9000 - 9998 */
     ERROR_UNIMPLEMENTED                 (9000, "Functionality currently unimplemented"),
     ERROR_INTERNAL_EXCEPTION            (9001, "Exception occurred while processing Howl request");
