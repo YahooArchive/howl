@@ -36,6 +36,16 @@ public class HowlSemanticAnalyzer extends AbstractSemanticAnalyzerHook {
       hook = new CreateTableHook();
       return hook.preAnalyze(context, ast);
 
+    case HiveParser.TOK_CREATEDATABASE:
+      hook = new CreateDatabaseHook();
+      return hook.preAnalyze(context, ast);
+
+    // DML commands used in Howl where we use the same implementation as default Hive.
+    case HiveParser.TOK_SHOWDATABASES:
+    case HiveParser.TOK_DROPDATABASE:
+    case HiveParser.TOK_SWITCHDATABASE:
+      return ast;
+
     // Howl will allow these operations to be performed since they are DDL statements.
     case HiveParser.TOK_DROPTABLE:
     case HiveParser.TOK_DESCTABLE:
