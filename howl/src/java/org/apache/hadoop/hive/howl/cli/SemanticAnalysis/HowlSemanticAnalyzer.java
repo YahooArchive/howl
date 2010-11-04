@@ -12,6 +12,8 @@ import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.InvalidTableException;
+import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.AbstractSemanticAnalyzerHook;
 import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer;
@@ -83,21 +85,16 @@ public class HowlSemanticAnalyzer extends AbstractSemanticAnalyzerHook {
   public void postAnalyze(HiveSemanticAnalyzerHookContext context,
       List<Task<? extends Serializable>> rootTasks) throws SemanticException {
 
-    FsAction action;
-    String tblName;
-
     try{
 
       switch (ast.getToken().getType()) {
 
       case HiveParser.TOK_DESCTABLE:
-        tblName = getFullyQualifiedName((ASTNode) ast.getChild(0).getChild(0));
-        action = FsAction.READ;
+        authorize(getFullyQualifiedName((ASTNode) ast.getChild(0).getChild(0)), context, FsAction.READ, false);
         break;
 
       case HiveParser.TOK_SHOWPARTITIONS:
-        action = FsAction.READ;
-        tblName = BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText());
+        authorize(BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText()), context, FsAction.READ, false);
         break;
 
       case HiveParser.TOK_ALTERTABLE_ADDPARTS:
@@ -108,59 +105,78 @@ public class HowlSemanticAnalyzer extends AbstractSemanticAnalyzerHook {
       case HiveParser.TOK_ALTERTABLE_PROPERTIES:
       case HiveParser.TOK_ALTERTABLE_SERIALIZER:
       case HiveParser.TOK_ALTERTABLE_SERDEPROPERTIES:
-        action = FsAction.WRITE;
-        tblName = BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText());
+        authorize(BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText()), context, FsAction.WRITE, false);
         break;
 
       case HiveParser.TOK_ALTERTABLE_PARTITION:
-        action = FsAction.WRITE;
-        tblName =  BaseSemanticAnalyzer.unescapeIdentifier(((ASTNode)ast.getChild(0)).getChild(0).getText());
+        authorize(BaseSemanticAnalyzer.unescapeIdentifier(((ASTNode)ast.getChild(0)).getChild(0).getText()), context, FsAction.WRITE, false);
         break;
 
+      case HiveParser.TOK_SWITCHDATABASE:
+        authorize(BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText()), context, FsAction.READ, true);
+        break;
+
+      case HiveParser.TOK_DROPDATABASE:
+        authorize(BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText()), context, FsAction.WRITE, true);
+        break;
+
+      case HiveParser.TOK_CREATEDATABASE:
+      case HiveParser.TOK_SHOWDATABASES:
       case HiveParser.TOK_SHOW_TABLESTATUS:
       case HiveParser.TOK_SHOWTABLES:
-        // We do no checks for show tables. Its always allowed.
+        // We do no checks for show tables/db , create db. Its always allowed.
+
       case HiveParser.TOK_CREATETABLE:
         // No checks for Create Table, since its not possible to compute location
         // here easily. So, it is especially handled in CreateTable post hook.
-        tblName = null;
-        action = null;
         break;
 
       default:
         throw new HowlException(ErrorType.ERROR_INTERNAL_EXCEPTION, "Unexpected token: "+ast.getToken());
       }
-
-      if(tblName != null){
-        Path path;
-        try {
-          path = context.getHive().getTable(tblName).getPath();
-          if(path != null){
-            AuthUtils.authorize(new Warehouse(context.getConf()).getDnsPath(path), action, context.getConf());
-          }
-          else{
-            // This will happen, if table exists in metastore for a given
-            // tablename, but has no path associated with it, so there is nothing to check.
-            // In such cases, do no checks and allow whatever hive behavior is for it.
-          }
-        } catch (MetaException e) {
-          throw new SemanticException("Failed to compute location for: "+tblName,e);
-        }
-        catch (HiveException e) {
-          throw new SemanticException("Failed to compute location for: "+tblName,e);
-        }
-
-      }
-    }
-
-    catch(HowlException e){
+    } catch(HowlException e){
       throw new SemanticException(e);
-    }
+    } catch (MetaException e) {
+      throw new SemanticException(e);
+    } catch (HiveException e) {
+      throw new SemanticException(e);
+  }
 
     if(hook != null){
       hook.postAnalyze(context, rootTasks);
     }
   }
+
+  private void authorize(String name, HiveSemanticAnalyzerHookContext cntxt, FsAction action, boolean isDBOp)
+                                                      throws MetaException, HiveException, HowlException{
+
+
+    Warehouse wh = new Warehouse(cntxt.getConf());
+    if(!isDBOp){
+      // Do validations for table path.
+      Table tbl;
+      try{
+        tbl = cntxt.getHive().getTable(name);
+      }
+      catch(InvalidTableException ite){
+        // Table itself doesn't exist in metastore, nothing to validate.
+        return;
+      }
+      Path path = tbl.getPath();
+      if(path != null){
+        AuthUtils.authorize(wh.getDnsPath(path), action, cntxt.getConf());
+      } else{
+        // This will happen, if table exists in metastore for a given
+        // tablename, but has no path associated with it, so there is nothing to check.
+        // In such cases, do no checks and allow whatever hive behavior is for it.
+        return;
+      }
+    } else{
+      // Else, its a DB operation.
+      AuthUtils.authorize(wh.getDefaultDatabasePath(name), action, cntxt.getConf());
+    }
+  }
+
 
   private String getFullyQualifiedName(ASTNode ast) {
     // Copied verbatim from DDLSemanticAnalyzer, since its private there.
