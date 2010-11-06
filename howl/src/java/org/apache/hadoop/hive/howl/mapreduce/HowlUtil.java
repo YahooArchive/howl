@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.hive.howl.common.ErrorType;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
@@ -209,5 +210,17 @@ public class HowlUtil {
     return newFields;
   }
 
-
+  public static boolean validateMorePermissive(FsAction first, FsAction second) {
+    if ((first == FsAction.ALL) ||
+        (second == FsAction.NONE) ||
+        (first == second)) {
+      return true;
+    }
+    switch (first){
+      case READ_EXECUTE : return ((second == FsAction.READ) || (second == FsAction.EXECUTE));
+      case READ_WRITE : return ((second == FsAction.READ) || (second == FsAction.WRITE));
+      case WRITE_EXECUTE : return ((second == FsAction.WRITE) || (second == FsAction.EXECUTE));
+    }
+    return false;
+  }
 }
