@@ -23,12 +23,12 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.howl.common.HowlUtil;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.Pair;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.howl.mapreduce.HowlInputFormat;
 import org.apache.hadoop.hive.howl.mapreduce.HowlTableInfo;
-import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.InputFormat;
