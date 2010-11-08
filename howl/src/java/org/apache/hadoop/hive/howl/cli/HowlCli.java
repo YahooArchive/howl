@@ -31,6 +31,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.howl.cli.SemanticAnalysis.HowlSemanticAnalyzer;
 import org.apache.hadoop.hive.howl.common.HowlConstants;
+import org.apache.hadoop.hive.howl.mapreduce.HowlUtil;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.ql.Driver;
@@ -110,17 +111,7 @@ public class HowlCli {
     // -p
     String perms = (String) cmdLine.getValue(permOption);
     if(perms != null){
-      perms = perms.trim();
-      if(perms.matches("^\\s*([r,w,x,-]{9})\\s*$")){
-        conf.set(HowlConstants.HOWL_PERMS,"d"+perms);
-      }
-      else if(perms.matches("^\\s*([0-7]{3})\\s*$")){
-          conf.set(HowlConstants.HOWL_PERMS, "d"+new FsPermission(Short.decode("0"+perms)).toString());
-        }
-      else{
-        ss.err.println("Invalid permission specification: "+perms);
-        System.exit(1);
-      }
+      validatePermissions(ss, conf, perms);
     }
 
     // -g
@@ -342,4 +333,32 @@ public class HowlCli {
     }
     return dob.create();
   }
+
+  private static void validatePermissions(CliSessionState ss, HiveConf conf, String perms) {
+    perms = perms.trim();
+    FsPermission fp = null;
+
+    if (perms.matches("^\\s*([r,w,x,-]{9})\\s*$")){
+      fp = FsPermission.valueOf(perms); // TODO:doublecheck that FsPermission.valueOf(blah).toString().equals(blah)
+    } else if (perms.matches("^\\s*([0-7]{3})\\s*$")){
+      fp = new FsPermission(Short.decode("0"+perms));
+    } else {
+      ss.err.println("Invalid permission specification: "+perms);
+      System.exit(1);
+    }
+
+    if (!HowlUtil.validateMorePermissive(fp.getUserAction(),fp.getGroupAction())){
+      ss.err.println("Invalid permission specification: "+perms+" : user permissions must be more permissive than group permission ");
+      System.exit(1);
+    }
+    if (!HowlUtil.validateMorePermissive(fp.getGroupAction(),fp.getOtherAction())){
+      ss.err.println("Invalid permission specification: "+perms+" : group permissions must be more permissive than other permission ");
+      System.exit(1);
+    }
+
+    conf.set(HowlConstants.HOWL_PERMS, "d"+fp.toString());
+
+  }
+
+
 }
