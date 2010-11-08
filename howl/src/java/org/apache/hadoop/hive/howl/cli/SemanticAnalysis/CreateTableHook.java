@@ -9,6 +9,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.hive.howl.common.AuthUtils;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
 import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
@@ -163,6 +164,7 @@ final class CreateTableHook  extends AbstractSemanticAnalyzerHook{
     tblProps.put(InitializeInput.HOWL_ISD_CLASS, inStorageDriver);
     tblProps.put(InitializeInput.HOWL_OSD_CLASS, outStorageDriver);
     desc.setTblProps(tblProps);
+    context.getConf().set(HowlConstants.HOWL_CREATE_TBL_NAME, tableName);
   }
 
   private void authorize(HiveSemanticAnalyzerHookContext context, String loc) throws SemanticException{

@@ -1,7 +1,10 @@
 package org.apache.hadoop.hive.howl.cli.SemanticAnalysis;
 
+import java.io.Serializable;
 import java.util.List;
 
+import org.apache.hadoop.hive.howl.common.HowlConstants;
+import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
@@ -12,6 +15,8 @@ import org.apache.hadoop.hive.ql.parse.HiveSemanticAnalyzerHookContext;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 final class CreateDatabaseHook  extends AbstractSemanticAnalyzerHook{
+
+  String databaseName;
 
   @Override
   public ASTNode preAnalyze(HiveSemanticAnalyzerHookContext context, ASTNode ast)
@@ -27,7 +32,7 @@ final class CreateDatabaseHook  extends AbstractSemanticAnalyzerHook{
     // Analyze and create tbl properties object
     int numCh = ast.getChildCount();
 
-    String databaseName = BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText());
+    databaseName = BaseSemanticAnalyzer.unescapeIdentifier(ast.getChild(0).getText());
 
     for (int num = 1; num < numCh; num++) {
       ASTNode child = (ASTNode) ast.getChild(num);
@@ -53,8 +58,9 @@ final class CreateDatabaseHook  extends AbstractSemanticAnalyzerHook{
     return ast;
   }
 
-//  @Override
-//  public void postAnalyze(HiveSemanticAnalyzerHookContext context, List<Task<? extends Serializable>> rootTasks) throws SemanticException {
-//    // comparing to Table's postAnalyze, it doesn't seem like we need to do anything here.
-//  }
+  @Override
+  public void postAnalyze(HiveSemanticAnalyzerHookContext context,
+      List<Task<? extends Serializable>> rootTasks) throws SemanticException {
+    context.getConf().set(HowlConstants.HOWL_CREATE_DB_NAME, databaseName);
+  }
 }

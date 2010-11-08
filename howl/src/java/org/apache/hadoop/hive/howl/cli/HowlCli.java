@@ -22,12 +22,21 @@ import org.apache.commons.cli2.builder.GroupBuilder;
 import org.apache.commons.cli2.commandline.Parser;
 import org.apache.commons.cli2.option.PropertyOption;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.cli.CliSessionState;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.howl.cli.SemanticAnalysis.HowlSemanticAnalyzer;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
+import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.ql.Driver;
+import org.apache.hadoop.hive.ql.metadata.Hive;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.processors.SetProcessor;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
@@ -35,14 +44,6 @@ import org.apache.hadoop.hive.ql.session.SessionState;
  *
  */
 public class HowlCli {
-
-  /**
-   * @param args
-   */
-
-  public static final String HOWL_PERMS = "howl.perms";
-
-  public static final String HOWL_GROUP = "howl.group";
 
   public static void main(String[] args) {
 
@@ -111,10 +112,10 @@ public class HowlCli {
     if(perms != null){
       perms = perms.trim();
       if(perms.matches("^\\s*([r,w,x,-]{9})\\s*$")){
-        conf.set(HOWL_PERMS,"d"+perms);
+        conf.set(HowlConstants.HOWL_PERMS,"d"+perms);
       }
       else if(perms.matches("^\\s*([0-7]{3})\\s*$")){
-          conf.set(HOWL_PERMS, "d"+new FsPermission(Short.decode("0"+perms)).toString());
+          conf.set(HowlConstants.HOWL_PERMS, "d"+new FsPermission(Short.decode("0"+perms)).toString());
         }
       else{
         ss.err.println("Invalid permission specification: "+perms);
@@ -125,7 +126,7 @@ public class HowlCli {
     // -g
     String grp = (String) cmdLine.getValue(grpOption);
     if(grp != null){
-      conf.set(HOWL_GROUP, grp);
+      conf.set(HowlConstants.HOWL_GROUP, grp);
     }
 
     if (execString != null) {
@@ -209,6 +210,11 @@ public class HowlCli {
     Driver driver = new Driver();
 
     int ret = driver.run(cmd).getResponseCode();
+    if (ret == 0){
+      ret = setFSPermsNGrp(ss);
+      ss.getConf().set(HowlConstants.HOWL_CREATE_DB_NAME, null);
+      ss.getConf().set(HowlConstants.HOWL_CREATE_TBL_NAME, null);
+    }
     if (ret != 0) {
       driver.close();
       System.exit(ret);
@@ -240,6 +246,83 @@ public class HowlCli {
     }
     return ret;
   }
+
+  private static int setFSPermsNGrp(SessionState ss) {
+
+    Configuration conf =ss.getConf();
+
+    String tblName = conf.get(HowlConstants.HOWL_CREATE_TBL_NAME,null);
+    String dbName = conf.get(HowlConstants.HOWL_CREATE_DB_NAME, null);
+    String grp = conf.get(HowlConstants.HOWL_GROUP,null);
+    String permsStr = conf.get(HowlConstants.HOWL_PERMS,null);
+
+    if(null == tblName && null == dbName){
+      // it wasn't create db/table
+      return 0;
+    }
+
+    if(null == grp && null == permsStr) {
+      // there were no grp and perms to begin with.
+      return 0;
+    }
+
+    FsPermission perms = FsPermission.valueOf(permsStr);
+    if(tblName != null){
+      Hive db = null;
+      try{
+        db = Hive.get();
+        Table tbl =  db.getTable(tblName);
+        Path tblPath = tbl.getPath();
+
+        FileSystem fs = tblPath.getFileSystem(conf);
+        if(null != perms){
+          fs.setPermission(tblPath, perms);
+        }
+        if(null != grp){
+          fs.setOwner(tblPath, null, grp);
+        }
+        return 0;
+
+      } catch (Exception e){
+          ss.err.println(String.format("Failed to set permissions/groups on TABLE: <%s> /n%s",tblName,e.getMessage()));
+          try {  // We need to drop the table.
+            if(null != db){ db.dropTable(tblName); }
+          } catch (HiveException he) {
+            ss.err.println(String.format("Failed to drop TABLE <%s> after failing to set permissions/groups on it. /n%s",tblName,e.getMessage()));
+          }
+          return 1;
+      }
+    }
+    else{
+      // looks like a db operation
+      if (dbName == null || dbName.equals(MetaStoreUtils.DEFAULT_DATABASE_NAME)){
+        // We dont set perms or groups for default dir.
+        return 0;
+      }
+      else{
+        try{
+          Path dbPath = new Warehouse(conf).getDefaultDatabasePath(dbName);
+          FileSystem fs = dbPath.getFileSystem(conf);
+          if(perms != null){
+            fs.setPermission(dbPath, perms);
+          }
+          if(null != grp){
+            fs.setOwner(dbPath, null, grp);
+          }
+          return 0;
+        } catch (Exception e){
+          ss.err.println(String.format("Failed to set permissions and/or group on DB: <%s> /n%s", dbName, e.getMessage()));
+          try {
+            Hive.get().dropDatabase(dbName);
+          } catch (Exception e1) {
+            ss.err.println(String.format("Failed to drop DB <%s> after failing to set permissions/group on it. /n%s", dbName, e1.getMessage()));
+          }
+          return 1;
+        }
+      }
+    }
+  }
+
   /**
    * @param ps TODO
    *
