@@ -82,6 +82,33 @@ public class TestSemanticAnalysis extends TestCase{
     howlDriver.run("drop table junit_sem_analysis");
   }
 
+  public void testDatabaseOperations() throws MetaException {
+
+    List<String> dbs = msc.getAllDatabases();
+    String testDb1 = "testdatabaseoperatons1";
+    String testDb2 = "testdatabaseoperatons2";
+
+    if (dbs.contains(testDb1.toLowerCase())){
+      assertEquals(0,howlDriver.run("drop database "+testDb1).getResponseCode());
+    }
+
+    if (dbs.contains(testDb2.toLowerCase())){
+      assertEquals(0,howlDriver.run("drop database "+testDb2).getResponseCode());
+    }
+
+    assertEquals(0,howlDriver.run("create database "+testDb1).getResponseCode());
+    assertTrue(msc.getAllDatabases().contains(testDb1));
+    assertEquals(0,howlDriver.run("create database if not exists "+testDb1).getResponseCode());
+    assertTrue(msc.getAllDatabases().contains(testDb1));
+    assertEquals(0,howlDriver.run("create database if not exists "+testDb2).getResponseCode());
+    assertTrue(msc.getAllDatabases().contains(testDb2));
+
+    assertEquals(0,howlDriver.run("drop database "+testDb1).getResponseCode());
+    assertEquals(0,howlDriver.run("drop database "+testDb2).getResponseCode());
+    assertFalse(msc.getAllDatabases().contains(testDb1));
+    assertFalse(msc.getAllDatabases().contains(testDb2));
+  }
+
   public void testCreateTableIfNotExists() throws MetaException, TException, NoSuchObjectException{
 
     howlDriver.run("drop table "+tblName);
