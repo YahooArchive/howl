@@ -251,7 +251,7 @@ public class HowlCli {
     FsPermission fp = null;
 
     if (perms.matches("^\\s*([r,w,x,-]{9})\\s*$")){
-      fp = FsPermission.valueOf("d"+perms); // TODO:doublecheck that FsPermission.valueOf(blah).toString().equals(blah)
+      fp = FsPermission.valueOf("d"+perms);
     } else if (perms.matches("^\\s*([0-7]{3})\\s*$")){
       fp = new FsPermission(Short.decode("0"+perms));
     } else {

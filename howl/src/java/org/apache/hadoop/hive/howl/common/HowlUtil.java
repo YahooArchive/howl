@@ -208,6 +208,15 @@ public class HowlUtil {
     return newFields;
   }
 
+  /**
+   * Test if the first FsAction is more permissive than the second. This is useful in cases where
+   * we want to ensure that a file owner has more permissions than the group they belong to, for eg.
+   * More completely(but potentially more cryptically)
+   *  owner-r >= group-r >= world-r : bitwise and-masked with 0444 => 444 >= 440 >= 400 >= 000
+   *  owner-w >= group-w >= world-w : bitwise and-masked with &0222 => 222 >= 220 >= 200 >= 000
+   *  owner-x >= group-x >= world-x : bitwise and-masked with &0111 => 111 >= 110 >= 100 >= 000
+   * @return true if first FsAction is more permissive than the second, false if not.
+   */
   public static boolean validateMorePermissive(FsAction first, FsAction second) {
     if ((first == FsAction.ALL) ||
         (second == FsAction.NONE) ||
