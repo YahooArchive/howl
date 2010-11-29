@@ -265,6 +265,21 @@ Trunk -  Unreleased
     HIVE-1746 Support for using ALTER to set IDXPROPERTIES
     (Marquis Wang via jvs)
 
+    HIVE-1787 optimize the code path when there are no outer joins
+    (Siying Dong via namit)
+
+    HIVE-1801 HiveInputFormat or CombineHiveInputFormat always sync blocks of RCFile twice
+    (Siying Dong via He Yongqiang)
+
+    HIVE-1785 change Pre/Post Query Hooks to take in 1 parameter:  HookContext
+    (Liyin Tang via jvs)
+
+    HIVE-1810 doc followup to HIVE-1785
+    (Liyin Tang via jvs)
+
+    HIVE-1797 Compressed the hashtable dump file before put into distributed cache
+    (Liyin Tang via He Yongqiang)
+
   OPTIMIZATIONS
 
   BUG FIXES
@@ -524,6 +539,15 @@ Trunk -  Unreleased
 
     HIVE-1795 outputs not correctly populated for alter table
     (namit via He Yongqiang)
+
+    HIVE-1807 No Element found exception in BucketMapJoinOptimizer
+    (He Yongqiang via Ning Zhang)
+
+    HIVE-1809 Hive Comparison Operators are broken for NaN values
+    (Paul Butler via Ning Zhang)
+
+    HIVE-1808 Wrong parameter names in HiveConf/hive-default.xml
+    for joins (Liyin Tang via namit)
 
   TESTS
 
