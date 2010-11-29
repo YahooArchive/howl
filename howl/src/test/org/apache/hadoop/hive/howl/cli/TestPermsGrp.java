@@ -140,6 +140,8 @@ public class TestPermsGrp extends TestCase {
 
       try{
         // create table must fail.
+        System.setProperty(HiveConf.ConfVars.PREEXECHOOKS.varname, " ");
+        System.setProperty(HiveConf.ConfVars.POSTEXECHOOKS.varname, " ");
         HowlCli.main(new String[]{"-e","create table simptbl (name string) stored as RCFILE", "-p","rw-rw-rw-","-g","THIS_CANNOT_BE_A_VALID_GRP_NAME_EVER"});
         assert false;
       }catch (Exception me){
@@ -153,6 +155,13 @@ public class TestPermsGrp extends TestCase {
       }catch (Exception e){
         assertTrue(e instanceof NoSuchObjectException);
         assertEquals("default.simptbl table not found", e.getMessage());
+      }
+      try{
+        // neither dir should get created.
+        dfsPath.getFileSystem(howlConf).getFileStatus(dfsPath);
+        assert false;
+      } catch(Exception e){
+        assertTrue(e instanceof FileNotFoundException);
       }
 
     } catch (Exception e) {

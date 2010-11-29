@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.common.ErrorType;
 import org.apache.hadoop.hive.howl.common.HowlException;
@@ -39,6 +40,7 @@ import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -85,7 +87,8 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
       HiveMetaStoreClient client = null;
 
       try {
-        client = createHiveClient(outputInfo.getServerUri(), job.getConfiguration());
+        Configuration conf = job.getConfiguration();
+        client = createHiveClient(outputInfo.getServerUri(), conf);
         Table table = client.getTable(outputInfo.getDatabaseName(), outputInfo.getTableName());
 
         if( outputInfo.getPartitionValues() == null ) {
@@ -103,7 +106,8 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         //Handle duplicate publish
         handleDuplicatePublish(job, outputInfo, client, table);
 
-        HowlSchema tableSchema = HowlUtil.extractSchemaFromStorageDescriptor(table.getSd());
+        StorageDescriptor tblSD = table.getSd();
+        HowlSchema tableSchema = HowlUtil.extractSchemaFromStorageDescriptor(tblSD);
         StorerInfo storerInfo = InitializeInput.extractStorerInfo(table.getParameters());
 
         List<String> partitionCols = new ArrayList<String>();
@@ -115,14 +119,28 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
           (Class<? extends HowlOutputStorageDriver>) Class.forName(storerInfo.getOutputSDClass());
         HowlOutputStorageDriver driver = driverClass.newInstance();
 
-        String location = driver.getPartitionLocation(job,
-            table.getSd().getLocation(), partitionCols,
+        String tblLocation = tblSD.getLocation();
+        String location = driver.getOutputLocation(job,
+            tblLocation, partitionCols,
             outputInfo.getPartitionValues());
 
         //Serialize the output info into the configuration
         OutputJobInfo jobInfo = new OutputJobInfo(outputInfo,
                 tableSchema, tableSchema, storerInfo, location, table);
-        job.getConfiguration().set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
+        conf.set(HOWL_KEY_OUTPUT_INFO, HowlUtil.serialize(jobInfo));
+
+        Path tblPath = new Path(tblLocation);
+
+        /*  Set the umask in conf such that files/dirs get created with table-dir
+         * permissions. Following three assumptions are made:
+         * 1. Actual files/dirs creation is done by RecordWriter of underlying
+         * output format. It is assumed that they use default permissions while creation.
+         * 2. Default Permissions = FsPermission.getDefault() = 777.
+         * 3. UMask is honored by underlying filesystem.
+         */
+
+        FsPermission.setUMask(conf, FsPermission.getDefault().applyUMask(
+            tblPath.getFileSystem(conf).getFileStatus(tblPath).getPermission()));
 
       } catch(Exception e) {
         if( e instanceof HowlException ) {

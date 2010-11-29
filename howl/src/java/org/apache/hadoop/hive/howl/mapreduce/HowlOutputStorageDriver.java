@@ -105,7 +105,7 @@ public abstract class HowlOutputStorageDriver {
      * @return the location String.
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    public String getPartitionLocation(JobContext jobContext,
+    public String getOutputLocation(JobContext jobContext,
             String tableLocation, List<String> partitionCols, Map<String, String> partitionValues) throws IOException {
 
       if( partitionValues == null || partitionValues.size() == 0 ) {

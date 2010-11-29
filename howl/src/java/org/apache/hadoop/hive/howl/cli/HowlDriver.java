@@ -28,7 +28,6 @@ public class HowlDriver extends Driver {
       ret = setFSPermsNGrp(ss);
     }
     // reset conf vars
-    ss.getConf().getChangedProperties();
     ss.getConf().set(HowlConstants.HOWL_CREATE_DB_NAME, "");
     ss.getConf().set(HowlConstants.HOWL_CREATE_TBL_NAME, "");
 
