@@ -24,9 +24,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.howl.common.ErrorType;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.common.HowlUtil;
@@ -83,9 +86,15 @@ public class HowlOutputCommitter extends OutputCommitter {
 
     @Override
     public void cleanupJob(JobContext context) throws IOException {
-      OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(context);
 
-      if( jobInfo.getTable().getPartitionKeys().size() == 0 ) {
+      OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(context);
+      Configuration conf = context.getConfiguration();
+      Table table = jobInfo.getTable();
+      StorageDescriptor tblSD = table.getSd();
+      Path tblPath = new Path(tblSD.getLocation());
+      FileSystem fs = tblPath.getFileSystem(conf);
+
+      if( table.getPartitionKeys().size() == 0 ) {
         //non partitioned table
 
         if( baseCommitter != null ) {
@@ -95,10 +104,7 @@ public class HowlOutputCommitter extends OutputCommitter {
         //Move data from temp directory the actual table directory
         //No metastore operation required.
         Path src = new Path(jobInfo.getLocation());
-        Path dest = new Path(jobInfo.getTable().getSd().getLocation());
-        FileSystem fs = src.getFileSystem(context.getConfiguration());
-
-        moveTaskOutputs(fs, src, src, dest);
+        moveTaskOutputs(fs, src, src, tblPath);
         fs.delete(src, true);
         return;
       }
@@ -110,15 +116,14 @@ public class HowlOutputCommitter extends OutputCommitter {
 
       try {
         client = HowlOutputFormat.createHiveClient(
-            jobInfo.getTableInfo().getServerUri(), context.getConfiguration());
+            jobInfo.getTableInfo().getServerUri(), conf);
 
-        Table table = client.getTable(tableInfo.getDatabaseName(), tableInfo.getTableName());
         StorerInfo storer = InitializeInput.extractStorerInfo(table.getParameters());
 
         Partition partition = new Partition();
         partition.setDbName(tableInfo.getDatabaseName());
         partition.setTableName(tableInfo.getTableName());
-        partition.setSd(new StorageDescriptor(table.getSd()));
+        partition.setSd(new StorageDescriptor(tblSD));
         partition.getSd().setLocation(jobInfo.getLocation());
 
         updateTableSchema(client, table, jobInfo.getOutputSchema());
@@ -145,6 +150,18 @@ public class HowlOutputCommitter extends OutputCommitter {
         }
 
         partition.setParameters(params);
+
+        // Sets permissions and group name on partition dirs.
+        FileStatus tblStat = fs.getFileStatus(tblPath);
+        String grpName = tblStat.getGroup();
+        FsPermission perms = tblStat.getPermission();
+        Path partPath = tblPath;
+        for(String partVal : values){
+          partPath = new Path(partPath,FileUtils.escapePathName(partVal));
+          fs.setPermission(partPath, perms);
+          fs.setOwner(partPath, null, grpName);
+        }
+
         //Publish the new partition
         client.add_partition(partition);
         partitionAdded = true; //publish to metastore done

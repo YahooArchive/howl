@@ -27,6 +27,7 @@ import java.util.Map;
 import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
@@ -86,7 +87,8 @@ public class TestHowlOutputFormat extends TestCase {
     try {
       client.dropDatabase(dbName);
     } catch(Exception e) {}
-    client.createDatabase(new Database(dbName, "", "howlTest_loc"));
+    client.createDatabase(new Database(dbName, "", null));
+    assertNotNull((client.getDatabase(dbName).getLocationUri()));
 
     List<FieldSchema> fields = new ArrayList<FieldSchema>();
     fields.add(new FieldSchema("colname", Constants.STRING_TYPE_NAME, ""));
@@ -120,6 +122,9 @@ public class TestHowlOutputFormat extends TestCase {
     tbl.setParameters(tableParams);
 
     client.createTable(tbl);
+    Path tblPath = new Path(client.getTable(dbName, tblName).getSd().getLocation());
+    assertTrue(tblPath.getFileSystem(hiveConf).mkdirs(new Path(tblPath,"p1")));
+
   }
 
   public void testSetOutput() throws Exception {

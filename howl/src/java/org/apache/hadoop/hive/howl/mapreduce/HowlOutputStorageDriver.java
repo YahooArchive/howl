@@ -32,6 +32,9 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 
 /** The abstract class to be implemented by underlying storage drivers to enable data access from Howl through
@@ -97,8 +100,8 @@ public abstract class HowlOutputStorageDriver {
     public abstract Writable convertValue(HowlRecord value) throws IOException;
 
     /**
-     * Gets the location to use for the specified partition values. The default implementation returns the default hive
-     * path string. The storage driver can override as required.
+     * Gets the location to use for the specified partition values.
+     *  The storage driver can override as required.
      * @param jobContext the job context object
      * @param tableLocation the location of the table
      * @param partitionValues the partition values
@@ -140,4 +143,10 @@ public abstract class HowlOutputStorageDriver {
       return name.toString();
     }
 
+    /** Default implementation assumes FileOutputFormat. Storage drivers wrapping
+     * other OutputFormats should override this method.
+     */
+    public Path getWorkFilePath(TaskAttemptContext context, String outputLoc) throws IOException{
+      return new Path(new FileOutputCommitter(new Path(outputLoc), context).getWorkPath(), FileOutputFormat.getUniqueFile(context, "part",""));
+    }
 }

@@ -250,7 +250,19 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     public RecordWriter<WritableComparable<?>, HowlRecord>
       getRecordWriter(TaskAttemptContext context
                       ) throws IOException, InterruptedException {
-      return new HowlRecordWriter(context);
+
+      // First create the RW.
+      HowlRecordWriter rw = new HowlRecordWriter(context);
+
+      // Now set permissions and group on freshly created files.
+      OutputJobInfo info =  getJobInfo(context);
+      Path workFile = rw.getStorageDriver().getWorkFilePath(context,info.getLocation());
+      Path tblPath = new Path(info.getTable().getSd().getLocation());
+      FileSystem fs = tblPath.getFileSystem(context.getConfiguration());
+      FileStatus tblPathStat = fs.getFileStatus(tblPath);
+      fs.setPermission(workFile, tblPathStat.getPermission());
+      fs.setOwner(workFile, null, tblPathStat.getGroup());
+      return rw;
     }
 
     /**

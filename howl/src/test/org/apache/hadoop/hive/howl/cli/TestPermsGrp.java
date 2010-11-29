@@ -1,7 +1,6 @@
 package org.apache.hadoop.hive.howl.cli;
 
 import java.io.FileNotFoundException;
-import java.security.Permission;
 import java.util.ArrayList;
 
 import junit.framework.TestCase;
@@ -9,6 +8,8 @@ import junit.framework.TestCase;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.howl.ExitException;
+import org.apache.hadoop.hive.howl.NoExitSecurityManager;
 import org.apache.hadoop.hive.howl.cli.SemanticAnalysis.HowlSemanticAnalyzer;
 import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
@@ -68,7 +69,6 @@ public class TestPermsGrp extends TestCase {
     securityManager = System.getSecurityManager();
     System.setSecurityManager(new NoExitSecurityManager());
 
-
     howlConf = new HiveConf(this.getClass());
     howlConf.set("hive.metastore.local", "false");
     howlConf.setVar(HiveConf.ConfVars.METASTOREURIS, "thrift://localhost:" + msPort);
@@ -80,7 +80,8 @@ public class TestPermsGrp extends TestCase {
     howlConf.set(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY.varname, "false");
     clientWH = new Warehouse(howlConf);
     msc = new HiveMetaStoreClient(howlConf,null);
-
+    System.setProperty(HiveConf.ConfVars.PREEXECHOOKS.varname, " ");
+    System.setProperty(HiveConf.ConfVars.POSTEXECHOOKS.varname, " ");
   }
 
 
@@ -100,11 +101,16 @@ public class TestPermsGrp extends TestCase {
       cleanupTbl(dbName, tblName, typeName);
 
       // Next user did specify perms.
-      tbl = getTable(dbName,tblName,typeName);
-      howlConf.set(HowlConstants.HOWL_PERMS, "drwxrwxrwx");
-      msc.createTable(tbl);
+      try{
+        HowlCli.main(new String[]{"-e","create table simptbl (name string) stored as RCFILE", "-p","rwx-wx---"});
+      }
+      catch(Exception e){
+        assertTrue(e instanceof ExitException);
+        assertEquals(((ExitException)e).getStatus(), 0);
+      }
       dfsPath = clientWH.getDefaultTablePath(dbName, tblName);
-      assertTrue(dfsPath.getFileSystem(howlConf).getFileStatus(dfsPath).getPermission().equals(FsPermission.valueOf("drwxrwxrwx")));
+      assertTrue(dfsPath.getFileSystem(howlConf).getFileStatus(dfsPath).getPermission().equals(FsPermission.valueOf("drwx-wx---")));
+
       cleanupTbl(dbName, tblName, typeName);
 
       // User specified perms in invalid format.
@@ -140,8 +146,6 @@ public class TestPermsGrp extends TestCase {
 
       try{
         // create table must fail.
-        System.setProperty(HiveConf.ConfVars.PREEXECHOOKS.varname, " ");
-        System.setProperty(HiveConf.ConfVars.POSTEXECHOOKS.varname, " ");
         HowlCli.main(new String[]{"-e","create table simptbl (name string) stored as RCFILE", "-p","rw-rw-rw-","-g","THIS_CANNOT_BE_A_VALID_GRP_NAME_EVER"});
         assert false;
       }catch (Exception me){
@@ -211,33 +215,7 @@ public class TestPermsGrp extends TestCase {
     return tbl;
   }
 
-  protected static class ExitException extends SecurityException {
-    private static final long serialVersionUID = -1982617086752946683L;
-    public final int status;
 
-    public ExitException(int status) {
-      super("There is no escape!");
-      this.status = status;
-    }
-  }
-
-  private static class NoExitSecurityManager extends SecurityManager {
-    @Override
-    public void checkPermission(Permission perm) {
-      // allow anything.
-    }
-
-    @Override
-    public void checkPermission(Permission perm, Object context) {
-      // allow anything.
-    }
-
-    @Override
-    public void checkExit(int status) {
-      super.checkExit(status);
-      throw new ExitException(status);
-    }
-  }
 
   private SecurityManager securityManager;
 

@@ -30,6 +30,13 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 public class HowlRecordWriter extends RecordWriter<WritableComparable<?>, HowlRecord> {
 
     private final HowlOutputStorageDriver storageDriver;
+    /**
+     * @return the storageDriver
+     */
+    public HowlOutputStorageDriver getStorageDriver() {
+      return storageDriver;
+    }
+
     private final RecordWriter<? super WritableComparable<?>, ? super Writable> baseWriter;
     private final List<Integer> partColsToDel;
 
