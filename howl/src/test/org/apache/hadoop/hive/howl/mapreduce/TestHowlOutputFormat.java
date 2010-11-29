@@ -156,6 +156,6 @@ public class TestHowlOutputFormat extends TestCase {
     StorerInfo storer = InitializeInput.extractStorerInfo(part.getParameters());
     assertEquals(storer.getInputSDClass(), "testInputClass");
     assertEquals(storer.getProperties().get("howl.testarg"), "testArgValue");
-    assertTrue(part.getSd().getLocation().indexOf("colname=p1") != -1);
+    assertTrue(part.getSd().getLocation().indexOf("p1") != -1);
   }
 }

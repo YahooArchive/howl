@@ -61,7 +61,7 @@ public class TestPigStorageDriver extends TestCase {
 
 
     String fsLoc = howlConf.get("fs.default.name");
-    Path tblPath = new Path(fsLoc, "/test_pig/data");
+    Path tblPath = new Path(fsLoc, "/tmp/test_pig/data");
     String anyExistingFileInCurDir = "ivy.xml";
     tblPath.getFileSystem(howlConf).copyFromLocalFile(new Path(anyExistingFileInCurDir),tblPath);
 
@@ -73,7 +73,7 @@ public class TestPigStorageDriver extends TestCase {
     assertEquals(0, resp.getResponseCode());
     assertNull(resp.getErrorMessage());
 
-    resp = howlDriver.run("alter table junit_pigstorage add partition (b='2010-10-10') location '"+new Path(fsLoc, "/test_pig")+"'");
+    resp = howlDriver.run("alter table junit_pigstorage add partition (b='2010-10-10') location '"+new Path(fsLoc, "/tmp/test_pig")+"'");
     assertEquals(0, resp.getResponseCode());
     assertNull(resp.getErrorMessage());
 
