@@ -514,7 +514,7 @@ public class Hive {
         }
       }
 
-      org.apache.hadoop.hive.metastore.api.StorageDescriptor storageDescriptor = baseTbl.getSd().clone();
+      org.apache.hadoop.hive.metastore.api.StorageDescriptor storageDescriptor = baseTbl.getSd().deepCopy();
       SerDeInfo serdeInfo = storageDescriptor.getSerdeInfo();
       if(serde != null) {
         serdeInfo.setSerializationLib(serde);
@@ -912,18 +912,24 @@ public class Hive {
    * @throws HiveException
    */
   public boolean databaseExists(String dbName) throws HiveException {
+    return getDatabase(dbName) != null;
+  }
+
+  /**
+   * Get the database by name.
+   * @param dbName the name of the database.
+   * @return a Database object if this database exists, null otherwise.
+   * @throws HiveException
+   */
+  public Database getDatabase(String dbName) throws HiveException {
     try {
-      if (null != getMSC().getDatabase(dbName)) {
-        return true;
-      }
-      return false;
+      return getMSC().getDatabase(dbName);
     } catch (NoSuchObjectException e) {
-      return false;
+      return null;
     } catch (Exception e) {
       throw new HiveException(e);
     }
   }
-
 
   /**
    * Load a directory into a Hive Table Partition - Alters existing content of

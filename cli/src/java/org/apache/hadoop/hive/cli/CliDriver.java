@@ -50,6 +50,8 @@ import org.apache.hadoop.hive.ql.processors.CommandProcessorFactory;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
 import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.Schema;
 
 /**
  * CliDriver.
@@ -87,6 +89,20 @@ public class CliDriver {
       // this counts as a successful run
       System.exit(0);
 
+    } else if (tokens[0].equalsIgnoreCase("source")) {
+      File sourceFile = new File(cmd_1);
+      if (! sourceFile.isFile()){
+        console.printError("File: "+ cmd_1 + " is not a file.");
+        ret = 1;
+      } else {
+        try {
+          this.processFile(cmd_1);
+        } catch (IOException e) {
+          console.printError("Failed processing file "+ cmd_1 +" "+ e.getLocalizedMessage(),
+            org.apache.hadoop.util.StringUtils.stringifyException(e));
+          ret = 1;
+        }
+      }
     } else if (cmd_trimmed.startsWith("!")) {
 
       String shell_cmd = cmd_trimmed.substring(1);
@@ -144,6 +160,21 @@ public class CliDriver {
           }
 
           ArrayList<String> res = new ArrayList<String>();
+          
+          if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_CLI_PRINT_HEADER)) {
+            // Print the column names
+            boolean first_col = true;
+            Schema sc = qp.getSchema();
+            for (FieldSchema fs : sc.getFieldSchemas()) {
+              if (!first_col) {
+                out.print('\t');
+              }
+              out.print(fs.getName());
+              first_col = false;
+            }
+            out.println();
+          }
+
           try {
             while (qp.getResults(res)) {
               for (String r : res) {

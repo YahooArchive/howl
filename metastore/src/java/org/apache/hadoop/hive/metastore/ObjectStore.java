@@ -24,8 +24,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -66,9 +66,9 @@ import org.apache.hadoop.hive.metastore.model.MSerDeInfo;
 import org.apache.hadoop.hive.metastore.model.MStorageDescriptor;
 import org.apache.hadoop.hive.metastore.model.MTable;
 import org.apache.hadoop.hive.metastore.model.MType;
+import org.apache.hadoop.hive.metastore.parser.ExpressionTree.ANTLRNoCaseStringStream;
 import org.apache.hadoop.hive.metastore.parser.FilterLexer;
 import org.apache.hadoop.hive.metastore.parser.FilterParser;
-import org.apache.hadoop.hive.metastore.parser.ExpressionTree.ANTLRNoCaseStringStream;
 import org.apache.hadoop.util.StringUtils;
 
 /**
@@ -306,6 +306,7 @@ public class ObjectStore implements RawStore, Configurable {
     mdb.setName(db.getName().toLowerCase());
     mdb.setLocationUri(db.getLocationUri());
     mdb.setDescription(db.getDescription());
+    mdb.setParameters(db.getParameters());
     try {
       openTransaction();
       pm.makePersistent(mdb);
@@ -357,6 +358,7 @@ public class ObjectStore implements RawStore, Configurable {
     db.setName(mdb.getName());
     db.setDescription(mdb.getDescription());
     db.setLocationUri(mdb.getLocationUri());
+    db.setParameters(mdb.getParameters());
     return db;
   }
 
@@ -448,7 +450,12 @@ public class ObjectStore implements RawStore, Configurable {
             .getComment()));
       }
     }
-    return new Type(mtype.getName(), mtype.getType1(), mtype.getType2(), fields);
+    Type ret = new Type();
+    ret.setName(mtype.getName());
+    ret.setType1(mtype.getType1());
+    ret.setType2(mtype.getType2());
+    ret.setFields(fields);
+    return ret;
   }
 
   public boolean createType(Type type) {
@@ -1149,6 +1156,7 @@ public class ObjectStore implements RawStore, Configurable {
       oldt.setRetention(newt.getRetention());
       oldt.setPartitionKeys(newt.getPartitionKeys());
       oldt.setTableType(newt.getTableType());
+      oldt.setLastAccessTime(newt.getLastAccessTime());
 
       // commit the changes
       success = commitTransaction();

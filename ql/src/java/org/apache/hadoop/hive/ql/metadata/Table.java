@@ -730,11 +730,19 @@ public class Table implements Serializable {
   }
 
   public Table copy() throws HiveException {
-    return new Table(tTable.clone());
+    return new Table(tTable.deepCopy());
   }
 
   public void setCreateTime(int createTime) {
     tTable.setCreateTime(createTime);
+  }
+
+  public int getLastAccessTime() {
+    return tTable.getLastAccessTime();
+  }
+
+  public void setLastAccessTime(int lastAccessTime) {
+    tTable.setLastAccessTime(lastAccessTime);
   }
 
   public boolean isNonNative() {

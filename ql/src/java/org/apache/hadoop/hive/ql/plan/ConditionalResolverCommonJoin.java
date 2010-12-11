@@ -29,7 +29,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.Task;
-import org.apache.hadoop.hive.ql.metadata.HiveException;
 
 /**
  * ConditionalResolverSkewJoin.
@@ -97,7 +96,13 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
       resTsks.add(ctx.getCommonJoinTask());
     } else {
       // run the map join task
-      resTsks.add(ctx.getAliasToTask().get(bigTableAlias));
+      Task<? extends Serializable> task = ctx.getAliasToTask().get(bigTableAlias);
+      //set task tag
+      if(task.getTaskTag() == Task.CONVERTED_LOCAL_MAPJOIN) {
+        task.getBackupTask().setTaskTag(Task.BACKUP_COMMON_JOIN);
+      }
+      resTsks.add(task);
+
     }
 
     return resTsks;
@@ -125,9 +130,6 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
         long fileSize = 0;
         for (int i = 0; i < fstatus.length; i++) {
           fileSize += fstatus[i].getLen();
-        }
-        if (fileSize == 0) {
-          throw new HiveException("Input file size is 0");
         }
 
         // put into list and sorted set

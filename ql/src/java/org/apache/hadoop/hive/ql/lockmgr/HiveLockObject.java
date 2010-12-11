@@ -22,67 +22,95 @@ import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
 
 public class HiveLockObject {
-  /**
-   * The table.
-   */
-  private Table t;
+  String [] pathNames = null;
 
-  /**
-   * The partition. This is null for a non partitioned table.
-   */
-  private Partition p;
+  public static class HiveLockObjectData {
+
+    private String queryId;  // queryId of the command
+    private String lockTime; // time at which lock was acquired
+    // mode of the lock: EXPLICIT(lock command)/IMPLICIT(query)
+    private String lockMode;
+
+    public HiveLockObjectData(String queryId,
+                              String lockTime,
+                              String lockMode) {
+      this.queryId  = queryId;
+      this.lockTime = lockTime;
+      this.lockMode = lockMode;
+    }
+
+
+    public HiveLockObjectData(String data) {
+      if (data == null) {
+        return;
+      }
+
+      String[] elem = data.split(":");
+      queryId  = elem[0];
+      lockTime = elem[1];
+      lockMode = elem[2];
+    }
+
+    public String getQueryId() {
+      return queryId;
+    }
+
+    public String getLockTime() {
+      return lockTime;
+    }
+
+    public String getLockMode() {
+      return lockMode;
+    }
+
+    public String toString() {
+      return queryId + ":" + lockTime + ":" + lockMode;
+    }
+  }
 
   /* user supplied data for that object */
-  private String    data;
+  private HiveLockObjectData data;
 
   public HiveLockObject() {
-    this.t = null;
-    this.p = null;
     this.data = null;
   }
 
-  public HiveLockObject(Table t, String data) {
-    this.t = t;
-    this.p = null;
-    this.data = data;
+  public HiveLockObject(String[] paths, HiveLockObjectData lockData) {
+    this.pathNames = paths;
+    this.data = lockData;
   }
 
-  public HiveLockObject(Partition p, String data) {
-    this.t = null;
-    this.p = p;
-    this.data = data;
+  public HiveLockObject(Table tbl, HiveLockObjectData lockData) {
+    this(new String[] {tbl.getDbName(), tbl.getTableName()}, lockData);
   }
 
-  public Table getTable() {
-    return t;
-  }
-
-  public void setTable (Table t) {
-    this.t = t;
-  }
-
-  public Partition getPartition() {
-    return p;
-  }
-
-  public void setPartition (Partition p) {
-    this.p = p;
+  public HiveLockObject(Partition par, HiveLockObjectData lockData) {
+    this(new String[] { par.getTable().getDbName(),
+        par.getTable().getTableName(), par.getName() }, lockData);
   }
 
   public String getName() {
-    if (t != null) {
-      return t.getCompleteName();
+    if (this.pathNames == null) {
+      return null;
     }
-    else {
-      return p.getCompleteName();
+    String ret = "";
+    boolean first = true;
+    for (int i = 0; i < pathNames.length; i++) {
+      if (!first) {
+        ret = ret + "@";
+      } else {
+        first = false;
+      }
+      ret = ret + pathNames[i];
     }
+    return ret;
   }
 
-  public String getData() {
+  public HiveLockObjectData getData() {
     return data;
   }
 
-  public void setData(String data) {
+  public void setData(HiveLockObjectData data) {
     this.data = data;
   }
 

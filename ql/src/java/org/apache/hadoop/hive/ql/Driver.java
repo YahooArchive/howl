@@ -67,6 +67,7 @@ import org.apache.hadoop.hive.ql.lockmgr.HiveLockManager;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockManagerCtx;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockMode;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject;
+import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject.HiveLockObjectData;
 import org.apache.hadoop.hive.ql.lockmgr.LockException;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -84,6 +85,7 @@ import org.apache.hadoop.hive.ql.parse.ParseException;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticAnalyzerFactory;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
+import org.apache.hadoop.hive.ql.parse.VariableSubstitution;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.processors.CommandProcessor;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
@@ -311,6 +313,7 @@ public class Driver implements CommandProcessor {
     TaskFactory.resetId();
 
     try {
+      command = new VariableSubstitution().substitute(conf,command);
       ctx = new Context(conf);
 
       ParseDriver pd = new ParseDriver();
@@ -459,13 +462,18 @@ public class Driver implements CommandProcessor {
       throws SemanticException {
     List<LockObject> locks = new LinkedList<LockObject>();
 
+    HiveLockObjectData lockData =
+      new HiveLockObjectData(plan.getQueryId(),
+                             String.valueOf(System.currentTimeMillis()),
+                             "IMPLICIT");
+
     if (t != null) {
-      locks.add(new LockObject(new HiveLockObject(t, plan.getQueryId()), mode));
+      locks.add(new LockObject(new HiveLockObject(t, lockData), mode));
       return locks;
     }
 
     if (p != null) {
-      locks.add(new LockObject(new HiveLockObject(p, plan.getQueryId()), mode));
+      locks.add(new LockObject(new HiveLockObject(p, lockData), mode));
 
       // All the parents are locked in shared mode
       mode = HiveLockMode.SHARED;
@@ -485,14 +493,14 @@ public class Driver implements CommandProcessor {
         try {
           locks.add(new LockObject(new HiveLockObject(new DummyPartition(p.getTable(), p.getTable()
               .getDbName()
-              + "@" + p.getTable().getTableName() + "@" + partialName), plan.getQueryId()), mode));
+              + "@" + p.getTable().getTableName() + "@" + partialName), lockData), mode));
           partialName += "/";
         } catch (HiveException e) {
           throw new SemanticException(e.getMessage());
         }
       }
 
-      locks.add(new LockObject(new HiveLockObject(p.getTable(), plan.getQueryId()), mode));
+      locks.add(new LockObject(new HiveLockObject(p.getTable(), lockData), mode));
     }
     return locks;
   }
@@ -575,26 +583,14 @@ public class Driver implements CommandProcessor {
       // walk the list and acquire the locks - if any lock cant be acquired, release all locks,
       // sleep and retry
       LockObjectContainer notFound = new LockObjectContainer();
-      while (true) {
-        notFound.setLck(null);
-        List<HiveLock> hiveLocks = acquireLocks(lockObjects, notFound);
+      notFound.setLck(null);
+      List<HiveLock> hiveLocks = acquireLocks(lockObjects, notFound,
+          numRetries, sleepTime);
 
-        if (hiveLocks == null) {
-          if (tryNum == numRetries) {
-            console.printError("Lock for " + notFound.getLck().getObj().getName()
-                + " cannot be acquired in " + notFound.getLck().getMode());
-            throw new SemanticException(ErrorMsg.LOCK_CANNOT_BE_ACQUIRED.getMsg());
-          }
-          tryNum++;
-
-          try {
-            Thread.sleep(sleepTime);
-          } catch (InterruptedException e) {
-          }
-        } else {
-          ctx.setHiveLocks(hiveLocks);
-          break;
-        }
+      if (hiveLocks == null) {
+        throw new SemanticException(ErrorMsg.LOCK_CANNOT_BE_ACQUIRED.getMsg());
+      } else {
+        ctx.setHiveLocks(hiveLocks);
       }
       return (0);
     } catch (SemanticException e) {
@@ -611,8 +607,11 @@ public class Driver implements CommandProcessor {
    *          The list of objects to be locked Lock the objects specified in the list. The same
    *          object is not locked twice, and the list passed is sorted such that EXCLUSIVE locks
    *          occur before SHARED locks.
+   * @param sleepTime
+   * @param numRetries
    **/
-  private List<HiveLock> acquireLocks(List<LockObject> lockObjects, LockObjectContainer notFound)
+  private List<HiveLock> acquireLocks(List<LockObject> lockObjects,
+      LockObjectContainer notFound, int numRetries, int sleepTime)
       throws SemanticException {
     // walk the list and acquire the locks - if any lock cant be acquired, release all locks, sleep
     // and retry
@@ -629,8 +628,9 @@ public class Driver implements CommandProcessor {
 
       HiveLock lock = null;
       try {
-        lock = ctx.getHiveLockMgr().lock(lockObject.getObj(), lockObject.getMode(), false);
+        lock = ctx.getHiveLockMgr().lock(lockObject.getObj(), lockObject.getMode(), false, numRetries, sleepTime);
       } catch (LockException e) {
+        console.printError("Error in acquireLocks: "+ e.getLocalizedMessage());
         lock = null;
       }
 

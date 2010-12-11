@@ -110,6 +110,20 @@ Trunk -  Unreleased
     HIVE-1642 Convert join queries to map-join based on size of table/row
     (Liyin Tang via namit)
 
+    HIVE-1819 maintain lastAccessTime in the metastore
+    (namit via He Yongqiang)
+
+    HIVE-1827 Add a new local mode flag in Task
+    (Liyin Tang via He Yongqiang)
+
+    HIVE-1836 Extend CREATE DATABASE command with DBPROPERTIES
+    (Ning Zhang via namit)
+
+    HIVE-1096 Hive variables (Edward Capriolo via namit)
+
+    HIVE-1842 Track if a map-reduce job is running locally
+    (Liyin Tang via namit)
+
   IMPROVEMENTS
 
     HIVE-1712. Migrating metadata from derby to mysql thrown NullPointerException (Jake Farrell via pauly)
@@ -279,6 +293,15 @@ Trunk -  Unreleased
 
     HIVE-1797 Compressed the hashtable dump file before put into distributed cache
     (Liyin Tang via He Yongqiang)
+
+    HIVE-138 Provide option to export a HEADER
+    (Paul Butler via He Yongqiang)
+
+    HIVE-1834 more debugging for locking
+    (namit via He Yongqiang)
+
+    HIVE-1415: add CLI command for executing a SQL script
+    (Edward Capriolo via jvs)
 
   OPTIMIZATIONS
 
@@ -549,6 +572,39 @@ Trunk -  Unreleased
     HIVE-1808 Wrong parameter names in HiveConf/hive-default.xml
     for joins (Liyin Tang via namit)
 
+    HIVE-1792 Track the joins which are being converted to map-join
+    automatically (Liyin Tang via namit)
+
+    HIVE-1804 Mapjoin will fail if there are no files associating with the join tables
+    (Liyin Tang via He Yongqiang)
+
+    HIVE-1811 Show the time the local task takes
+    (Liyin Tang via He Yongqiang)
+
+    HIVE-1824 Create a new ZooKeeper instance when retrying lock
+    (He Yongqiang via namit)
+
+    HIVE-1828 No need to get Table/Partition for show locks.
+    (He Yongqiang via namit)
+
+    HIVE-1823 upgrade the database thrift interface to allow parameters key-value
+    pairs (Ning Zhang via namit)
+
+    HIVE-1508 Add cleanup method for HiveHistory
+    (Edward Capriolo via namit)
+
+    HIVE-1830 Mappers in group by followed by map-join may die OOM
+    (Liyin Tang via namit)
+
+    HIVE-1844 Hanging hive client due to OOM error
+    (He Yongqiang via namit)
+
+    HIVE-1843 Add an option in dynamic partition inserts to throw an error if
+    0 partitions are created (Ning Zhang via namit)
+
+    HIVE-1846 Hive should not assume that local mode mappers run in same JVM
+    (rvadali via jssarma)
+
   TESTS
 
     HIVE-1464. improve  test query performance
@@ -567,6 +623,11 @@ Trunk -  Unreleased
 
     HIVE-1658. Fix describe [extended] column formatting
     (Thiruvel Thirumoolan via Ning Zhang)
+
+  TASKS
+
+    HIVE-1526. Hive should depend on a release version of Thrift
+    (Carl Steinbach via Ning Zhang)
 
 Release 0.6.0 - 2010-10-19
 

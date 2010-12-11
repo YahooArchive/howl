@@ -191,6 +191,9 @@ TOK_TABALIAS;
 TOK_ANALYZE;
 TOK_SHOWINDEXES;
 TOK_INDEXCOMMENT;
+TOK_DESCDATABASE;
+TOK_DATABASEPROPERTIES;
+TOK_DBPROPLIST;
 }
 
 
@@ -284,9 +287,25 @@ createDatabaseStatement
         ifNotExists?
         name=Identifier
         databaseComment?
-    -> ^(TOK_CREATEDATABASE $name ifNotExists? databaseComment?)
+        (KW_WITH KW_DBPROPERTIES dbprops=dbProperties)?
+    -> ^(TOK_CREATEDATABASE $name ifNotExists? databaseComment? $dbprops?)
     ;
 
+dbProperties
+@init { msgs.push("dbproperties"); }
+@after { msgs.pop(); }
+    :
+      LPAREN dbPropertiesList RPAREN -> ^(TOK_DATABASEPROPERTIES dbPropertiesList)
+    ;
+
+dbPropertiesList
+@init { msgs.push("database properties list"); }
+@after { msgs.pop(); }
+    :
+      keyValueProperty (COMMA keyValueProperty)* -> ^(TOK_DBPROPLIST keyValueProperty+)
+    ;
+
+ 
 switchDatabaseStatement
 @init { msgs.push("switch database statement"); }
 @after { msgs.pop(); }
@@ -661,6 +680,7 @@ descStatement
 @after { msgs.pop(); }
     : (KW_DESCRIBE|KW_DESC) (descOptions=KW_FORMATTED|descOptions=KW_EXTENDED)? (parttype=partTypeExpr) -> ^(TOK_DESCTABLE $parttype $descOptions?)
     | (KW_DESCRIBE|KW_DESC) KW_FUNCTION KW_EXTENDED? (name=descFuncNames) -> ^(TOK_DESCFUNCTION $name KW_EXTENDED?)
+    | (KW_DESCRIBE|KW_DESC) KW_DATABASE KW_EXTENDED? (dbName=Identifier) -> ^(TOK_DESCDATABASE $dbName KW_EXTENDED?)
     ;
 
 analyzeStatement
@@ -678,8 +698,7 @@ showStatement
     | KW_SHOW KW_PARTITIONS Identifier partitionSpec? -> ^(TOK_SHOWPARTITIONS Identifier partitionSpec?)
     | KW_SHOW KW_TABLE KW_EXTENDED ((KW_FROM|KW_IN) db_name=Identifier)? KW_LIKE showStmtIdentifier partitionSpec?
     -> ^(TOK_SHOW_TABLESTATUS showStmtIdentifier $db_name? partitionSpec?)
-    | KW_SHOW KW_LOCKS -> ^(TOK_SHOWLOCKS)
-    | KW_SHOW KW_LOCKS (parttype=partTypeExpr) (isExtended=KW_EXTENDED)? -> ^(TOK_SHOWLOCKS $parttype $isExtended?)
+    | KW_SHOW KW_LOCKS (parttype=partTypeExpr)? (isExtended=KW_EXTENDED)? -> ^(TOK_SHOWLOCKS $parttype? $isExtended?)
     | KW_SHOW (showOptions=KW_FORMATTED)? (KW_INDEX|KW_INDEXES) KW_ON showStmtIdentifier ((KW_FROM|KW_IN) db_name=Identifier)?
     -> ^(TOK_SHOWINDEXES showStmtIdentifier $showOptions? $db_name?)  
     ;
@@ -1880,6 +1899,7 @@ KW_SERDE: 'SERDE';
 KW_WITH: 'WITH';
 KW_DEFERRED: 'DEFERRED';
 KW_SERDEPROPERTIES: 'SERDEPROPERTIES';
+KW_DBPROPERTIES: 'DBPROPERTIES';
 KW_LIMIT: 'LIMIT';
 KW_SET: 'SET';
 KW_TBLPROPERTIES: 'TBLPROPERTIES';

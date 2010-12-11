@@ -202,6 +202,8 @@ public class HiveConf extends Configuration {
     HIVEMAPJOINCACHEROWS("hive.mapjoin.cache.numrows", 25000),
     HIVEGROUPBYMAPINTERVAL("hive.groupby.mapaggr.checkinterval", 100000),
     HIVEMAPAGGRHASHMEMORY("hive.map.aggr.hash.percentmemory", (float) 0.5),
+    HIVEMAPJOINFOLLOWEDBYMAPAGGRHASHMEMORY("hive.mapjoin.followby.map.aggr.hash.percentmemory", (float) 0.3),
+    HIVEMAPAGGRMEMORYTHRESHOLD("hive.map.aggr.hash.force.flush.memory.threshold", (float) 0.9),
     HIVEMAPAGGRHASHMINREDUCTION("hive.map.aggr.hash.min.reduction", (float) 0.5),
 
     // for hive udtf operator
@@ -256,6 +258,7 @@ public class HiveConf extends Configuration {
     HIVEMAXMAPJOINSIZE("hive.mapjoin.maxsize", 100000),
     HIVEHASHTABLETHRESHOLD("hive.hashtable.initialCapacity", 100000),
     HIVEHASHTABLELOADFACTOR("hive.hashtable.loadfactor", (float) 0.75),
+    HIVEHASHTABLEFOLLOWBYGBYMAXMEMORYUSAGE("hive.mapjoin.followby.gby.localtask.max.memory.usage", (float) 0.55),
     HIVEHASHTABLEMAXMEMORYUSAGE("hive.mapjoin.localtask.max.memory.usage", (float) 0.90),
     HIVEHASHTABLESCALE("hive.mapjoin.check.memory.rows", (long)100000),
 
@@ -314,7 +317,16 @@ public class HiveConf extends Configuration {
     // Serde for FetchTask
     HIVEFETCHOUTPUTSERDE("hive.fetch.output.serde", "org.apache.hadoop.hive.serde2.DelimitedJSONSerDe"),
 
+    // Hive Variables
+    HIVEVARIABLESUBSTITUTE("hive.variable.substitute", true),
+
     SEMANTIC_ANALYZER_HOOK("hive.semantic.analyzer.hook",null),
+
+    // Print column names in output
+    HIVE_CLI_PRINT_HEADER("hive.cli.print.header", false),
+
+    HIVE_ERROR_ON_EMPTY_PARTITION("hive.error.on.empty.partition", false);
+
     ;
 
 
@@ -621,4 +633,5 @@ public class HiveConf extends Configuration {
   public static String getColumnInternalName(int pos) {
     return "_col" + pos;
   }
+
 }

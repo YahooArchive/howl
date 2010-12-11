@@ -36,6 +36,12 @@
 </property>
 
 <property>
+  <name>hive.cli.print.header</name>
+  <value>false</value>
+  <description>Whether to print the names of the columns in query output.</description>
+</property>
+
+<property>
   <name>hive.exec.scratchdir</name>
   <value>/tmp/hive-${user.name}</value>
   <description>Scratch space for Hive jobs</description>
@@ -244,6 +250,18 @@
   <name>hive.mapred.local.mem</name>
   <value>0</value>
   <description>For local mode, memory of the mappers/reducers</description>
+</property>
+
+<property>
+  <name>hive.mapjoin.followby.map.aggr.hash.percentmemory</name>
+  <value>0.3</value>
+  <description>Portion of total memory to be used by map-side grup aggregation hash table, when this group by is followed by map join</description>
+</property>
+
+<property>
+  <name>hive.map.aggr.hash.force.flush.memory.threshold</name>
+  <value>0.9</value>
+  <description>The max memory to be used by map-side grup aggregation hash table, if the memory usage is higher than this number, force to flush data</description>
 </property>
 
 <property>
@@ -499,6 +517,12 @@
 </property>
 
 <property>
+  <name>hive.mapjoin.followby.gby.localtask.max.memory.usage</name>
+  <value>0.55</value>
+  <description>This number means how much memory the local task can take to hold the key/value into in-memory hash table when this map join followed by a group by; If the local task's memory usage is more than this number, the local task will be abort by themself. It means the data of small table is too large to be hold in the memory.</description>
+</property>
+
+<property>
   <name>hive.mapjoin.check.memory.rows</name>
   <value>100000</value>
   <description>The number means after how many rows processed it needs to check the memory usage</description>
@@ -643,7 +667,6 @@
   <description>Maximum number of HDFS files created by all mappers/reducers in a MapReduce job.</description>
 </property>
 
-
 <property>
   <name>hive.exec.default.partition.name</name>
   <value>__HIVE_DEFAULT_PARTITION__</value>
@@ -785,5 +808,18 @@
   <value></value>
   <description>Default property values for newly created tables</description>
 </property>
+
+<property>
+  <name>hive.variable.substitute</name>
+  <value>true</value>
+  <description>This enables substitution using syntax like ${var} ${system:var} and ${env:var}.</description>
+</property>
+
+<property>
+  <name>hive.error.on.empty.partition</name>
+  <value>false</value>
+  <description>Whether to throw an excpetion if dynamic partition insert generates empty results.</description>
+</property>
+
 
 </configuration>
