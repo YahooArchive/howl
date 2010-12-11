@@ -87,7 +87,7 @@ public class TestHowlOutputFormat extends TestCase {
     try {
       client.dropDatabase(dbName);
     } catch(Exception e) {}
-    client.createDatabase(new Database(dbName, "", null));
+    client.createDatabase(new Database(dbName, "", null,null));
     assertNotNull((client.getDatabase(dbName).getLocationUri()));
 
     List<FieldSchema> fields = new ArrayList<FieldSchema>();
