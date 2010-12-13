@@ -25,7 +25,7 @@ to call at top-level: ant deploy-contrib compile-core-test
 <project name="howl" default="fatjar">
 
   <property name="src.dir"  location="${basedir}/src/java"/>
-  <property name="howl.version" value="0.0.4.1"/>
+  <property name="howl.version" value="0.0.5.2"/>
   <property name="howl.jar" value="${ant.project.name}-${howl.version}.jar"/>
 
   <import file="../build-common.xml"/>
