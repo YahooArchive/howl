@@ -124,6 +124,9 @@ Trunk -  Unreleased
     HIVE-1842 Track if a map-reduce job is running locally
     (Liyin Tang via namit)
 
+    HIVE-842 Authentication Infrastructure for Hive
+    (Ashutosh Chauhan via He Yongqiang)
+
   IMPROVEMENTS
 
     HIVE-1712. Migrating metadata from derby to mysql thrown NullPointerException (Jake Farrell via pauly)
@@ -604,6 +607,15 @@ Trunk -  Unreleased
 
     HIVE-1846 Hive should not assume that local mode mappers run in same JVM
     (rvadali via jssarma)
+
+    HIVE-1849 add more logging to partition pruning
+    (namit via He Yongqiang)
+
+    HIVE-1848 Bug in MAPJOIN with hints
+    (He Yongqiang via namit)
+
+    HIVE-1845 Some attributes in eclipse template file are deprecated
+    (Liyin Tang via namit)
 
   TESTS
 
