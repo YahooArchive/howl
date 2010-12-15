@@ -19,6 +19,8 @@
 package org.apache.hadoop.hive.howl.mapreduce;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
@@ -66,6 +68,13 @@ class OutputJobInfo implements Serializable {
      * @param posOfPartCols the posOfPartCols to set
      */
     protected void setPosOfPartCols(List<Integer> posOfPartCols) {
+      // sorting the list in the descending order so that deletes happen back-to-front
+      Collections.sort(posOfPartCols, new Comparator<Integer> () {
+        @Override
+        public int compare(Integer earlier, Integer later) {
+          return (earlier > later) ? -1 : ((earlier == later) ? 0 : 1);
+        }
+      });
       this.posOfPartCols = posOfPartCols;
     }
 

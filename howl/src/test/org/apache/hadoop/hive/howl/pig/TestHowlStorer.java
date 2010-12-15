@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.howl.pig;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Properties;
 
@@ -26,6 +27,8 @@ import junit.framework.TestCase;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.MiniCluster;
+import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
+import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.ql.Driver;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
@@ -132,6 +135,53 @@ public class TestHowlStorer extends TestCase {
     assertFalse(itr.hasNext());
     assertEquals(11, i);
     MiniCluster.deleteFile(cluster, fileName);
+  }
+
+  public void testMultiPartColsInData() throws IOException{
+
+    driver.run("drop table employee");
+    String createTable = "CREATE TABLE employee (emp_id INT, emp_name STRING, emp_start_date STRING , emp_gender STRING ) " +
+    		" PARTITIONED BY (emp_country STRING , emp_state STRING ) STORED AS RCFILE " +
+    		"tblproperties('howl.isd'='"+RCFileInputDriver.class.getName()+"'," +
+        "'howl.osd'='"+RCFileOutputDriver.class.getName()+"') ";
+
+    int retCode = driver.run(createTable).getResponseCode();
+    if(retCode != 0) {
+      throw new IOException("Failed to create table.");
+    }
+
+    MiniCluster.deleteFile(cluster, fullFileName);
+    String[] inputData = {"111237\tKrishna\t01/01/1990\tM\tIN\tTN",
+                          "111238\tKalpana\t01/01/2000\tF\tIN\tKA",
+                          "111239\tSatya\t01/01/2001\tM\tIN\tKL",
+                          "111240\tKavya\t01/01/2002\tF\tIN\tAP"};
+
+    MiniCluster.createInputFile(cluster, fullFileName, inputData);
+    PigServer pig = new PigServer(ExecType.LOCAL, props);
+    UDFContext.getUDFContext().setClientSystemProps();
+    pig.setBatchOn();
+    pig.registerQuery("A = LOAD '"+fullFileName+"' USING PigStorage() AS (emp_id:int,emp_name:chararray,emp_start_date:chararray," +
+    		"emp_gender:chararray,emp_country:chararray,emp_state:chararray);");
+    pig.registerQuery("TN = FILTER A BY emp_state == 'TN';");
+    pig.registerQuery("KA = FILTER A BY emp_state == 'KA';");
+    pig.registerQuery("KL = FILTER A BY emp_state == 'KL';");
+    pig.registerQuery("AP = FILTER A BY emp_state == 'AP';");
+    pig.registerQuery("STORE TN INTO 'employee' USING org.apache.hadoop.hive.howl.pig.HowlStorer('emp_country=IN,emp_state=TN');");
+    pig.registerQuery("STORE KA INTO 'employee' USING org.apache.hadoop.hive.howl.pig.HowlStorer('emp_country=IN,emp_state=KA');");
+    pig.registerQuery("STORE KL INTO 'employee' USING org.apache.hadoop.hive.howl.pig.HowlStorer('emp_country=IN,emp_state=KL');");
+    pig.registerQuery("STORE AP INTO 'employee' USING org.apache.hadoop.hive.howl.pig.HowlStorer('emp_country=IN,emp_state=AP');");
+    pig.executeBatch();
+    driver.run("select * from employee");
+    ArrayList<String> results = new ArrayList<String>();
+    driver.getResults(results);
+    assertEquals(4, results.size());
+    Collections.sort(results);
+    assertEquals(inputData[0], results.get(0));
+    assertEquals(inputData[1], results.get(1));
+    assertEquals(inputData[2], results.get(2));
+    assertEquals(inputData[3], results.get(3));
+    MiniCluster.deleteFile(cluster, fullFileName);
+    driver.run("drop table employee");
   }
 
   public void testStoreInPartiitonedTbl() throws IOException{
@@ -531,6 +581,4 @@ public class TestHowlStorer extends TestCase {
    assertFalse(itr.hasNext());
 
   }
-
-
 }
