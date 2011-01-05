@@ -65,5 +65,17 @@ public class TestHowlUtil extends TestCase{
     assertTrue(versusWX == HowlUtil.validateMorePermissive(base, FsAction.WRITE_EXECUTE));
   }
 
+  public void testExecutePermissionsCheck(){
+    assertTrue(HowlUtil.validateExecuteBitPresentIfReadOrWrite(FsAction.ALL));
+    assertTrue(HowlUtil.validateExecuteBitPresentIfReadOrWrite(FsAction.NONE));
+    assertTrue(HowlUtil.validateExecuteBitPresentIfReadOrWrite(FsAction.EXECUTE));
+    assertTrue(HowlUtil.validateExecuteBitPresentIfReadOrWrite(FsAction.READ_EXECUTE));
+    assertTrue(HowlUtil.validateExecuteBitPresentIfReadOrWrite(FsAction.WRITE_EXECUTE));
+
+    assertFalse(HowlUtil.validateExecuteBitPresentIfReadOrWrite(FsAction.READ));
+    assertFalse(HowlUtil.validateExecuteBitPresentIfReadOrWrite(FsAction.WRITE));
+    assertFalse(HowlUtil.validateExecuteBitPresentIfReadOrWrite(FsAction.READ_WRITE));
+
+  }
 
 }

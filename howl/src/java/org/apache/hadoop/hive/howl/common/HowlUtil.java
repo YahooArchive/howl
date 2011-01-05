@@ -230,4 +230,20 @@ public class HowlUtil {
     }
     return false;
   }
+
+  /**
+   * Ensure that read or write permissions are not granted without also granting execute permissions.
+   * Essentially, r-- , rw- and -w- are invalid,
+   * r-x, -wx, rwx, ---, --x are valid
+   * 
+   * @param perms The FsAction to verify
+   * @return true if the presence of read or write permission is accompanied by execute permissions
+   */
+  public static boolean validateExecuteBitPresentIfReadOrWrite(FsAction perms){
+    if ((perms == FsAction.READ) || (perms == FsAction.WRITE) || (perms == FsAction.READ_WRITE)){
+      return false;
+    }
+    return true;
+  }
+  
 }

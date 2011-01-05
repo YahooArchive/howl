@@ -267,6 +267,12 @@ public class HowlCli {
       ss.err.println("Invalid permission specification: "+perms+" : group permissions must be more permissive than other permission ");
       System.exit(1);
     }
+    if ( (!HowlUtil.validateExecuteBitPresentIfReadOrWrite(fp.getUserAction())) ||
+        (!HowlUtil.validateExecuteBitPresentIfReadOrWrite(fp.getGroupAction())) ||
+        (!HowlUtil.validateExecuteBitPresentIfReadOrWrite(fp.getOtherAction())) ) {
+      ss.err.println("Invalid permission specification: "+perms+" : permissions must have execute permissions if read or write permissions are specified ");
+      System.exit(1);
+    }
 
     conf.set(HowlConstants.HOWL_PERMS, "d"+fp.toString());
 
