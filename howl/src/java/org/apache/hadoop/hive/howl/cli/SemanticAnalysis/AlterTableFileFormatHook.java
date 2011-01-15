@@ -77,7 +77,8 @@ public class AlterTableFileFormatHook extends AbstractSemanticAnalyzerHook {
 
     try {
       Hive db = context.getHive();
-      Table tbl = db.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tableName);
+      String database = db.getCurrentDatabase();
+      Table tbl = db.getTable(database, tableName);
       if(partSpec == null){
         // File format is for table; not for partition.
         tbl.getTTable().getParameters().putAll(howlProps);
