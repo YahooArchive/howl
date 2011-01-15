@@ -20,7 +20,8 @@ public class AddPartitionHook extends AbstractSemanticAnalyzerHook{
     Map<String, String> tblProps;
     tblName = ast.getChild(0).getText();
     try {
-      tblProps = context.getHive().getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tblName).getParameters();
+      String db = context.getHive().getCurrentDatabase();
+      tblProps = context.getHive().getTable(db, tblName).getParameters();
     } catch (HiveException he) {
       throw new SemanticException(he);
     }
