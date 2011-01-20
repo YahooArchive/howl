@@ -14,7 +14,8 @@ import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
 
-public class Test4248883 extends TestCase{
+/* Unit test for GitHub Howl issue #3 */
+public class TestUseDatabase extends TestCase{
 
   private Driver howlDriver;
 
@@ -31,8 +32,8 @@ public class Test4248883 extends TestCase{
   }
 
   String query;
-  private final String dbName = "test4248883_db";
-  private final String tblName = "test4248883_tbl";
+  private final String dbName = "testUseDatabase_db";
+  private final String tblName = "testUseDatabase_tbl";
 
   public void testAlterTablePass() throws IOException{
 
