@@ -118,88 +118,159 @@ public class ConditionalResolverMergeFiles implements ConditionalResolver,
         .getLongVar(HiveConf.ConfVars.HIVEMERGEMAPFILESAVGSIZE);
     trgtSize = trgtSize > avgConditionSize ? trgtSize : avgConditionSize;
 
+    Task<? extends Serializable> mvTask = ctx.getListTasks().get(0);
+    Task<? extends Serializable> mrTask = ctx.getListTasks().get(1);
+
     try {
-      // If the input file does not exist, replace it by a empty file
       Path dirPath = new Path(dirName);
       FileSystem inpFs = dirPath.getFileSystem(conf);
-      
+      DynamicPartitionCtx dpCtx = ctx.getDPCtx();
+
       if (inpFs.exists(dirPath)) {
-        DynamicPartitionCtx dpCtx = ctx.getDPCtx();
-        boolean doMerge = false;
-        FileStatus[] fStats = null;
-        if (dpCtx != null && dpCtx.getNumDPCols() > 0) {
-          fStats = Utilities.getFileStatusRecurse(dirPath,
-              dpCtx.getNumDPCols() + 1, inpFs);
+        // For each dynamic partition, check if it needs to be merged.
+        MapredWork work = (MapredWork) mrTask.getWork();
 
-        } else {
-          fStats = inpFs.listStatus(dirPath);
-        }
+        // Dynamic partition: replace input path (root to dp paths) with dynamic partition
+        // input paths.
+        if (dpCtx != null &&  dpCtx.getNumDPCols() > 0) {
 
-        long totalSz = 0;
-        for (FileStatus fStat : fStats) {
-          totalSz += fStat.getLen();
-        }
-        long currAvgSz = totalSz / fStats.length;
-        doMerge = (currAvgSz < avgConditionSize) && (fStats.length > 1);
+          // get list of dynamic partitions
+          FileStatus[] status = Utilities.getFileStatusRecurse(dirPath,
+              dpCtx.getNumDPCols(), inpFs);
 
-        if (doMerge) {
-          //
-          // for each dynamic partition, generate a merge task
-          // populate aliasToWork, pathToPartitionInfo, pathToAlias
-          // also set the number of reducers
-          //
-          Task<? extends Serializable> tsk = ctx.getListTasks().get(1);
-          MapredWork work = (MapredWork) tsk.getWork();
+          // cleanup pathToPartitionInfo
+          Map<String, PartitionDesc> ptpi = work.getPathToPartitionInfo();
+          assert ptpi.size() == 1;
+          String path = ptpi.keySet().iterator().next();
+          TableDesc tblDesc = ptpi.get(path).getTableDesc();
+          ptpi.remove(path); // the root path is not useful anymore
 
+          // cleanup pathToAliases
+          Map<String, ArrayList<String>> pta = work.getPathToAliases();
+          assert pta.size() == 1;
+          path = pta.keySet().iterator().next();
+          ArrayList<String> aliases = pta.get(path);
+          pta.remove(path); // the root path is not useful anymore
 
-          // Dynamic partition: replace input path (root to dp paths) with dynamic partition
-          // input paths.
-          if (dpCtx != null &&  dpCtx.getNumDPCols() > 0) {
-            FileStatus[] status = Utilities.getFileStatusRecurse(dirPath,
-                dpCtx.getNumDPCols(), inpFs);
-
-            // cleanup pathToPartitionInfo
-          	Map<String, PartitionDesc> ptpi = work.getPathToPartitionInfo();
-          	assert ptpi.size() == 1;
-          	String path = ptpi.keySet().iterator().next();
-          	TableDesc tblDesc = ptpi.get(path).getTableDesc();
-          	ptpi.remove(path); // the root path is not useful anymore
-
-          	// cleanup pathToAliases
-          	Map<String, ArrayList<String>> pta = work.getPathToAliases();
-          	assert pta.size() == 1;
-          	path = pta.keySet().iterator().next();
-          	ArrayList<String> aliases = pta.get(path);
-          	pta.remove(path); // the root path is not useful anymore
-
-          	// populate pathToPartitionInfo and pathToAliases w/ DP paths
-          	for (int i = 0; i < status.length; ++i) {
-          	  work.getPathToAliases().put(status[i].getPath().toString(), aliases);
-          	  // get the full partition spec from the path and update the PartitionDesc
-          	  Map<String, String> fullPartSpec = new LinkedHashMap<String, String>(
-          	      dpCtx.getPartSpec());
-          	  Warehouse.makeSpecFromName(fullPartSpec, status[i].getPath());
-          	  PartitionDesc pDesc = new PartitionDesc(tblDesc, (LinkedHashMap) fullPartSpec);
-          	  work.getPathToPartitionInfo().put(
-          	      status[i].getPath().toString(),
-          	      pDesc);
-          	}
-          } else {
-            int maxReducers = conf.getIntVar(HiveConf.ConfVars.MAXREDUCERS);
-            int reducers = (int) ((totalSz + trgtSize - 1) / trgtSize);
-            reducers = Math.max(1, reducers);
-            reducers = Math.min(maxReducers, reducers);
-            work.setNumReduceTasks(reducers);
+          // populate pathToPartitionInfo and pathToAliases w/ DP paths
+          long totalSz = 0;
+          boolean doMerge = false;
+          // list of paths that don't need to merge but need to move to the dest location
+          List<String> toMove = new ArrayList<String>();
+          for (int i = 0; i < status.length; ++i) {
+            long len = getMergeSize(inpFs, status[i].getPath(), avgConditionSize);
+            if (len >= 0) {
+              doMerge = true;
+              totalSz += len;
+              work.getPathToAliases().put(status[i].getPath().toString(), aliases);
+              // get the full partition spec from the path and update the PartitionDesc
+              Map<String, String> fullPartSpec = new LinkedHashMap<String, String>(
+                  dpCtx.getPartSpec());
+              Warehouse.makeSpecFromName(fullPartSpec, status[i].getPath());
+              PartitionDesc pDesc = new PartitionDesc(tblDesc, (LinkedHashMap) fullPartSpec);
+              work.getPathToPartitionInfo().put(status[i].getPath().toString(), pDesc);
+            } else {
+              toMove.add(status[i].getPath().toString());
+            }
           }
+          if (doMerge) {
+            // add the merge MR job
+            setupMapRedWork(conf, work, trgtSize, totalSz);
+            resTsks.add(mrTask);
+            
+            // add the move task for those partitions that do not need merging
+          	if (toMove.size() > 0) { //
+          	  // modify the existing move task as it is already in the candidate running tasks
+          	  MoveWork mvWork = (MoveWork) mvTask.getWork();
+          	  LoadFileDesc lfd = mvWork.getLoadFileWork();
+          	  
+          	  String targetDir = lfd.getTargetDir();
+          	  List<String> targetDirs = new ArrayList<String>(toMove.size());
+          	  int numDPCols = dpCtx.getNumDPCols();
 
-          resTsks.add(tsk);
-          return resTsks;
+              for (int i = 0; i < toMove.size(); i++) {
+                String toMoveStr = toMove.get(i);
+                if (toMoveStr.endsWith(Path.SEPARATOR)) {
+                  toMoveStr = toMoveStr.substring(0, toMoveStr.length() - 1);
+                }
+                String [] moveStrSplits = toMoveStr.split(Path.SEPARATOR);
+                int dpIndex = moveStrSplits.length - numDPCols;
+                String target = targetDir;
+                while (dpIndex < moveStrSplits.length) {
+                  target = target + Path.SEPARATOR + moveStrSplits[dpIndex];
+                  dpIndex ++;
+                }
+                
+                targetDirs.add(target);
+              }
+
+          	  LoadMultiFilesDesc lmfd = new LoadMultiFilesDesc(toMove,
+          	      targetDirs, lfd.getIsDfsDir(), lfd.getColumns(), lfd.getColumnTypes());
+          	  mvWork.setLoadFileWork(null);
+          	  mvWork.setLoadTableWork(null);
+          	  mvWork.setMultiFilesDesc(lmfd);
+          	  resTsks.add(mvTask);
+          	}
+          } else { // add the move task
+            resTsks.add(mvTask);
+          }
+        } else { // no dynamic partitions
+          long totalSz = getMergeSize(inpFs, dirPath, avgConditionSize);
+          if (totalSz >= 0) { // add the merge job
+            setupMapRedWork(conf, work, trgtSize, totalSz);
+            resTsks.add(mrTask);
+          } else { // don't need to merge, add the move job
+            resTsks.add(mvTask);
+          }
         }
+      } else {
+        resTsks.add(mvTask);
       }
     } catch (IOException e) {
       e.printStackTrace();
     }
-    resTsks.add(ctx.getListTasks().get(0));
     return resTsks;
+  }
+
+  private void setupMapRedWork(HiveConf conf, MapredWork work, long targetSize, long totalSize) {
+    if (work.getNumReduceTasks() > 0) {
+      int maxReducers = conf.getIntVar(HiveConf.ConfVars.MAXREDUCERS);
+      int reducers = (int) ((totalSize + targetSize - 1) / targetSize);
+      reducers = Math.max(1, reducers);
+      reducers = Math.min(maxReducers, reducers);
+      work.setNumReduceTasks(reducers);
+    }
+    work.setMinSplitSize(targetSize);
+  }
+  /**
+   * Whether to merge files inside directory given the threshold of the average file size.
+   *
+   * @param inpFs input file system.
+   * @param dirPath input file directory.
+   * @param avgSize threshold of average file size.
+   * @return -1 if not need to merge (either because of there is only 1 file or the
+   * average size is larger than avgSize). Otherwise the size of the total size of files.
+   * If return value is 0 that means there are multiple files each of which is an empty file.
+   * This could be true when the table is bucketized and all buckets are empty.
+   */
+  private long getMergeSize(FileSystem inpFs, Path dirPath, long avgSize) {
+    try {
+      FileStatus[] fStats = inpFs.listStatus(dirPath);
+      if (fStats.length <= 1) {
+        return -1;
+      }
+      long totalSz = 0;
+      for (FileStatus fStat : fStats) {
+        totalSz += fStat.getLen();
+      }
+      
+      if (totalSz < avgSize * fStats.length) {
+        return totalSz;
+      } else {
+        return -1;
+      }
+    } catch (IOException e) {
+      return -1;
+    }
   }
 }

@@ -11,5 +11,7 @@ alter table mp drop partition (b='1');
 
 show partitions mp;
 
+set hive.exec.drop.ignorenonexistent=false;
+alter table mp drop if exists partition (b='3');
 
-
+show partitions mp;

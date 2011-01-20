@@ -171,7 +171,7 @@ public final class Utilities {
       if (gWork == null) {
         String jtConf = HiveConf.getVar(job, HiveConf.ConfVars.HADOOPJT);
         String path;
-        if (jtConf == "local") {
+        if (jtConf.equals("local")) {
           String planPath = HiveConf.getVar(job, HiveConf.ConfVars.PLAN);
           path = new Path(planPath).toUri().getPath();
         } else {
@@ -424,8 +424,8 @@ public final class Utilities {
     e.setPersistenceDelegate(GroupByDesc.Mode.class, new EnumDelegate());
     e.setPersistenceDelegate(Operator.ProgressCounter.class, new EnumDelegate());
 
-    e.setPersistenceDelegate(org.datanucleus.store.types.sco.backed.Map.class, new MapDelegate());
-    e.setPersistenceDelegate(org.datanucleus.store.types.sco.backed.List.class, new ListDelegate());
+    e.setPersistenceDelegate(org.datanucleus.sco.backed.Map.class, new MapDelegate());
+    e.setPersistenceDelegate(org.datanucleus.sco.backed.List.class, new ListDelegate());
 
     e.writeObject(plan);
     e.close();

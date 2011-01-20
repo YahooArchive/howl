@@ -6,6 +6,8 @@ Trunk -  Unreleased
 
   NEW FEATURES
 
+    HIVE-1790. Support HAVING clause in Hive (Vaibhav Aggarwal via cws)
+
     HIVE-1304. Add function row_sequence in contrib (John Sichi via namit)
 
     HIVE-1405. Add ability to run an initialization script by 'hive -i <fileName>' (John Sichi via namit)
@@ -127,7 +129,33 @@ Trunk -  Unreleased
     HIVE-842 Authentication Infrastructure for Hive
     (Ashutosh Chauhan via He Yongqiang)
 
+    HIVE-1853 Downrgrade JDO (Paul Yang via namit)
+
+    HIVE-1835 Better auto-complete for Hive
+    (Paul Butler via Ning Zhang)
+
+    HIVE-1856 Implement DROP TABLE/VIEW IF EXISTS
+    (Marcel Kornacker via jvs)
+
+    HIVE-1858 Implement DROP {PARTITION, INDEX, TEMPORARY FUNCTION} IF EXISTS
+    (Marcel Kornacker via jvs)
+
+    HIVE-78 Authorization model for Hive
+    (Yongqiang He via namit)
+
+    HIVE-1696  Add delegation token support to metastore
+    (Devaraj Das via namit)
+
+    HIVE-1862 Revive partition filtering in the Hive MetaStore
+    (Mac Yang via pauly)
+
   IMPROVEMENTS
+
+    HIVE-1692. FetchOperator.getInputFormatFromCache hides causal exception (Philip Zeyliger via cws)
+
+    HIVE-1899 Add a factory method for creating a synchronized wrapper for IMetaStoreClient (John Sichi via cws)
+
+    HIVE-1852 Reduce unnecessary DFSClient.rename() calls (Ning Zhang via jssarma)
 
     HIVE-1712. Migrating metadata from derby to mysql thrown NullPointerException (Jake Farrell via pauly)
 
@@ -306,9 +334,28 @@ Trunk -  Unreleased
     HIVE-1415: add CLI command for executing a SQL script
     (Edward Capriolo via jvs)
 
+    HIVE-1855 Include Process ID in the log4j log file name
+    (Ning Zhang via namit)
+
+    HIVE-1878 Set the version of Hive trunk to '0.7.0-SNAPSHOT' to avoid
+    confusing it with a release
+    (Carl Steinbach via jvs)
+
+    HIVE-1907 Store jobid in ExecDriver
+    (namit via He Yongqiang)
+
+    HIVE-1865 redo zookeeper hive lock manager
+    (namit via He Yongqiang)
+
   OPTIMIZATIONS
 
   BUG FIXES
+
+    HIVE-1915. Authorization on database level is broken.
+    (He Yongqiang via cws)
+
+    HIVE-1203. HiveInputFormat.getInputFormatFromCache "swallows" cause exception when trowing IOExcpetion
+    (Vladimir Klimontovich via cws)
 
     HIVE-1524. Parallel Execution fails if mapred.job.name is set
     (Ning Zhang via jssarma)
@@ -617,6 +664,55 @@ Trunk -  Unreleased
     HIVE-1845 Some attributes in eclipse template file are deprecated
     (Liyin Tang via namit)
 
+    HIVE-1854 Temporarily disable metastore tests for listPartitionsByFilter()
+    (Paul Yang via namit)
+
+    HIVE-1857 mixed case tablename on lefthand side of LATERAL VIEW results in
+    query failing with confusing error message (John Sichi via pauly)
+
+    HIVE-1456 No need to check for LOG as null in sort-merge join
+    (Alexey Diomin via namit)
+
+    HIVE-1806 Merge per dynamic partition based on size of each dynamic partition
+    (Ning Zhang via namit)
+
+    HIVE-1864 Fix test load_overwrite..q
+    (Carl Steinbach via namit)
+
+    HIVE-1870 Add TestRemoveHiveMetaStore deleted accidently
+    (Carl Steinbach via namit)
+
+    HIVE-1873 Fix 'tar' build target broken in HIVE-1526
+    (Carl Steinbach via namit)
+
+    HIVE-1874 fix HBase filter pushdown broken by HIVE-1638
+    (John Sichi via namit)
+
+    HIVE-1871 Bug in merging dynamic partitions introduced by HIVE-1806
+    (He Yongqiag via namit)
+
+    HIVE-1881 Add an option to use FsShell to delete dir in warehouse
+    (He Yongqiang via namit)
+
+    HIVE-1840 Support ALTER DATABASE to change database properties
+    (Ning Zhang via namit)
+
+    HIVE-1889 add an option (hive.index.compact.file.ignore.hdfs)
+    to ignore HDFS location stored in index files
+    (Yongqiang He via namit)
+
+    HIVE-1903 Can't join HBase tables if one's name is the beginning of
+    the other (John Sichi via namit)
+
+    HIVE-1912 Double escaping special chars when removing old partitions
+    in rmr (Ning Zhang via namit)
+
+    HIVE-1913 use partition level serde properties
+    (Yongiang He via namit)
+
+    HIVE-1917 CTAS (create-table-as-select) throws exception when showing
+    results (Ning Zhang via namit)
+
   TESTS
 
     HIVE-1464. improve  test query performance
@@ -635,6 +731,9 @@ Trunk -  Unreleased
 
     HIVE-1658. Fix describe [extended] column formatting
     (Thiruvel Thirumoolan via Ning Zhang)
+
+    HIVE-1829. Fix intermittent failures in TestRemoteMetaStore
+    (Carl Steinbach via jvs)
 
   TASKS
 

@@ -57,14 +57,23 @@ import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.Constants;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
+import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
+import org.apache.hadoop.hive.metastore.api.HiveObjectType;
 import org.apache.hadoop.hive.metastore.api.Index;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Order;
+import org.apache.hadoop.hive.metastore.api.PrincipalPrivilegeSet;
+import org.apache.hadoop.hive.metastore.api.PrincipalType;
+import org.apache.hadoop.hive.metastore.api.PrivilegeBag;
+import org.apache.hadoop.hive.metastore.api.Role;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.HiveIndexHandler;
+import org.apache.hadoop.hive.ql.session.CreateTableAutomaticGrant;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
@@ -399,6 +408,18 @@ public class Hive {
     }
   }
 
+  public void alterDatabase(String dbName, Database db)
+      throws HiveException {
+    try {
+      getMSC().alterDatabase(dbName, db);
+    } catch (MetaException e) {
+      throw new HiveException("Unable to alter database " + dbName, e);
+    } catch (NoSuchObjectException e) {
+      throw new HiveException("Database " + dbName + " does not exists.", e);
+    } catch (TException e) {
+      throw new HiveException("Unable to alter database " + dbName, e);
+    }
+  }
   /**
    * Creates the table with the give objects
    *
@@ -432,7 +453,19 @@ public class Hive {
       if (tbl.getParameters() != null) {
         tbl.getParameters().remove(Constants.DDL_TIME);
       }
-      getMSC().createTable(tbl.getTTable());
+      org.apache.hadoop.hive.metastore.api.Table tTbl = tbl.getTTable();
+      PrincipalPrivilegeSet principalPrivs = new PrincipalPrivilegeSet();
+      SessionState ss = SessionState.get();
+      if (ss != null) {
+        CreateTableAutomaticGrant grants = ss.getCreateTableGrants();
+        if (grants != null) {
+          principalPrivs.setUserPrivileges(grants.getUserGrants());
+          principalPrivs.setGroupPrivileges(grants.getGroupGrants());
+          principalPrivs.setRolePrivileges(grants.getRoleGrants());
+          tTbl.setPrivileges(principalPrivs);
+        }
+      }
+      getMSC().createTable(tTbl);
     } catch (AlreadyExistsException e) {
       if (!ifNotExists) {
         throw new HiveException(e);
@@ -763,7 +796,7 @@ public class Hive {
     } catch (NoSuchObjectException e) {
       if (throwException) {
         LOG.error(StringUtils.stringifyException(e));
-        throw new InvalidTableException("Table not found ", tableName);
+        throw new InvalidTableException("Table " + tableName + " not found ", tableName);
       }
       return null;
     } catch (Exception e) {
@@ -903,6 +936,36 @@ public class Hive {
     }
   }
 
+  public boolean grantPrivileges(PrivilegeBag privileges)
+      throws HiveException {
+    try {
+      return getMSC().grant_privileges(privileges);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  /**
+   * @param userName
+   *          principal name
+   * @param isRole
+   *          is the given principal name a role
+   * @param isGroup
+   *          is the given principal name a group
+   * @param privileges
+   *          a bag of privileges
+   * @return
+   * @throws HiveException
+   */
+  public boolean revokePrivileges(PrivilegeBag privileges)
+      throws HiveException {
+    try {
+      return getMSC().revoke_privileges(privileges);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
   /**
    * Query metadata to see if a database with the given name already exists.
    *
@@ -950,8 +1013,7 @@ public class Hive {
    *          The temporary directory.
    */
   public void loadPartition(Path loadPath, String tableName,
-      Map<String, String> partSpec, boolean replace, Path tmpDirPath,
-      boolean holdDDLTime)
+      Map<String, String> partSpec, boolean replace, boolean holdDDLTime)
       throws HiveException {
     Table tbl = getTable(tableName);
     try {
@@ -975,7 +1037,7 @@ public class Hive {
           .toUri().getAuthority(), partPath.toUri().getPath());
 
       if (replace) {
-        Hive.replaceFiles(loadPath, newPartPath, oldPartPath, tmpDirPath, getConf());
+        Hive.replaceFiles(loadPath, newPartPath, oldPartPath, getConf());
       } else {
         FileSystem fs = FileSystem.get(tbl.getDataLocation(), getConf());
         Hive.copyFiles(loadPath, newPartPath, fs);
@@ -1010,7 +1072,7 @@ public class Hive {
    */
   public ArrayList<LinkedHashMap<String, String>> loadDynamicPartitions(Path loadPath,
       String tableName, Map<String, String> partSpec, boolean replace,
-      Path tmpDirPath, int numDP, boolean holdDDLTime)
+      int numDP, boolean holdDDLTime)
       throws HiveException {
 
     try {
@@ -1045,7 +1107,7 @@ public class Hive {
       	fullPartSpecs.add(fullPartSpec);
 
         // finally load the partition -- move the file to the final table address
-      	loadPartition(partPath, tableName, fullPartSpec, replace, tmpDirPath, holdDDLTime);
+      	loadPartition(partPath, tableName, fullPartSpec, replace, holdDDLTime);
       	LOG.info("New loading path = " + partPath + " with partSpec " + fullPartSpec);
     	}
       return fullPartSpecs;
@@ -1070,11 +1132,11 @@ public class Hive {
    *          The temporary directory.
    */
   public void loadTable(Path loadPath, String tableName, boolean replace,
-      Path tmpDirPath, boolean holdDDLTime) throws HiveException {
+      boolean holdDDLTime) throws HiveException {
     Table tbl = getTable(tableName);
 
     if (replace) {
-      tbl.replaceFiles(loadPath, tmpDirPath);
+      tbl.replaceFiles(loadPath);
     } else {
       tbl.copyFiles(loadPath);
     }
@@ -1180,7 +1242,8 @@ public class Hive {
     }
     org.apache.hadoop.hive.metastore.api.Partition tpart = null;
     try {
-      tpart = getMSC().getPartition(tbl.getDbName(), tbl.getTableName(), pvals);
+      tpart = getMSC().getPartitionWithAuthInfo(tbl.getDbName(),
+          tbl.getTableName(), pvals, getUserName(), getGroupNames());
     } catch (NoSuchObjectException nsoe) {
       // this means no partition exists for the given partition
       // key value pairs - thrift cannot handle null return values, hence
@@ -1272,8 +1335,8 @@ public class Hive {
     if (tbl.isPartitioned()) {
       List<org.apache.hadoop.hive.metastore.api.Partition> tParts;
       try {
-        tParts = getMSC().listPartitions(tbl.getDbName(), tbl.getTableName(),
-            (short) -1);
+        tParts = getMSC().listPartitionsWithAuthInfo(tbl.getDbName(), tbl.getTableName(),
+            (short) -1, getUserName(), getGroupNames());
       } catch (Exception e) {
         LOG.error(StringUtils.stringifyException(e));
         throw new HiveException(e);
@@ -1325,8 +1388,8 @@ public class Hive {
 
     List<org.apache.hadoop.hive.metastore.api.Partition> partitions = null;
     try {
-      partitions = getMSC().listPartitions(tbl.getDbName(), tbl.getTableName(),
-          partialPvals, (short) -1);
+      partitions = getMSC().listPartitionsWithAuthInfo(tbl.getDbName(), tbl.getTableName(),
+          partialPvals, (short) -1, getUserName(), getGroupNames());
     } catch (Exception e) {
       throw new HiveException(e);
     }
@@ -1395,6 +1458,130 @@ public class Hive {
    */
   public void setCurrentDatabase(String currentDatabase) {
     this.currentDatabase = currentDatabase;
+  }
+
+  public void createRole(String roleName, String ownerName)
+      throws HiveException {
+    try {
+      getMSC().create_role(new Role(roleName, -1, ownerName));
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  public void dropRole(String roleName) throws HiveException {
+    try {
+      getMSC().drop_role(roleName);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+  
+  /**
+   * Get all existing role names.
+   *
+   * @return List of role names.
+   * @throws HiveException
+   */
+  public List<String> getAllRoleNames() throws HiveException {
+    try {
+      return getMSC().listRoleNames();
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  public List<Role> showRoleGrant(String principalName, PrincipalType principalType) throws HiveException {
+    try {
+      return getMSC().list_roles(principalName, principalType);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  public boolean grantRole(String roleName, String userName,
+      PrincipalType principalType, String grantor, PrincipalType grantorType,
+      boolean grantOption) throws HiveException {
+    try {
+      return getMSC().grant_role(roleName, userName, principalType, grantor,
+          grantorType, grantOption);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  public boolean revokeRole(String roleName, String userName,
+      PrincipalType principalType)  throws HiveException {
+    try {
+      return getMSC().revoke_role(roleName, userName, principalType);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  public List<Role> listRoles(String userName,  PrincipalType principalType)
+      throws HiveException {
+    try {
+      return getMSC().list_roles(userName, principalType);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  /**
+   * @param objectType
+   *          hive object type
+   * @param db_name
+   *          database name
+   * @param table_name
+   *          table name
+   * @param part_values
+   *          partition values
+   * @param column_name
+   *          column name
+   * @param user_name
+   *          user name
+   * @param group_names
+   *          group names
+   * @return
+   * @throws HiveException
+   */
+  public PrincipalPrivilegeSet get_privilege_set(HiveObjectType objectType,
+      String db_name, String table_name, List<String> part_values,
+      String column_name, String user_name, List<String> group_names)
+      throws HiveException {
+    try {
+      HiveObjectRef hiveObj = new HiveObjectRef(objectType, db_name,
+          table_name, part_values, column_name);
+      return getMSC().get_privilege_set(hiveObj, user_name, group_names);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  /**
+   * @param objectType
+   *          hive object type
+   * @param principalName
+   * @param principalType
+   * @param dbName
+   * @param tableName
+   * @param partValues
+   * @param columnName
+   * @return
+   * @throws HiveException
+   */
+  public List<HiveObjectPrivilege> showPrivilegeGrant(
+      HiveObjectType objectType, String principalName,
+      PrincipalType principalType, String dbName, String tableName,
+      List<String> partValues, String columnName) throws HiveException {
+    try {
+      HiveObjectRef hiveObj = new HiveObjectRef(objectType, dbName, tableName,
+          partValues, columnName);
+      return getMSC().list_privileges(principalName, principalType, hiveObj);
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
   }
 
   static private void checkPaths(FileSystem fs, FileStatus[] srcs, Path destf,
@@ -1503,90 +1690,87 @@ public class Hive {
   }
 
   /**
-   * Replaces files in the partition with new data set specifed by srcf. Works
-   * by moving files.
-   * srcf, destf, and tmppath should resident in the same dfs, but the oldPath can be in a
-   * different dfs.
+   * Replaces files in the partition with new data set specified by srcf. Works
+   * by renaming directory of srcf to the destination file.
+   * srcf, destf, and tmppath should resident in the same DFS, but the oldPath can be in a
+   * different DFS.
    *
    * @param srcf
-   *          Files to be moved. Leaf Directories or Globbed File Paths
+   *          Source directory to be renamed to tmppath. It should be a
+   *          leaf directory where the final data files reside. However it
+   *          could potentially contain subdirectories as well.
    * @param destf
    *          The directory where the final data needs to go
    * @param oldPath
    *          The directory where the old data location, need to be cleaned up.
-   * @param tmppath
-   *          Temporary directory
    */
   static protected void replaceFiles(Path srcf, Path destf, Path oldPath,
-      Path tmppath, Configuration conf) throws HiveException {
-
-    FileSystem fs = null;
-    FsShell fshell = new FsShell();
-    fshell.setConf(conf);
-    try {
-      fs = FileSystem.get(srcf.toUri(), conf);
-    } catch (IOException e1) {
-      throw new HiveException(e1.getMessage(), e1);
-    }
-
-    FileStatus[] srcs;
-    try {
-      srcs = fs.listStatus(srcf);
-    } catch (IOException e) {
-      throw new HiveException("addFiles: filesystem error in check phase", e);
-    }
-    if (srcs == null) {
-      LOG.info("No sources specified to move: " + srcf);
-      return;
-      // srcs = new FileStatus[0]; Why is this needed?
-    }
-    checkPaths(fs, srcs, destf, true);
+      Configuration conf) throws HiveException {
 
     try {
-      fs.mkdirs(tmppath);
-      for (FileStatus src : srcs) {
-        FileStatus[] items = fs.listStatus(src.getPath());
-        for (int j = 0; j < items.length; j++) {
-          if (!fs.rename(items[j].getPath(), new Path(tmppath, items[j]
-              .getPath().getName()))) {
-            throw new HiveException("Error moving: " + items[j].getPath()
-                + " into: " + tmppath);
+      FileSystem fs = srcf.getFileSystem(conf);
+
+      // check if srcf contains nested sub-directories
+      FileStatus[] srcs;
+      try {
+        srcs = fs.globStatus(srcf);
+      } catch (IOException e) {
+        throw new HiveException("Getting globStatus " + srcf.toString(), e);
+      }
+      if (srcs == null) {
+        LOG.info("No sources specified to move: " + srcf);
+        return;
+      }
+      checkPaths(fs, srcs, destf, true);
+
+      // point of no return -- delete oldPath
+      if (oldPath != null) {
+        try {
+          FileSystem fs2 = oldPath.getFileSystem(conf);
+          if (fs2.exists(oldPath)) {
+            // use FsShell to move data to .Trash first rather than delete permanently
+            FsShell fshell = new FsShell();
+            fshell.setConf(conf);
+            fshell.run(new String[]{"-rmr", oldPath.toString()});
+          }
+        } catch (Exception e) {
+          //swallow the exception
+          LOG.warn("Directory " + oldPath.toString() + " canot be removed.");
+        }
+      }
+
+      // rename src directory to destf
+      if (srcs.length == 1 && srcs[0].isDir()) {
+      	// rename can fail if the parent doesn't exist
+      	if (!fs.exists(destf.getParent())) {
+      	  fs.mkdirs(destf.getParent());
+      	}
+      	if (fs.exists(destf)) {
+      	  fs.delete(destf, true);
+      	}
+
+      	boolean b = fs.rename(srcs[0].getPath(), destf);
+      	if (!b) {
+      	  throw new HiveException("Unable to move results from " + srcs[0].getPath()
+      	      + " to destination directory: " + destf);
+      	}
+      	LOG.debug("Renaming:" + srcf.toString() + ",Status:" + b);
+      } else { // srcf is a file or pattern containing wildcards
+        if (!fs.exists(destf)) {
+          fs.mkdirs(destf);
+        }
+        // srcs must be a list of files -- ensured by LoadSemanticAnalyzer
+        for (FileStatus src : srcs) {
+          Path destPath = new Path(destf, src.getPath().getName());
+          if (!fs.rename(src.getPath(), destPath)) {
+            throw new HiveException("Error moving: " + src.getPath()
+                + " into: " + destf);
           }
         }
       }
-
-      // point of no return
-      if (oldPath != null) {
-        try {
-          fshell.run(new String[]{"-rmr", oldPath.toUri().toString()});
-        } catch (Exception e) {
-          //swallow the exception
-        }
-      }
-      try {
-        fshell.run(new String[]{"-rmr", destf.toUri().toString()});
-      } catch (Exception e) {
-      }
-
-      // create the parent directory otherwise rename can fail if the parent
-      // doesn't exist
-      if (!fs.mkdirs(destf.getParent())) {
-        throw new HiveException("Unable to create destination directory: "
-            + destf.getParent().toString());
-      }
-
-      boolean b = fs.rename(tmppath, destf);
-      if (!b) {
-        throw new HiveException("Unable to move results from " + tmppath
-            + " to destination directory: " + destf.getParent().toString());
-      }
-      LOG.debug("Renaming:" + tmppath.toString() + ",Status:" + b);
     } catch (IOException e) {
-      throw new HiveException("replaceFiles: error while moving files from "
-          + tmppath + " to " + destf + "!!!", e);
+      throw new HiveException(e.getMessage(), e);
     }
-    // In case of error, we should leave the temporary data there, so
-    // that user can recover the data if necessary.
   }
 
   /**
@@ -1635,6 +1819,22 @@ public class Hive {
       metaStoreClient = createMetaStoreClient();
     }
     return metaStoreClient;
+  }
+
+  private String getUserName() {
+    SessionState ss = SessionState.get();
+    if (ss != null && ss.getAuthenticator() != null) {
+      return ss.getAuthenticator().getUserName();
+    }
+    return null;
+  }
+
+  private List<String> getGroupNames() {
+    SessionState ss = SessionState.get();
+    if (ss != null && ss.getAuthenticator() != null) {
+      return ss.getAuthenticator().getGroupNames();
+    }
+    return null;
   }
 
   public static List<FieldSchema> getFieldsFromDeserializer(String name,

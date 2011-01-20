@@ -1139,6 +1139,147 @@ public abstract class TestHiveMetaStore extends TestCase {
       assertNotNull(me);
       assertTrue("NoSuchObject exception", me.getMessage().contains(
             "database/table does not exist"));
+
+      client.dropTable(dbName, tblName);
+      client.dropDatabase(dbName);
+  }
+
+  /**
+   * Test filtering on table with single partition
+   * @throws Exception
+   */
+  public void testFilterSinglePartition() throws Exception {
+      String dbName = "filterdb";
+      String tblName = "filtertbl";
+
+      List<String> vals = new ArrayList<String>(1);
+      vals.add("p11");
+      List <String> vals2 = new ArrayList<String>(1);
+      vals2.add("p12");
+      List <String> vals3 = new ArrayList<String>(1);
+      vals3.add("p13");
+
+      silentDropDatabase(dbName);
+
+      Database db = new Database();
+      db.setName(dbName);
+      client.createDatabase(db);
+
+      ArrayList<FieldSchema> cols = new ArrayList<FieldSchema>(2);
+      cols.add(new FieldSchema("c1", Constants.STRING_TYPE_NAME, ""));
+      cols.add(new FieldSchema("c2", Constants.INT_TYPE_NAME, ""));
+
+      ArrayList<FieldSchema> partCols = new ArrayList<FieldSchema>(1);
+      partCols.add(new FieldSchema("p1", Constants.STRING_TYPE_NAME, ""));
+
+      Table tbl = new Table();
+      tbl.setDbName(dbName);
+      tbl.setTableName(tblName);
+      StorageDescriptor sd = new StorageDescriptor();
+      tbl.setSd(sd);
+      sd.setCols(cols);
+      sd.setCompressed(false);
+      sd.setNumBuckets(1);
+      sd.setParameters(new HashMap<String, String>());
+      sd.setBucketCols(new ArrayList<String>());
+      sd.setSerdeInfo(new SerDeInfo());
+      sd.getSerdeInfo().setName(tbl.getTableName());
+      sd.getSerdeInfo().setParameters(new HashMap<String, String>());
+      sd.getSerdeInfo().getParameters()
+          .put(Constants.SERIALIZATION_FORMAT, "1");
+      sd.setSortCols(new ArrayList<Order>());
+
+      tbl.setPartitionKeys(partCols);
+      client.createTable(tbl);
+
+      tbl = client.getTable(dbName, tblName);
+
+      add_partition(client, tbl, vals, "part1");
+      add_partition(client, tbl, vals2, "part2");
+      add_partition(client, tbl, vals3, "part3");
+
+      checkFilter(client, dbName, tblName, "p1 = \"p12\"", 1);
+      checkFilter(client, dbName, tblName, "p1 < \"p12\"", 1);
+      checkFilter(client, dbName, tblName, "p1 > \"p12\"", 1);
+      checkFilter(client, dbName, tblName, "p1 >= \"p12\"", 2);
+      checkFilter(client, dbName, tblName, "p1 <= \"p12\"", 2);
+      checkFilter(client, dbName, tblName, "p1 <> \"p12\"", 2);
+      checkFilter(client, dbName, tblName, "p1 like \"p1.*\"", 3);
+      checkFilter(client, dbName, tblName, "p1 like \"p.*2\"", 1);
+
+      client.dropTable(dbName, tblName);
+      client.dropDatabase(dbName);
+  }
+
+  /**
+   * Test filtering based on the value of the last partition
+   * @throws Exception
+   */
+  public void testFilterLastPartition() throws Exception {
+      String dbName = "filterdb";
+      String tblName = "filtertbl";
+
+      List<String> vals = new ArrayList<String>(2);
+      vals.add("p11");
+      vals.add("p21");
+      List <String> vals2 = new ArrayList<String>(2);
+      vals2.add("p11");
+      vals2.add("p22");
+      List <String> vals3 = new ArrayList<String>(2);
+      vals3.add("p12");
+      vals3.add("p21");
+
+      silentDropDatabase(dbName);
+
+      Database db = new Database();
+      db.setName(dbName);
+      client.createDatabase(db);
+
+      ArrayList<FieldSchema> cols = new ArrayList<FieldSchema>(2);
+      cols.add(new FieldSchema("c1", Constants.STRING_TYPE_NAME, ""));
+      cols.add(new FieldSchema("c2", Constants.INT_TYPE_NAME, ""));
+
+      ArrayList<FieldSchema> partCols = new ArrayList<FieldSchema>(2);
+      partCols.add(new FieldSchema("p1", Constants.STRING_TYPE_NAME, ""));
+      partCols.add(new FieldSchema("p2", Constants.STRING_TYPE_NAME, ""));
+
+      Table tbl = new Table();
+      tbl.setDbName(dbName);
+      tbl.setTableName(tblName);
+      StorageDescriptor sd = new StorageDescriptor();
+      tbl.setSd(sd);
+      sd.setCols(cols);
+      sd.setCompressed(false);
+      sd.setNumBuckets(1);
+      sd.setParameters(new HashMap<String, String>());
+      sd.setBucketCols(new ArrayList<String>());
+      sd.setSerdeInfo(new SerDeInfo());
+      sd.getSerdeInfo().setName(tbl.getTableName());
+      sd.getSerdeInfo().setParameters(new HashMap<String, String>());
+      sd.getSerdeInfo().getParameters()
+          .put(Constants.SERIALIZATION_FORMAT, "1");
+      sd.setSortCols(new ArrayList<Order>());
+
+      tbl.setPartitionKeys(partCols);
+      client.createTable(tbl);
+
+      tbl = client.getTable(dbName, tblName);
+
+      add_partition(client, tbl, vals, "part1");
+      add_partition(client, tbl, vals2, "part2");
+      add_partition(client, tbl, vals3, "part3");
+
+      checkFilter(client, dbName, tblName, "p2 = \"p21\"", 2);
+      checkFilter(client, dbName, tblName, "p2 < \"p23\"", 3);
+      checkFilter(client, dbName, tblName, "p2 > \"p21\"", 1);
+      checkFilter(client, dbName, tblName, "p2 >= \"p21\"", 3);
+      checkFilter(client, dbName, tblName, "p2 <= \"p21\"", 2);
+      checkFilter(client, dbName, tblName, "p2 <> \"p12\"", 3);
+      checkFilter(client, dbName, tblName, "p2 like \"p2.*\"", 3);
+      checkFilter(client, dbName, tblName, "p2 like \"p.*2\"", 1);
+
+      client.dropTable(dbName, tblName);
+      client.dropDatabase(dbName);
   }
 
   private void checkFilter(HiveMetaStoreClient client, String dbName,
@@ -1165,5 +1306,17 @@ public abstract class TestHiveMetaStore extends TestCase {
     part.getSd().setLocation(table.getSd().getLocation() + location);
 
     client.add_partition(part);
+  }
+
+  /**
+   * Tests {@link HiveMetaStoreClient#newSynchronizedClient}.  Does not
+   * actually test multithreading, but does verify that the proxy
+   * at least works correctly.
+   */
+  public void testSynchronized() throws Exception {
+    IMetaStoreClient synchronizedClient =
+      HiveMetaStoreClient.newSynchronizedClient(client);
+    List<String> databases = synchronizedClient.getAllDatabases();
+    assertEquals(1, databases.size());
   }
 }

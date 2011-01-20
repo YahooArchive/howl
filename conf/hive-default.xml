@@ -211,6 +211,18 @@
 </property>
 
 <property>
+  <name>hive.metastore.client.connect.retry.delay</name>
+  <value>1</value>
+  <description>Number of seconds for the client to wait between consecutive connection attempts</description>
+</property>
+
+<property>
+  <name>hive.metastore.client.socket.timeout</name>
+  <value>20</value>
+  <description>MetaStore Client socket timeout in seconds</description>
+</property>
+
+<property>
   <name>hive.metastore.rawstore.impl</name>
   <value>org.apache.hadoop.hive.metastore.ObjectStore</value>
   <description>Name of the class that implements org.apache.hadoop.hive.metastore.rawstore interface. This class is used to store and retrieval of raw metadata objects such as table, database</description>
@@ -764,6 +776,12 @@
 </property>
 
 <property>
+  <name>hive.zookeeper.clean.extra.nodes</name>
+  <value>false</value>
+  <description>Clean extra nodes at the end of the session.</description>
+</property>
+
+<property>
   <name>fs.har.impl</name>
   <value>org.apache.hadoop.hive.shims.HiveHarFileSystem</value>
   <description>The implementation for accessing Hadoop Archives. Note that this won't be applicable to Hadoop vers less than 0.20</description>
@@ -796,6 +814,14 @@
 </property>
 
 <property>
+  <name>hive.exec.drop.ignorenonexistent</name>
+  <value>true</value>
+  <description>
+    Do not report an error if DROP TABLE/VIEW specifies a non-existent table/view
+  </description>
+</property>
+
+<property>
   <name>hive.exec.show.job.failure.debug.info</name>
   <value>false</value>
   <description>
@@ -807,8 +833,8 @@
 <property>
   <name>hive.auto.progress.timeout</name>
   <value>0</value>
-  <description> 
-    How long to run autoprogressor for the script/UDTF operators (in seconds). 
+  <description>
+    How long to run autoprogressor for the script/UDTF operators (in seconds).
     Set to 0 for forever.
   </description>
 </property>
@@ -833,11 +859,63 @@
   <description>This enables substitution using syntax like ${var} ${system:var} and ${env:var}.</description>
 </property>
 
+
+<property>
+  <name>hive.security.authorization.enabled</name>
+  <value>false</value>
+  <description>enable or disable the hive client authorization</description>
+</property>
+
+<property>
+  <name>hive.security.authorization.manager</name>
+  <value>org.apache.hadoop.hive.ql.security.authorization.DefaultHiveAuthorizationProvider</value>
+  <description>the hive client authorization manager class name.
+  The user defined authorization class should implement interface org.apache.hadoop.hive.ql.security.authorization.HiveAuthorizationProvider. 
+  </description>
+</property>
+
+<property>
+  <name>hive.security.authenticator.manager</name>
+  <value>org.apache.hadoop.hive.ql.security.HadoopDefaultAuthenticator</value>
+  <description>hive client authenticator manager class name. 
+  The user defined authenticator should implement interface org.apache.hadoop.hive.ql.security.HiveAuthenticationProvider.</description>
+</property>
+
+<property>
+  <name>hive.security.authorization.createtable.user.grants</name>
+  <value></value>
+  <description>the privileges automatically granted to some users whenever a table gets created. 
+   An example like "userX,userY:select;userZ:create" will grant select privilege to userX and userY, 
+   and grant create privilege to userZ whenever a new table created.</description>
+</property>
+
+<property>
+  <name>hive.security.authorization.createtable.group.grants</name>
+  <value></value>
+  <description>the privileges automatically granted to some groups whenever a table gets created. 
+   An example like "groupX,groupY:select;groupZ:create" will grant select privilege to groupX and groupY, 
+   and grant create privilege to groupZ whenever a new table created.</description>
+</property>
+
+<property>
+  <name>hive.security.authorization.createtable.role.grants</name>
+  <value></value>
+  <description>the privileges automatically granted to some roles whenever a table gets created. 
+   An example like "roleX,roleY:select;roleZ:create" will grant select privilege to roleX and roleY, 
+   and grant create privilege to roleZ whenever a new table created.</description>
+</property>
+
 <property>
   <name>hive.error.on.empty.partition</name>
   <value>false</value>
   <description>Whether to throw an excpetion if dynamic partition insert generates empty results.</description>
 </property>
 
+<property>
+  <name>hive.index.compact.file.ignore.hdfs</name>
+  <value>false</value>
+  <description>True the hdfs location stored in the index file will be igbored at runtime. 
+  If the data got moved or the name of the cluster got changed, the index data should still be usable.</description>
+</property>
 
 </configuration>

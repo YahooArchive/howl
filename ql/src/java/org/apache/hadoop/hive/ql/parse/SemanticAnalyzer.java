@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.hive.ql.parse;
 
-import static org.apache.hadoop.util.StringUtils.stringifyException;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -29,9 +27,9 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -93,6 +91,7 @@ import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.optimizer.GenMRFileSink1;
 import org.apache.hadoop.hive.ql.optimizer.GenMROperator;
 import org.apache.hadoop.hive.ql.optimizer.GenMRProcContext;
+import org.apache.hadoop.hive.ql.optimizer.GenMRProcContext.GenMapRedCtx;
 import org.apache.hadoop.hive.ql.optimizer.GenMRRedSink1;
 import org.apache.hadoop.hive.ql.optimizer.GenMRRedSink2;
 import org.apache.hadoop.hive.ql.optimizer.GenMRRedSink3;
@@ -102,7 +101,6 @@ import org.apache.hadoop.hive.ql.optimizer.GenMRUnion1;
 import org.apache.hadoop.hive.ql.optimizer.GenMapRedUtils;
 import org.apache.hadoop.hive.ql.optimizer.MapJoinFactory;
 import org.apache.hadoop.hive.ql.optimizer.Optimizer;
-import org.apache.hadoop.hive.ql.optimizer.GenMRProcContext.GenMapRedCtx;
 import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalContext;
 import org.apache.hadoop.hive.ql.optimizer.physical.PhysicalOptimizer;
 import org.apache.hadoop.hive.ql.optimizer.ppr.PartitionPruner;
@@ -123,8 +121,10 @@ import org.apache.hadoop.hive.ql.plan.ExtractDesc;
 import org.apache.hadoop.hive.ql.plan.FetchWork;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.FilterDesc;
+import org.apache.hadoop.hive.ql.plan.FilterDesc.sampleDesc;
 import org.apache.hadoop.hive.ql.plan.ForwardDesc;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
+import org.apache.hadoop.hive.ql.plan.HiveOperation;
 import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.LateralViewForwardDesc;
@@ -144,13 +144,12 @@ import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.ql.plan.UDTFDesc;
 import org.apache.hadoop.hive.ql.plan.UnionDesc;
-import org.apache.hadoop.hive.ql.plan.FilterDesc.sampleDesc;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.ResourceType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.Mode;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFHash;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.Mode;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.MetadataTypedColumnsetSerDe;
@@ -158,9 +157,9 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -309,6 +308,17 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       doPhase1GetAllAggregations(sel, aggregationTrees);
     }
     return aggregationTrees;
+  }
+
+  private void doPhase1GetColumnAliasesFromSelect(
+      ASTNode selectExpr, QBParseInfo qbp) {
+    for (int i = 0; i < selectExpr.getChildCount(); ++i) {
+      ASTNode selExpr = (ASTNode) selectExpr.getChild(i);
+      if ((selExpr.getToken().getType() == HiveParser.TOK_SELEXPR) && (selExpr.getChildCount() == 2)) {
+        String columnAlias = unescapeIdentifier(selExpr.getChild(1).getText());
+        qbp.setExprToColumnAlias((ASTNode) selExpr.getChild(0), columnAlias);
+      }
+    }
   }
 
   /**
@@ -548,6 +558,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       throw new SemanticException(ErrorMsg.LATERAL_VIEW_INVALID_CHILD
           .getMsg(lateralView));
     }
+    alias = alias.toLowerCase();
     qb.getParseInfo().addLateralViewForAlias(alias, lateralView);
     qb.addAlias(alias);
     return alias;
@@ -591,6 +602,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         }
 
         LinkedHashMap<String, ASTNode> aggregations = doPhase1GetAggregationsFromSelect(ast);
+        doPhase1GetColumnAliasesFromSelect(ast, qbp);
         qbp.setAggregationExprsForClause(ctx_1.dest, aggregations);
         qbp.setDistinctFuncExprsForClause(ctx_1.dest,
             doPhase1GetDistinctFuncExprs(aggregations));
@@ -690,6 +702,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         }
         qbp.setGroupByExprForClause(ctx_1.dest, ast);
         skipRecursion = true;
+        break;
+
+      case HiveParser.TOK_HAVING:
+        qbp.setHavingExprForClause(ctx_1.dest, ast);
+        qbp.addAggregationExprsForClause(ctx_1.dest, doPhase1GetAggregationsFromSelect(ast));
         break;
 
       case HiveParser.TOK_LIMIT:
@@ -858,23 +875,22 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
             if (qb.isCTAS()) {
               qb.setIsQuery(false);
+              ctx.setResDir(null);
+              ctx.setResFile(null);
 
               // allocate a temporary output dir on the location of the table
               String location = conf.getVar(HiveConf.ConfVars.METASTOREWAREHOUSE);
               try {
-                fname = ctx.getExternalTmpFileURI
-                  (FileUtils.makeQualified(new Path(location), conf).toUri());
-
+                fname = ctx.getExternalTmpFileURI(
+                    FileUtils.makeQualified(new Path(location), conf).toUri());
               } catch (Exception e) {
-                throw new SemanticException("Error creating temporary folder on: "
-                                            + location, e);
+                throw new SemanticException("Error creating temporary folder on: " + location, e);
               }
-
             } else {
               qb.setIsQuery(true);
               fname = ctx.getMRTmpFileURI();
+              ctx.setResDir(new Path(fname));
             }
-            ctx.setResDir(new Path(fname));
           }
           qb.getMetaData().setDestForAlias(name, fname,
               (ast.getToken().getType() == HiveParser.TOK_DIR));
@@ -888,7 +904,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     } catch (HiveException e) {
       // Has to use full name to make sure it does not conflict with
       // org.apache.commons.lang.StringUtils
-      LOG.error(stringifyException(e));
+      LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
       throw new SemanticException(e.getMessage(), e);
     }
   }
@@ -924,7 +940,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       // an old SQL construct which has been eliminated in a later Hive
       // version, so we need to provide full debugging info to help
       // with fixing the view definition.
-      LOG.error(stringifyException(e));
+      LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
       StringBuilder sb = new StringBuilder();
       sb.append(e.getMessage());
       ErrorMsg.renderOrigin(sb, viewOrigin);
@@ -1272,6 +1288,29 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     opParseCtx.put(op, ctx);
     op.augmentPlan();
     return op;
+  }
+
+  @SuppressWarnings("nls")
+  private Operator genHavingPlan(String dest, QB qb, Operator input)
+      throws SemanticException {
+
+    ASTNode havingExpr = qb.getParseInfo().getHavingForClause(dest);
+
+    OpParseContext inputCtx = opParseCtx.get(input);
+    RowResolver inputRR = inputCtx.getRowResolver();
+    Map<ASTNode, String> exprToColumnAlias = qb.getParseInfo().getAllExprToColumnAlias();
+    for (ASTNode astNode : exprToColumnAlias.keySet()) {
+      if (inputRR.getExpression(astNode) != null) {
+        inputRR.put("", exprToColumnAlias.get(astNode), inputRR.getExpression(astNode));
+      }
+    }
+    ASTNode condn = (ASTNode) havingExpr.getChild(0);
+
+    Operator output = putOpInsertMap(OperatorFactory.getAndMakeChild(
+        new FilterDesc(genExprNodeDesc(condn, inputRR), false), new RowSchema(
+        inputRR.getColumnInfos()), input), inputRR);
+
+    return output;
   }
 
   @SuppressWarnings("nls")
@@ -2008,6 +2047,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             && (out_rwsch.get(null, colAlias) != null)) {
           throw new SemanticException(ErrorMsg.AMBIGUOUS_COLUMN.getMsg(colAlias));
         }
+
         out_rwsch.put(tabAlias, colAlias, new ColumnInfo(
             getColumnInternalName(pos), exp.getTypeInfo(), tabAlias, false));
 
@@ -3533,9 +3573,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           try {
             String ppath = dpCtx.getSPPath();
             ppath = ppath.substring(0, ppath.length()-1);
-            DummyPartition p = new DummyPartition(dest_tab,
-                                                  dest_tab.getDbName() + "@" + dest_tab.getTableName() + "@" + ppath);
-
+            DummyPartition p =
+              new DummyPartition(dest_tab,
+                                 dest_tab.getDbName() + "@" + dest_tab.getTableName() + "@" + ppath);
             outputs.add(new WriteEntity(p, false));
           } catch (HiveException e) {
             throw new SemanticException(e.getMessage());
@@ -5380,6 +5420,14 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           }
         }
 
+        // Insert HAVING plan here
+        if (qbp.getHavingForClause(dest) != null) {
+          if (getGroupByForClause(qbp, dest).size() == 0) {
+            throw new SemanticException("HAVING specified without GROUP BY");
+          }
+          curr = genHavingPlan(dest, qb, curr);
+        }
+
         curr = genSelectPlan(dest, qb, curr);
         Integer limit = qbp.getDestLimit(dest);
 
@@ -5876,7 +5924,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     	tsDesc.setStatsAggPrefix(k);
 
     	// set up WritenEntity for replication
-    	outputs.add(new WriteEntity(tab));
+    	outputs.add(new WriteEntity(tab, true));
 
     	// add WriteEntity for each matching partition
     	if (tab.isPartitioned()) {
@@ -5887,7 +5935,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     	  if (partitions != null) {
     	    for (Partition partn : partitions) {
     	      // inputs.add(new ReadEntity(partn)); // is this needed at all?
-    	      outputs.add(new WriteEntity(partn));
+    	      outputs.add(new WriteEntity(partn, true));
           }
         }
     	}
@@ -6144,7 +6192,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             } catch (HiveException e) {
               // Has to use full name to make sure it does not conflict with
               // org.apache.commons.lang.StringUtils
-              LOG.error(stringifyException(e));
+              LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
               throw new SemanticException(e.getMessage(), e);
             }
 
@@ -6507,11 +6555,14 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if ((child = analyzeCreateTable(ast, qb)) == null) {
         return;
       }
+    } else {
+      SessionState.get().setCommandType(HiveOperation.QUERY);
     }
 
     // analyze create view command
     if (ast.getToken().getType() == HiveParser.TOK_CREATEVIEW) {
       child = analyzeCreateView(ast, qb);
+      SessionState.get().setCommandType(HiveOperation.CREATEVIEW);
       if (child == null) {
         return;
       }
@@ -7060,6 +7111,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           storageFormat.storageHandler, shared.serdeProps, tblProps, ifNotExists);
 
       validateCreateTable(crtTblDesc);
+      // outputs is empty, which means this create table happens in the current
+      // database.
+      SessionState.get().setCommandType(HiveOperation.CREATETABLE);
       rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
           crtTblDesc), conf));
       break;
@@ -7067,6 +7121,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     case CTLT: // create table like <tbl_name>
       CreateTableLikeDesc crtTblLikeDesc = new CreateTableLikeDesc(tableName,
           isExt, location, ifNotExists, likeTableName);
+      SessionState.get().setCommandType(HiveOperation.CREATETABLE);
       rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
           crtTblLikeDesc), conf));
       break;
@@ -7090,6 +7145,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           storageFormat.outputFormat, location, shared.serde, storageFormat.storageHandler, shared.serdeProps,
           tblProps, ifNotExists);
       qb.setTableDesc(crtTblDesc);
+
+      SessionState.get().setCommandType(HiveOperation.CREATETABLE_AS_SELECT);
 
       return selectStmt;
     default:

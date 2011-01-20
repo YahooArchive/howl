@@ -95,6 +95,22 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_all_databases failed: unknown result')
     end
 
+    def alter_database(dbname, db)
+      send_alter_database(dbname, db)
+      recv_alter_database()
+    end
+
+    def send_alter_database(dbname, db)
+      send_message('alter_database', Alter_database_args, :dbname => dbname, :db => db)
+    end
+
+    def recv_alter_database()
+      result = receive_message(Alter_database_result)
+      raise result.o1 unless result.o1.nil?
+      raise result.o2 unless result.o2.nil?
+      return
+    end
+
     def get_type(name)
       send_get_type(name)
       return recv_get_type()
@@ -403,6 +419,23 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_partition failed: unknown result')
     end
 
+    def get_partition_with_auth(db_name, tbl_name, part_vals, user_name, group_names)
+      send_get_partition_with_auth(db_name, tbl_name, part_vals, user_name, group_names)
+      return recv_get_partition_with_auth()
+    end
+
+    def send_get_partition_with_auth(db_name, tbl_name, part_vals, user_name, group_names)
+      send_message('get_partition_with_auth', Get_partition_with_auth_args, :db_name => db_name, :tbl_name => tbl_name, :part_vals => part_vals, :user_name => user_name, :group_names => group_names)
+    end
+
+    def recv_get_partition_with_auth()
+      result = receive_message(Get_partition_with_auth_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise result.o2 unless result.o2.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_partition_with_auth failed: unknown result')
+    end
+
     def get_partition_by_name(db_name, tbl_name, part_name)
       send_get_partition_by_name(db_name, tbl_name, part_name)
       return recv_get_partition_by_name()
@@ -437,6 +470,23 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_partitions failed: unknown result')
     end
 
+    def get_partitions_with_auth(db_name, tbl_name, max_parts, user_name, group_names)
+      send_get_partitions_with_auth(db_name, tbl_name, max_parts, user_name, group_names)
+      return recv_get_partitions_with_auth()
+    end
+
+    def send_get_partitions_with_auth(db_name, tbl_name, max_parts, user_name, group_names)
+      send_message('get_partitions_with_auth', Get_partitions_with_auth_args, :db_name => db_name, :tbl_name => tbl_name, :max_parts => max_parts, :user_name => user_name, :group_names => group_names)
+    end
+
+    def recv_get_partitions_with_auth()
+      result = receive_message(Get_partitions_with_auth_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise result.o2 unless result.o2.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_partitions_with_auth failed: unknown result')
+    end
+
     def get_partition_names(db_name, tbl_name, max_parts)
       send_get_partition_names(db_name, tbl_name, max_parts)
       return recv_get_partition_names()
@@ -467,6 +517,23 @@ module ThriftHiveMetastore
       return result.success unless result.success.nil?
       raise result.o1 unless result.o1.nil?
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_partitions_ps failed: unknown result')
+    end
+
+    def get_partitions_ps_with_auth(db_name, tbl_name, part_vals, max_parts, user_name, group_names)
+      send_get_partitions_ps_with_auth(db_name, tbl_name, part_vals, max_parts, user_name, group_names)
+      return recv_get_partitions_ps_with_auth()
+    end
+
+    def send_get_partitions_ps_with_auth(db_name, tbl_name, part_vals, max_parts, user_name, group_names)
+      send_message('get_partitions_ps_with_auth', Get_partitions_ps_with_auth_args, :db_name => db_name, :tbl_name => tbl_name, :part_vals => part_vals, :max_parts => max_parts, :user_name => user_name, :group_names => group_names)
+    end
+
+    def recv_get_partitions_ps_with_auth()
+      result = receive_message(Get_partitions_ps_with_auth_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise result.o2 unless result.o2.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_partitions_ps_with_auth failed: unknown result')
     end
 
     def get_partition_names_ps(db_name, tbl_name, part_vals, max_parts)
@@ -667,6 +734,229 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_index_names failed: unknown result')
     end
 
+    def create_role(role)
+      send_create_role(role)
+      return recv_create_role()
+    end
+
+    def send_create_role(role)
+      send_message('create_role', Create_role_args, :role => role)
+    end
+
+    def recv_create_role()
+      result = receive_message(Create_role_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'create_role failed: unknown result')
+    end
+
+    def drop_role(role_name)
+      send_drop_role(role_name)
+      return recv_drop_role()
+    end
+
+    def send_drop_role(role_name)
+      send_message('drop_role', Drop_role_args, :role_name => role_name)
+    end
+
+    def recv_drop_role()
+      result = receive_message(Drop_role_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'drop_role failed: unknown result')
+    end
+
+    def get_role_names()
+      send_get_role_names()
+      return recv_get_role_names()
+    end
+
+    def send_get_role_names()
+      send_message('get_role_names', Get_role_names_args)
+    end
+
+    def recv_get_role_names()
+      result = receive_message(Get_role_names_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_role_names failed: unknown result')
+    end
+
+    def grant_role(role_name, principal_name, principal_type, grantor, grantorType, grant_option)
+      send_grant_role(role_name, principal_name, principal_type, grantor, grantorType, grant_option)
+      return recv_grant_role()
+    end
+
+    def send_grant_role(role_name, principal_name, principal_type, grantor, grantorType, grant_option)
+      send_message('grant_role', Grant_role_args, :role_name => role_name, :principal_name => principal_name, :principal_type => principal_type, :grantor => grantor, :grantorType => grantorType, :grant_option => grant_option)
+    end
+
+    def recv_grant_role()
+      result = receive_message(Grant_role_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'grant_role failed: unknown result')
+    end
+
+    def revoke_role(role_name, principal_name, principal_type)
+      send_revoke_role(role_name, principal_name, principal_type)
+      return recv_revoke_role()
+    end
+
+    def send_revoke_role(role_name, principal_name, principal_type)
+      send_message('revoke_role', Revoke_role_args, :role_name => role_name, :principal_name => principal_name, :principal_type => principal_type)
+    end
+
+    def recv_revoke_role()
+      result = receive_message(Revoke_role_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'revoke_role failed: unknown result')
+    end
+
+    def list_roles(principal_name, principal_type)
+      send_list_roles(principal_name, principal_type)
+      return recv_list_roles()
+    end
+
+    def send_list_roles(principal_name, principal_type)
+      send_message('list_roles', List_roles_args, :principal_name => principal_name, :principal_type => principal_type)
+    end
+
+    def recv_list_roles()
+      result = receive_message(List_roles_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'list_roles failed: unknown result')
+    end
+
+    def get_privilege_set(hiveObject, user_name, group_names)
+      send_get_privilege_set(hiveObject, user_name, group_names)
+      return recv_get_privilege_set()
+    end
+
+    def send_get_privilege_set(hiveObject, user_name, group_names)
+      send_message('get_privilege_set', Get_privilege_set_args, :hiveObject => hiveObject, :user_name => user_name, :group_names => group_names)
+    end
+
+    def recv_get_privilege_set()
+      result = receive_message(Get_privilege_set_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_privilege_set failed: unknown result')
+    end
+
+    def list_privileges(principal_name, principal_type, hiveObject)
+      send_list_privileges(principal_name, principal_type, hiveObject)
+      return recv_list_privileges()
+    end
+
+    def send_list_privileges(principal_name, principal_type, hiveObject)
+      send_message('list_privileges', List_privileges_args, :principal_name => principal_name, :principal_type => principal_type, :hiveObject => hiveObject)
+    end
+
+    def recv_list_privileges()
+      result = receive_message(List_privileges_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'list_privileges failed: unknown result')
+    end
+
+    def grant_privileges(privileges)
+      send_grant_privileges(privileges)
+      return recv_grant_privileges()
+    end
+
+    def send_grant_privileges(privileges)
+      send_message('grant_privileges', Grant_privileges_args, :privileges => privileges)
+    end
+
+    def recv_grant_privileges()
+      result = receive_message(Grant_privileges_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'grant_privileges failed: unknown result')
+    end
+
+    def revoke_privileges(privileges)
+      send_revoke_privileges(privileges)
+      return recv_revoke_privileges()
+    end
+
+    def send_revoke_privileges(privileges)
+      send_message('revoke_privileges', Revoke_privileges_args, :privileges => privileges)
+    end
+
+    def recv_revoke_privileges()
+      result = receive_message(Revoke_privileges_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'revoke_privileges failed: unknown result')
+    end
+
+    def get_delegation_token(renewer_kerberos_principal_name)
+      send_get_delegation_token(renewer_kerberos_principal_name)
+      return recv_get_delegation_token()
+    end
+
+    def send_get_delegation_token(renewer_kerberos_principal_name)
+      send_message('get_delegation_token', Get_delegation_token_args, :renewer_kerberos_principal_name => renewer_kerberos_principal_name)
+    end
+
+    def recv_get_delegation_token()
+      result = receive_message(Get_delegation_token_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_delegation_token failed: unknown result')
+    end
+
+    def get_delegation_token_with_signature(renewer_kerberos_principal_name, token_signature)
+      send_get_delegation_token_with_signature(renewer_kerberos_principal_name, token_signature)
+      return recv_get_delegation_token_with_signature()
+    end
+
+    def send_get_delegation_token_with_signature(renewer_kerberos_principal_name, token_signature)
+      send_message('get_delegation_token_with_signature', Get_delegation_token_with_signature_args, :renewer_kerberos_principal_name => renewer_kerberos_principal_name, :token_signature => token_signature)
+    end
+
+    def recv_get_delegation_token_with_signature()
+      result = receive_message(Get_delegation_token_with_signature_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_delegation_token_with_signature failed: unknown result')
+    end
+
+    def renew_delegation_token(token_str_form)
+      send_renew_delegation_token(token_str_form)
+      return recv_renew_delegation_token()
+    end
+
+    def send_renew_delegation_token(token_str_form)
+      send_message('renew_delegation_token', Renew_delegation_token_args, :token_str_form => token_str_form)
+    end
+
+    def recv_renew_delegation_token()
+      result = receive_message(Renew_delegation_token_result)
+      return result.success unless result.success.nil?
+      raise result.o1 unless result.o1.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'renew_delegation_token failed: unknown result')
+    end
+
+    def cancel_delegation_token(token_str_form)
+      send_cancel_delegation_token(token_str_form)
+      recv_cancel_delegation_token()
+    end
+
+    def send_cancel_delegation_token(token_str_form)
+      send_message('cancel_delegation_token', Cancel_delegation_token_args, :token_str_form => token_str_form)
+    end
+
+    def recv_cancel_delegation_token()
+      result = receive_message(Cancel_delegation_token_result)
+      raise result.o1 unless result.o1.nil?
+      return
+    end
+
   end
 
   class Processor < FacebookService::Processor 
@@ -735,6 +1025,19 @@ module ThriftHiveMetastore
         result.o1 = o1
       end
       write_result(result, oprot, 'get_all_databases', seqid)
+    end
+
+    def process_alter_database(seqid, iprot, oprot)
+      args = read_args(iprot, Alter_database_args)
+      result = Alter_database_result.new()
+      begin
+        @handler.alter_database(args.dbname, args.db)
+      rescue MetaException => o1
+        result.o1 = o1
+      rescue NoSuchObjectException => o2
+        result.o2 = o2
+      end
+      write_result(result, oprot, 'alter_database', seqid)
     end
 
     def process_get_type(seqid, iprot, oprot)
@@ -981,6 +1284,19 @@ module ThriftHiveMetastore
       write_result(result, oprot, 'get_partition', seqid)
     end
 
+    def process_get_partition_with_auth(seqid, iprot, oprot)
+      args = read_args(iprot, Get_partition_with_auth_args)
+      result = Get_partition_with_auth_result.new()
+      begin
+        result.success = @handler.get_partition_with_auth(args.db_name, args.tbl_name, args.part_vals, args.user_name, args.group_names)
+      rescue MetaException => o1
+        result.o1 = o1
+      rescue NoSuchObjectException => o2
+        result.o2 = o2
+      end
+      write_result(result, oprot, 'get_partition_with_auth', seqid)
+    end
+
     def process_get_partition_by_name(seqid, iprot, oprot)
       args = read_args(iprot, Get_partition_by_name_args)
       result = Get_partition_by_name_result.new()
@@ -1007,6 +1323,19 @@ module ThriftHiveMetastore
       write_result(result, oprot, 'get_partitions', seqid)
     end
 
+    def process_get_partitions_with_auth(seqid, iprot, oprot)
+      args = read_args(iprot, Get_partitions_with_auth_args)
+      result = Get_partitions_with_auth_result.new()
+      begin
+        result.success = @handler.get_partitions_with_auth(args.db_name, args.tbl_name, args.max_parts, args.user_name, args.group_names)
+      rescue NoSuchObjectException => o1
+        result.o1 = o1
+      rescue MetaException => o2
+        result.o2 = o2
+      end
+      write_result(result, oprot, 'get_partitions_with_auth', seqid)
+    end
+
     def process_get_partition_names(seqid, iprot, oprot)
       args = read_args(iprot, Get_partition_names_args)
       result = Get_partition_names_result.new()
@@ -1027,6 +1356,19 @@ module ThriftHiveMetastore
         result.o1 = o1
       end
       write_result(result, oprot, 'get_partitions_ps', seqid)
+    end
+
+    def process_get_partitions_ps_with_auth(seqid, iprot, oprot)
+      args = read_args(iprot, Get_partitions_ps_with_auth_args)
+      result = Get_partitions_ps_with_auth_result.new()
+      begin
+        result.success = @handler.get_partitions_ps_with_auth(args.db_name, args.tbl_name, args.part_vals, args.max_parts, args.user_name, args.group_names)
+      rescue NoSuchObjectException => o1
+        result.o1 = o1
+      rescue MetaException => o2
+        result.o2 = o2
+      end
+      write_result(result, oprot, 'get_partitions_ps_with_auth', seqid)
     end
 
     def process_get_partition_names_ps(seqid, iprot, oprot)
@@ -1175,6 +1517,160 @@ module ThriftHiveMetastore
         result.o2 = o2
       end
       write_result(result, oprot, 'get_index_names', seqid)
+    end
+
+    def process_create_role(seqid, iprot, oprot)
+      args = read_args(iprot, Create_role_args)
+      result = Create_role_result.new()
+      begin
+        result.success = @handler.create_role(args.role)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'create_role', seqid)
+    end
+
+    def process_drop_role(seqid, iprot, oprot)
+      args = read_args(iprot, Drop_role_args)
+      result = Drop_role_result.new()
+      begin
+        result.success = @handler.drop_role(args.role_name)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'drop_role', seqid)
+    end
+
+    def process_get_role_names(seqid, iprot, oprot)
+      args = read_args(iprot, Get_role_names_args)
+      result = Get_role_names_result.new()
+      begin
+        result.success = @handler.get_role_names()
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'get_role_names', seqid)
+    end
+
+    def process_grant_role(seqid, iprot, oprot)
+      args = read_args(iprot, Grant_role_args)
+      result = Grant_role_result.new()
+      begin
+        result.success = @handler.grant_role(args.role_name, args.principal_name, args.principal_type, args.grantor, args.grantorType, args.grant_option)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'grant_role', seqid)
+    end
+
+    def process_revoke_role(seqid, iprot, oprot)
+      args = read_args(iprot, Revoke_role_args)
+      result = Revoke_role_result.new()
+      begin
+        result.success = @handler.revoke_role(args.role_name, args.principal_name, args.principal_type)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'revoke_role', seqid)
+    end
+
+    def process_list_roles(seqid, iprot, oprot)
+      args = read_args(iprot, List_roles_args)
+      result = List_roles_result.new()
+      begin
+        result.success = @handler.list_roles(args.principal_name, args.principal_type)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'list_roles', seqid)
+    end
+
+    def process_get_privilege_set(seqid, iprot, oprot)
+      args = read_args(iprot, Get_privilege_set_args)
+      result = Get_privilege_set_result.new()
+      begin
+        result.success = @handler.get_privilege_set(args.hiveObject, args.user_name, args.group_names)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'get_privilege_set', seqid)
+    end
+
+    def process_list_privileges(seqid, iprot, oprot)
+      args = read_args(iprot, List_privileges_args)
+      result = List_privileges_result.new()
+      begin
+        result.success = @handler.list_privileges(args.principal_name, args.principal_type, args.hiveObject)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'list_privileges', seqid)
+    end
+
+    def process_grant_privileges(seqid, iprot, oprot)
+      args = read_args(iprot, Grant_privileges_args)
+      result = Grant_privileges_result.new()
+      begin
+        result.success = @handler.grant_privileges(args.privileges)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'grant_privileges', seqid)
+    end
+
+    def process_revoke_privileges(seqid, iprot, oprot)
+      args = read_args(iprot, Revoke_privileges_args)
+      result = Revoke_privileges_result.new()
+      begin
+        result.success = @handler.revoke_privileges(args.privileges)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'revoke_privileges', seqid)
+    end
+
+    def process_get_delegation_token(seqid, iprot, oprot)
+      args = read_args(iprot, Get_delegation_token_args)
+      result = Get_delegation_token_result.new()
+      begin
+        result.success = @handler.get_delegation_token(args.renewer_kerberos_principal_name)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'get_delegation_token', seqid)
+    end
+
+    def process_get_delegation_token_with_signature(seqid, iprot, oprot)
+      args = read_args(iprot, Get_delegation_token_with_signature_args)
+      result = Get_delegation_token_with_signature_result.new()
+      begin
+        result.success = @handler.get_delegation_token_with_signature(args.renewer_kerberos_principal_name, args.token_signature)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'get_delegation_token_with_signature', seqid)
+    end
+
+    def process_renew_delegation_token(seqid, iprot, oprot)
+      args = read_args(iprot, Renew_delegation_token_args)
+      result = Renew_delegation_token_result.new()
+      begin
+        result.success = @handler.renew_delegation_token(args.token_str_form)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'renew_delegation_token', seqid)
+    end
+
+    def process_cancel_delegation_token(seqid, iprot, oprot)
+      args = read_args(iprot, Cancel_delegation_token_args)
+      result = Cancel_delegation_token_result.new()
+      begin
+        @handler.cancel_delegation_token(args.token_str_form)
+      rescue MetaException => o1
+        result.o1 = o1
+      end
+      write_result(result, oprot, 'cancel_delegation_token', seqid)
     end
 
   end
@@ -1348,6 +1844,42 @@ module ThriftHiveMetastore
     FIELDS = {
       SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRING}},
       O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Alter_database_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    DBNAME = 1
+    DB = 2
+
+    FIELDS = {
+      DBNAME => {:type => ::Thrift::Types::STRING, :name => 'dbname'},
+      DB => {:type => ::Thrift::Types::STRUCT, :name => 'db', :class => Database}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Alter_database_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    O1 = 1
+    O2 = 2
+
+    FIELDS = {
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException},
+      O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => NoSuchObjectException}
     }
 
     def struct_fields; FIELDS; end
@@ -2050,6 +2582,50 @@ module ThriftHiveMetastore
     ::Thrift::Struct.generate_accessors self
   end
 
+  class Get_partition_with_auth_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    DB_NAME = 1
+    TBL_NAME = 2
+    PART_VALS = 3
+    USER_NAME = 4
+    GROUP_NAMES = 5
+
+    FIELDS = {
+      DB_NAME => {:type => ::Thrift::Types::STRING, :name => 'db_name'},
+      TBL_NAME => {:type => ::Thrift::Types::STRING, :name => 'tbl_name'},
+      PART_VALS => {:type => ::Thrift::Types::LIST, :name => 'part_vals', :element => {:type => ::Thrift::Types::STRING}},
+      USER_NAME => {:type => ::Thrift::Types::STRING, :name => 'user_name'},
+      GROUP_NAMES => {:type => ::Thrift::Types::LIST, :name => 'group_names', :element => {:type => ::Thrift::Types::STRING}}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_partition_with_auth_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+    O2 = 2
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => Partition},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException},
+      O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => NoSuchObjectException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
   class Get_partition_by_name_args
     include ::Thrift::Struct, ::Thrift::Struct_Union
     DB_NAME = 1
@@ -2111,6 +2687,50 @@ module ThriftHiveMetastore
   end
 
   class Get_partitions_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+    O2 = 2
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => Partition}},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => NoSuchObjectException},
+      O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_partitions_with_auth_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    DB_NAME = 1
+    TBL_NAME = 2
+    MAX_PARTS = 3
+    USER_NAME = 4
+    GROUP_NAMES = 5
+
+    FIELDS = {
+      DB_NAME => {:type => ::Thrift::Types::STRING, :name => 'db_name'},
+      TBL_NAME => {:type => ::Thrift::Types::STRING, :name => 'tbl_name'},
+      MAX_PARTS => {:type => ::Thrift::Types::I16, :name => 'max_parts', :default => -1},
+      USER_NAME => {:type => ::Thrift::Types::STRING, :name => 'user_name'},
+      GROUP_NAMES => {:type => ::Thrift::Types::LIST, :name => 'group_names', :element => {:type => ::Thrift::Types::STRING}}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_partitions_with_auth_result
     include ::Thrift::Struct, ::Thrift::Struct_Union
     SUCCESS = 0
     O1 = 1
@@ -2198,6 +2818,52 @@ module ThriftHiveMetastore
     FIELDS = {
       SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => Partition}},
       O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_partitions_ps_with_auth_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    DB_NAME = 1
+    TBL_NAME = 2
+    PART_VALS = 3
+    MAX_PARTS = 4
+    USER_NAME = 5
+    GROUP_NAMES = 6
+
+    FIELDS = {
+      DB_NAME => {:type => ::Thrift::Types::STRING, :name => 'db_name'},
+      TBL_NAME => {:type => ::Thrift::Types::STRING, :name => 'tbl_name'},
+      PART_VALS => {:type => ::Thrift::Types::LIST, :name => 'part_vals', :element => {:type => ::Thrift::Types::STRING}},
+      MAX_PARTS => {:type => ::Thrift::Types::I16, :name => 'max_parts', :default => -1},
+      USER_NAME => {:type => ::Thrift::Types::STRING, :name => 'user_name'},
+      GROUP_NAMES => {:type => ::Thrift::Types::LIST, :name => 'group_names', :element => {:type => ::Thrift::Types::STRING}}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_partitions_ps_with_auth_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+    O2 = 2
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => Partition}},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => NoSuchObjectException},
+      O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => MetaException}
     }
 
     def struct_fields; FIELDS; end
@@ -2662,6 +3328,520 @@ module ThriftHiveMetastore
     FIELDS = {
       SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRING}},
       O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Create_role_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    ROLE = 1
+
+    FIELDS = {
+      ROLE => {:type => ::Thrift::Types::STRUCT, :name => 'role', :class => Role}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Create_role_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Drop_role_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    ROLE_NAME = 1
+
+    FIELDS = {
+      ROLE_NAME => {:type => ::Thrift::Types::STRING, :name => 'role_name'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Drop_role_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_role_names_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+
+    FIELDS = {
+
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_role_names_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRING}},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Grant_role_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    ROLE_NAME = 1
+    PRINCIPAL_NAME = 2
+    PRINCIPAL_TYPE = 3
+    GRANTOR = 4
+    GRANTORTYPE = 5
+    GRANT_OPTION = 6
+
+    FIELDS = {
+      ROLE_NAME => {:type => ::Thrift::Types::STRING, :name => 'role_name'},
+      PRINCIPAL_NAME => {:type => ::Thrift::Types::STRING, :name => 'principal_name'},
+      PRINCIPAL_TYPE => {:type => ::Thrift::Types::I32, :name => 'principal_type', :enum_class => PrincipalType},
+      GRANTOR => {:type => ::Thrift::Types::STRING, :name => 'grantor'},
+      GRANTORTYPE => {:type => ::Thrift::Types::I32, :name => 'grantorType', :enum_class => PrincipalType},
+      GRANT_OPTION => {:type => ::Thrift::Types::BOOL, :name => 'grant_option'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+      unless @principal_type.nil? || PrincipalType::VALID_VALUES.include?(@principal_type)
+        raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field principal_type!')
+      end
+      unless @grantorType.nil? || PrincipalType::VALID_VALUES.include?(@grantorType)
+        raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field grantorType!')
+      end
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Grant_role_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Revoke_role_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    ROLE_NAME = 1
+    PRINCIPAL_NAME = 2
+    PRINCIPAL_TYPE = 3
+
+    FIELDS = {
+      ROLE_NAME => {:type => ::Thrift::Types::STRING, :name => 'role_name'},
+      PRINCIPAL_NAME => {:type => ::Thrift::Types::STRING, :name => 'principal_name'},
+      PRINCIPAL_TYPE => {:type => ::Thrift::Types::I32, :name => 'principal_type', :enum_class => PrincipalType}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+      unless @principal_type.nil? || PrincipalType::VALID_VALUES.include?(@principal_type)
+        raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field principal_type!')
+      end
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Revoke_role_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class List_roles_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    PRINCIPAL_NAME = 1
+    PRINCIPAL_TYPE = 2
+
+    FIELDS = {
+      PRINCIPAL_NAME => {:type => ::Thrift::Types::STRING, :name => 'principal_name'},
+      PRINCIPAL_TYPE => {:type => ::Thrift::Types::I32, :name => 'principal_type', :enum_class => PrincipalType}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+      unless @principal_type.nil? || PrincipalType::VALID_VALUES.include?(@principal_type)
+        raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field principal_type!')
+      end
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class List_roles_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => Role}},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_privilege_set_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    HIVEOBJECT = 1
+    USER_NAME = 2
+    GROUP_NAMES = 3
+
+    FIELDS = {
+      HIVEOBJECT => {:type => ::Thrift::Types::STRUCT, :name => 'hiveObject', :class => HiveObjectRef},
+      USER_NAME => {:type => ::Thrift::Types::STRING, :name => 'user_name'},
+      GROUP_NAMES => {:type => ::Thrift::Types::LIST, :name => 'group_names', :element => {:type => ::Thrift::Types::STRING}}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_privilege_set_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => PrincipalPrivilegeSet},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class List_privileges_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    PRINCIPAL_NAME = 1
+    PRINCIPAL_TYPE = 2
+    HIVEOBJECT = 3
+
+    FIELDS = {
+      PRINCIPAL_NAME => {:type => ::Thrift::Types::STRING, :name => 'principal_name'},
+      PRINCIPAL_TYPE => {:type => ::Thrift::Types::I32, :name => 'principal_type', :enum_class => PrincipalType},
+      HIVEOBJECT => {:type => ::Thrift::Types::STRUCT, :name => 'hiveObject', :class => HiveObjectRef}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+      unless @principal_type.nil? || PrincipalType::VALID_VALUES.include?(@principal_type)
+        raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field principal_type!')
+      end
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class List_privileges_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => HiveObjectPrivilege}},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Grant_privileges_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    PRIVILEGES = 1
+
+    FIELDS = {
+      PRIVILEGES => {:type => ::Thrift::Types::STRUCT, :name => 'privileges', :class => PrivilegeBag}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Grant_privileges_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Revoke_privileges_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    PRIVILEGES = 1
+
+    FIELDS = {
+      PRIVILEGES => {:type => ::Thrift::Types::STRUCT, :name => 'privileges', :class => PrivilegeBag}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Revoke_privileges_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_delegation_token_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    RENEWER_KERBEROS_PRINCIPAL_NAME = 1
+
+    FIELDS = {
+      RENEWER_KERBEROS_PRINCIPAL_NAME => {:type => ::Thrift::Types::STRING, :name => 'renewer_kerberos_principal_name'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_delegation_token_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRING, :name => 'success'},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_delegation_token_with_signature_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    RENEWER_KERBEROS_PRINCIPAL_NAME = 1
+    TOKEN_SIGNATURE = 2
+
+    FIELDS = {
+      RENEWER_KERBEROS_PRINCIPAL_NAME => {:type => ::Thrift::Types::STRING, :name => 'renewer_kerberos_principal_name'},
+      TOKEN_SIGNATURE => {:type => ::Thrift::Types::STRING, :name => 'token_signature'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_delegation_token_with_signature_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::STRING, :name => 'success'},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Renew_delegation_token_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    TOKEN_STR_FORM = 1
+
+    FIELDS = {
+      TOKEN_STR_FORM => {:type => ::Thrift::Types::STRING, :name => 'token_str_form'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Renew_delegation_token_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+    O1 = 1
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::I64, :name => 'success'},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Cancel_delegation_token_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    TOKEN_STR_FORM = 1
+
+    FIELDS = {
+      TOKEN_STR_FORM => {:type => ::Thrift::Types::STRING, :name => 'token_str_form'}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Cancel_delegation_token_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    O1 = 1
+
+    FIELDS = {
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => MetaException}
     }
 
     def struct_fields; FIELDS; end

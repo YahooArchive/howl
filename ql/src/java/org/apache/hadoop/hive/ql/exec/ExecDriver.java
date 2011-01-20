@@ -104,6 +104,16 @@ public class ExecDriver extends Task<MapredWork> implements Serializable {
   protected transient JobConf job;
   protected transient int mapProgress = 0;
   protected transient int reduceProgress = 0;
+  public transient String jobId;
+
+  public String getJobId() {
+    return jobId;
+  }
+
+  public void setJobId(String jobId) {
+    this.jobId = jobId;
+  }
+
   public static MemoryMXBean memoryMXBean;
 
   /**
@@ -510,8 +520,7 @@ public class ExecDriver extends Task<MapredWork> implements Serializable {
       job.setNumMapTasks(work.getNumMapTasks().intValue());
     }
     if (work.getMinSplitSize() != null) {
-      HiveConf.setIntVar(job, HiveConf.ConfVars.MAPREDMINSPLITSIZE, work.getMinSplitSize()
-          .intValue());
+      HiveConf.setLongVar(job, HiveConf.ConfVars.MAPREDMINSPLITSIZE, work.getMinSplitSize().longValue());
     }
     job.setNumReduceTasks(work.getNumReduceTasks().intValue());
     job.setReducerClass(ExecReducer.class);
@@ -646,6 +655,8 @@ public class ExecDriver extends Task<MapredWork> implements Serializable {
 
       // Finally SUBMIT the JOB!
       rj = jc.submitJob(job);
+
+      jobId = rj.getJobID();
 
       // replace it back
       if (pwd != null) {

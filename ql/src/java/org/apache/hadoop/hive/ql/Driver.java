@@ -24,8 +24,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -49,6 +47,7 @@ import org.apache.hadoop.hive.ql.exec.ConditionalTask;
 import org.apache.hadoop.hive.ql.exec.ExecDriver;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskFactory;
 import org.apache.hadoop.hive.ql.exec.TaskResult;
@@ -66,25 +65,33 @@ import org.apache.hadoop.hive.ql.lockmgr.HiveLock;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockManager;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockManagerCtx;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockMode;
+import org.apache.hadoop.hive.ql.lockmgr.HiveLockObj;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockObject.HiveLockObjectData;
 import org.apache.hadoop.hive.ql.lockmgr.LockException;
+import org.apache.hadoop.hive.ql.metadata.AuthorizationException;
 import org.apache.hadoop.hive.ql.metadata.DummyPartition;
+import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.optimizer.ppr.PartitionPruner;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.AbstractSemanticAnalyzerHook;
 import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer;
 import org.apache.hadoop.hive.ql.parse.ErrorMsg;
 import org.apache.hadoop.hive.ql.parse.HiveSemanticAnalyzerHookContext;
 import org.apache.hadoop.hive.ql.parse.HiveSemanticAnalyzerHookContextImpl;
+import org.apache.hadoop.hive.ql.parse.ParseContext;
 import org.apache.hadoop.hive.ql.parse.ParseDriver;
 import org.apache.hadoop.hive.ql.parse.ParseException;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
+import org.apache.hadoop.hive.ql.parse.PrunedPartitionList;
+import org.apache.hadoop.hive.ql.parse.SemanticAnalyzer;
 import org.apache.hadoop.hive.ql.parse.SemanticAnalyzerFactory;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
+import org.apache.hadoop.hive.ql.plan.HiveOperation;
 import org.apache.hadoop.hive.ql.parse.VariableSubstitution;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.processors.CommandProcessor;
@@ -97,6 +104,7 @@ import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.hive.ql.metadata.Hive;
 
 public class Driver implements CommandProcessor {
 
@@ -375,8 +383,20 @@ public class Driver implements CommandProcessor {
       if (plan.getFetchTask() != null) {
         plan.getFetchTask().initialize(conf, plan, null);
       }
+      
+      //do the authorization check
+      if (HiveConf.getBoolVar(conf,
+          HiveConf.ConfVars.HIVE_AUTHORIZATION_ENABLED)) {
+        try {
+          doAuthorization(sem);
+        } catch (AuthorizationException authExp) {
+          console.printError("Authorization failed:" + authExp.getMessage()
+              + ". Use show grant to get more details.");
+          return 403;
+        }
+      }
 
-      return (0);
+      return 0;
     } catch (SemanticException e) {
       errorMessage = "FAILED: Error in semantic analysis: " + e.getMessage();
       SQLState = ErrorMsg.findSQLState(e.getMessage());
@@ -398,54 +418,131 @@ public class Driver implements CommandProcessor {
     }
   }
 
+  private void doAuthorization(BaseSemanticAnalyzer sem)
+      throws HiveException, AuthorizationException {
+    HashSet<ReadEntity> inputs = sem.getInputs();
+    HashSet<WriteEntity> outputs = sem.getOutputs();
+    SessionState ss = SessionState.get();
+    HiveOperation op = ss.getHiveOperation();
+    Hive db = sem.getDb();
+    if (op != null) {
+      if (op.equals(HiveOperation.CREATETABLE_AS_SELECT)
+          || op.equals(HiveOperation.CREATETABLE)) {
+        ss.getAuthorizer().authorize(
+            db.getDatabase(db.getCurrentDatabase()), null,
+            HiveOperation.CREATETABLE_AS_SELECT.getOutputRequiredPrivileges());
+      }
+      if (outputs != null && outputs.size() > 0) {
+        for (WriteEntity write : outputs) {
+
+          if (write.getType() == WriteEntity.Type.PARTITION) {
+            Partition part = db.getPartition(write.getTable(), write
+                .getPartition().getSpec(), false);
+            if (part != null) {
+              ss.getAuthorizer().authorize(write.getPartition(), null,
+                      op.getOutputRequiredPrivileges());
+              continue;
+            }
+          }
+
+          if (write.getTable() != null) {
+            ss.getAuthorizer().authorize(write.getTable(), null,
+                    op.getOutputRequiredPrivileges());
+          }
+        }
+
+      }
+    }
+
+    if (inputs != null && inputs.size() > 0) {
+
+      Map<Table, List<String>> tab2Cols = new HashMap<Table, List<String>>();
+      Map<Partition, List<String>> part2Cols = new HashMap<Partition, List<String>>();
+
+      for (ReadEntity read : inputs) {
+        boolean part = read.getPartition() != null;
+        if (part) {
+          part2Cols.put(read.getPartition(), new ArrayList<String>());
+        } else {
+          tab2Cols.put(read.getTable(), new ArrayList<String>());
+        }
+      }
+
+      if (op.equals(HiveOperation.CREATETABLE_AS_SELECT)
+          || op.equals(HiveOperation.QUERY)) {
+        SemanticAnalyzer querySem = (SemanticAnalyzer) sem;
+        ParseContext parseCtx = querySem.getParseContext();
+        Map<TableScanOperator, Table> tsoTopMap = parseCtx.getTopToTable();
+
+        for (Map.Entry<String, Operator<? extends Serializable>> topOpMap : querySem
+            .getParseContext().getTopOps().entrySet()) {
+          Operator<? extends Serializable> topOp = topOpMap.getValue();
+          if (topOp instanceof TableScanOperator
+              && tsoTopMap.containsKey(topOp)) {
+            TableScanOperator tableScanOp = (TableScanOperator) topOp;
+            Table tbl = tsoTopMap.get(tableScanOp);
+            List<Integer> neededColumnIds = tableScanOp.getNeededColumnIDs();
+            List<FieldSchema> columns = tbl.getCols();
+            List<String> cols = new ArrayList<String>();
+            if (neededColumnIds != null && neededColumnIds.size() > 0) {
+              for (int i = 0; i < neededColumnIds.size(); i++) {
+                cols.add(columns.get(neededColumnIds.get(i)).getName());
+              }
+            } else {
+              for (int i = 0; i < columns.size(); i++) {
+                cols.add(columns.get(i).getName());
+              }
+            }
+            if (tbl.isPartitioned()) {
+              String alias_id = topOpMap.getKey();
+              PrunedPartitionList partsList = PartitionPruner.prune(parseCtx
+                  .getTopToTable().get(topOp), parseCtx.getOpToPartPruner()
+                  .get(topOp), parseCtx.getConf(), alias_id, parseCtx
+                  .getPrunedPartitions());
+              Set<Partition> parts = new HashSet<Partition>();
+              parts.addAll(partsList.getConfirmedPartns());
+              parts.addAll(partsList.getUnknownPartns());
+              for (Partition part : parts) {
+                part2Cols.put(part, cols);
+              }
+            } else {
+              tab2Cols.put(tbl, cols);
+            }
+          }
+        }
+      }
+
+      for (ReadEntity read : inputs) {
+        if (read.getPartition() != null) {
+          List<String> cols = part2Cols.get(read.getPartition());
+          if (cols != null && cols.size() > 0) {
+            ss.getAuthorizer().authorize(read.getPartition().getTable(),
+                    read.getPartition(), cols, op.getInputRequiredPrivileges(),
+                    null);
+          } else {
+            ss.getAuthorizer().authorize(read.getPartition(),
+                    op.getInputRequiredPrivileges(), null);
+          }
+        } else if (read.getTable() != null) {
+          List<String> cols = tab2Cols.get(read.getTable());
+          if (cols != null && cols.size() > 0) {
+            ss.getAuthorizer().authorize(read.getTable(), null, cols,
+                    op.getInputRequiredPrivileges(), null);
+          } else {
+            ss.getAuthorizer().authorize(read.getTable(),
+                    op.getInputRequiredPrivileges(), null);
+          }
+        }
+      }
+
+    }
+  }
+
   /**
    * @return The current query plan associated with this Driver, if any.
    */
   public QueryPlan getPlan() {
     return plan;
-  }
-
-  public static class LockObject {
-    HiveLockObject obj;
-    HiveLockMode mode;
-
-    public LockObject(HiveLockObject obj, HiveLockMode mode) {
-      this.obj = obj;
-      this.mode = mode;
-    }
-
-    public HiveLockObject getObj() {
-      return obj;
-    }
-
-    public HiveLockMode getMode() {
-      return mode;
-    }
-
-    public String getName() {
-      return obj.getName();
-    }
-  }
-
-  public static class LockObjectContainer {
-    LockObject lck;
-
-    public LockObjectContainer() {
-      this.lck = null;
-    }
-
-    public LockObjectContainer(LockObject lck) {
-      this.lck = lck;
-    }
-
-    public LockObject getLck() {
-      return lck;
-    }
-
-    public void setLck(LockObject lck) {
-      this.lck = lck;
-    }
-
   }
 
   /**
@@ -458,9 +555,9 @@ public class Driver implements CommandProcessor {
    *          partition needs to be locked (in any mode), all its parents should also be locked in
    *          SHARED mode.
    **/
-  private List<LockObject> getLockObjects(Table t, Partition p, HiveLockMode mode)
+  private List<HiveLockObj> getLockObjects(Table t, Partition p, HiveLockMode mode)
       throws SemanticException {
-    List<LockObject> locks = new LinkedList<LockObject>();
+    List<HiveLockObj> locks = new LinkedList<HiveLockObj>();
 
     HiveLockObjectData lockData =
       new HiveLockObjectData(plan.getQueryId(),
@@ -468,18 +565,21 @@ public class Driver implements CommandProcessor {
                              "IMPLICIT");
 
     if (t != null) {
-      locks.add(new LockObject(new HiveLockObject(t, lockData), mode));
+      locks.add(new HiveLockObj(new HiveLockObject(t, lockData), mode));
       return locks;
     }
 
     if (p != null) {
-      locks.add(new LockObject(new HiveLockObject(p, lockData), mode));
+      if (!(p instanceof DummyPartition)) {
+        locks.add(new HiveLockObj(new HiveLockObject(p, lockData), mode));
+      }
 
       // All the parents are locked in shared mode
       mode = HiveLockMode.SHARED;
 
-      // For summy partitions, only partition name is needed
+      // For dummy partitions, only partition name is needed
       String name = p.getName();
+
       if (p instanceof DummyPartition) {
         name = p.getName().split("@")[2];
       }
@@ -487,20 +587,22 @@ public class Driver implements CommandProcessor {
       String partName = name;
       String partialName = "";
       String[] partns = name.split("/");
-      for (int idx = 0; idx < partns.length - 1; idx++) {
+      int len = p instanceof DummyPartition ? partns.length : partns.length - 1;
+      for (int idx = 0; idx < len; idx++) {
         String partn = partns[idx];
-        partialName += partialName + partn;
+        partialName += partn;
         try {
-          locks.add(new LockObject(new HiveLockObject(new DummyPartition(p.getTable(), p.getTable()
-              .getDbName()
-              + "@" + p.getTable().getTableName() + "@" + partialName), lockData), mode));
+          locks.add(new HiveLockObj(
+                      new HiveLockObject(new DummyPartition(p.getTable(), p.getTable().getDbName()
+                                                            + "/" + p.getTable().getTableName()
+                                                            + "/" + partialName), lockData), mode));
           partialName += "/";
         } catch (HiveException e) {
           throw new SemanticException(e.getMessage());
         }
       }
 
-      locks.add(new LockObject(new HiveLockObject(p.getTable(), lockData), mode));
+      locks.add(new HiveLockObj(new HiveLockObject(p.getTable(), lockData), mode));
     }
     return locks;
   }
@@ -522,7 +624,7 @@ public class Driver implements CommandProcessor {
         return 0;
       }
 
-      List<LockObject> lockObjects = new ArrayList<LockObject>();
+      List<HiveLockObj> lockObjects = new ArrayList<HiveLockObj>();
 
       // Sort all the inputs, outputs.
       // If a lock needs to be acquired on any partition, a read lock needs to be acquired on all
@@ -557,35 +659,23 @@ public class Driver implements CommandProcessor {
         return ret;
       }
 
+      HiveLockObjectData lockData =
+        new HiveLockObjectData(plan.getQueryId(),
+                               String.valueOf(System.currentTimeMillis()),
+                               "IMPLICIT");
+
+      // Lock the database also
+      try {
+        Hive db = Hive.get(conf);
+        lockObjects.add(new HiveLockObj(
+                                        new HiveLockObject(db.getCurrentDatabase(), lockData),
+                                        HiveLockMode.SHARED));
+      } catch (HiveException e) {
+        throw new SemanticException(e.getMessage());
+      }
 
       ctx.setHiveLockMgr(hiveLockMgr);
-
-      Collections.sort(lockObjects, new Comparator<LockObject>() {
-
-        @Override
-        public int compare(LockObject o1, LockObject o2) {
-          int cmp = o1.getName().compareTo(o2.getName());
-          if (cmp == 0) {
-            if (o1.getMode() == o2.getMode()) {
-              return cmp;
-            }
-            // EXCLUSIVE locks occur before SHARED locks
-            if (o1.getMode() == HiveLockMode.EXCLUSIVE) {
-              return -1;
-            }
-            return +1;
-          }
-          return cmp;
-        }
-
-      });
-
-      // walk the list and acquire the locks - if any lock cant be acquired, release all locks,
-      // sleep and retry
-      LockObjectContainer notFound = new LockObjectContainer();
-      notFound.setLck(null);
-      List<HiveLock> hiveLocks = acquireLocks(lockObjects, notFound,
-          numRetries, sleepTime);
+      List<HiveLock> hiveLocks = ctx.getHiveLockMgr().lock(lockObjects, false, numRetries, sleepTime);
 
       if (hiveLocks == null) {
         throw new SemanticException(ErrorMsg.LOCK_CANNOT_BE_ACQUIRED.getMsg());
@@ -599,52 +689,13 @@ public class Driver implements CommandProcessor {
       console.printError(errorMessage, "\n"
           + org.apache.hadoop.util.StringUtils.stringifyException(e));
       return (10);
+    } catch (LockException e) {
+      errorMessage = "FAILED: Error in acquiring locks: " + e.getMessage();
+      SQLState = ErrorMsg.findSQLState(e.getMessage());
+      console.printError(errorMessage, "\n"
+          + org.apache.hadoop.util.StringUtils.stringifyException(e));
+      return (10);
     }
-  }
-
-  /**
-   * @param lockObjects
-   *          The list of objects to be locked Lock the objects specified in the list. The same
-   *          object is not locked twice, and the list passed is sorted such that EXCLUSIVE locks
-   *          occur before SHARED locks.
-   * @param sleepTime
-   * @param numRetries
-   **/
-  private List<HiveLock> acquireLocks(List<LockObject> lockObjects,
-      LockObjectContainer notFound, int numRetries, int sleepTime)
-      throws SemanticException {
-    // walk the list and acquire the locks - if any lock cant be acquired, release all locks, sleep
-    // and retry
-    LockObject prevLockObj = null;
-    List<HiveLock> hiveLocks = new ArrayList<HiveLock>();
-
-    for (LockObject lockObject : lockObjects) {
-      // No need to acquire a lock twice on the same object
-      // It is ensured that EXCLUSIVE locks occur before SHARED locks on the same object
-      if ((prevLockObj != null) && (prevLockObj.getName().equals(lockObject.getName()))) {
-        prevLockObj = lockObject;
-        continue;
-      }
-
-      HiveLock lock = null;
-      try {
-        lock = ctx.getHiveLockMgr().lock(lockObject.getObj(), lockObject.getMode(), false, numRetries, sleepTime);
-      } catch (LockException e) {
-        console.printError("Error in acquireLocks: "+ e.getLocalizedMessage());
-        lock = null;
-      }
-
-      if (lock == null) {
-        notFound.setLck(lockObject);
-        releaseLocks(hiveLocks);
-        return null;
-      }
-
-      hiveLocks.add(lock);
-      prevLockObj = lockObject;
-    }
-
-    return hiveLocks;
   }
 
   /**
@@ -668,15 +719,9 @@ public class Driver implements CommandProcessor {
    **/
   private void releaseLocks(List<HiveLock> hiveLocks) {
     if (hiveLocks != null) {
-      for (HiveLock hiveLock : hiveLocks) {
-        try {
-          ctx.getHiveLockMgr().unlock(hiveLock);
-        } catch (LockException e) {
-          // The lock may have been released. Ignore and continue
-        }
-      }
-      ctx.setHiveLocks(null);
+      ctx.getHiveLockMgr().releaseLocks(hiveLocks);
     }
+    ctx.setHiveLocks(null);
   }
 
   public CommandProcessorResponse run(String command) {
@@ -754,8 +799,6 @@ public class Driver implements CommandProcessor {
   public int execute() {
     boolean noName = StringUtils.isEmpty(conf.getVar(HiveConf.ConfVars.HADOOPJOBNAME));
     int maxlen = conf.getIntVar(HiveConf.ConfVars.HIVEJOBNAMELENGTH);
-
-    int curJobNo = 0;
 
     String queryId = plan.getQueryId();
     String queryStr = plan.getQueryStr();
