@@ -62,7 +62,7 @@ public class TestPermsGrp extends TestCase {
 
     t = new Thread(new RunMS());
     t.start();
-    Thread.sleep(10000);
+    Thread.sleep(40000);
 
     isServerRunning = true;
 
@@ -72,7 +72,7 @@ public class TestPermsGrp extends TestCase {
     howlConf = new HiveConf(this.getClass());
     howlConf.set("hive.metastore.local", "false");
     howlConf.setVar(HiveConf.ConfVars.METASTOREURIS, "thrift://localhost:" + msPort);
-    howlConf.setIntVar(HiveConf.ConfVars.METATORETHRIFTRETRIES, 3);
+    howlConf.setIntVar(HiveConf.ConfVars.METASTORETHRIFTRETRIES, 3);
 
     howlConf.set(HiveConf.ConfVars.SEMANTIC_ANALYZER_HOOK.varname, HowlSemanticAnalyzer.class.getName());
     howlConf.set(HiveConf.ConfVars.PREEXECHOOKS.varname, "");

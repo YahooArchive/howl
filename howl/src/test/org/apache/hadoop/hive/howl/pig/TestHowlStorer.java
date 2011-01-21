@@ -25,11 +25,13 @@ import java.util.Properties;
 
 import junit.framework.TestCase;
 
+import org.apache.hadoop.hive.cli.CliSessionState;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.MiniCluster;
 import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
 import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.ql.Driver;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -52,7 +54,7 @@ public class TestHowlStorer extends TestCase {
     hiveConf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "");
     hiveConf.set(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY.varname, "false");
     driver = new Driver(hiveConf);
-
+    SessionState.start(new CliSessionState(hiveConf));
     props = new Properties();
     props.setProperty("fs.default.name", cluster.getProperties().getProperty("fs.default.name"));
     fullFileName = cluster.getProperties().getProperty("fs.default.name") + fileName;

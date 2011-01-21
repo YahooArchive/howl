@@ -1,18 +1,16 @@
 package org.apache.hadoop.hive.howl.cli;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 import junit.framework.TestCase;
 
+import org.apache.hadoop.hive.cli.CliSessionState;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.howl.cli.SemanticAnalysis.HowlSemanticAnalyzer;
-import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
+import org.apache.hadoop.hive.ql.session.SessionState;
 
 /* Unit test for GitHub Howl issue #3 */
 public class TestUseDatabase extends TestCase{
@@ -29,6 +27,7 @@ public class TestUseDatabase extends TestCase{
 
     howlConf.set(ConfVars.SEMANTIC_ANALYZER_HOOK.varname, HowlSemanticAnalyzer.class.getName());
     howlDriver = new Driver(howlConf);
+    SessionState.start(new CliSessionState(howlConf));
   }
 
   String query;
