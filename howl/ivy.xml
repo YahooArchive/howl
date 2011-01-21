@@ -18,7 +18,6 @@
         <conf name="test" visibility="private" extends="runtime"/>
     </configurations>
     <dependencies>
-        <dependency org="commons-daemon" name="commons-daemon" rev="${commons-daemon.version}" conf="common->default"/>
-        <dependency org="org.apache.hadoop" name="pig" rev="0.8.0-SNAPSHOT" conf="common->master" />
+        <dependency org="org.apache.pig" name="pig" rev="0.8.0" conf="common->master" />
     </dependencies>
 </ivy-module>
