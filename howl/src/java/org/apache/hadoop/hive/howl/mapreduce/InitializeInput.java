@@ -26,6 +26,7 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.common.HowlUtil;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
@@ -46,19 +47,14 @@ public class InitializeInput {
   /** The prefix for keys used for storage driver arguments */
   private static final String HOWL_KEY_PREFIX = "howl.";
 
-  /** The key for the input storage driver class name */
-  public static final String HOWL_ISD_CLASS = "howl.isd";
-
-  /** The key for the output storage driver class name */
-  public static final String HOWL_OSD_CLASS = "howl.osd";
-
-  private static final short MAX_PARTS = Short.MAX_VALUE;
-
   private static HiveMetaStoreClient createHiveMetaClient(Configuration conf, HowlTableInfo inputInfo) throws Exception {
     HiveConf hiveConf = new HiveConf(HowlInputFormat.class);
     if (inputInfo.getServerUri() != null){
+      hiveConf.setBoolean(HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL.varname, true);
+      hiveConf.set(HiveConf.ConfVars.METASTORE_KERBEROS_PRINCIPAL.varname,
+          inputInfo.getServerKerberosPrincipal());
       hiveConf.set("hive.metastore.local", "false");
-      hiveConf.set("hive.metastore.uris", inputInfo.getServerUri());
+      hiveConf.set(HiveConf.ConfVars.METASTOREURIS.varname, inputInfo.getServerUri());
     }
 
     return new HiveMetaStoreClient(hiveConf,null);
@@ -80,7 +76,6 @@ public class InitializeInput {
 
     try {
       client = createHiveMetaClient(job.getConfiguration(),inputInfo);
-
       Table table = client.getTable(inputInfo.getDatabaseName(), inputInfo.getTableName());
       HowlSchema tableSchema = HowlUtil.getTableSchemaWithPtnCols(table);
 
@@ -145,8 +140,8 @@ public class InitializeInput {
     HowlSchema schema = HowlUtil.extractSchemaFromStorageDescriptor(sd);
     String inputStorageDriverClass = null;
     Properties howlProperties = new Properties();
-    if (parameters.containsKey(HOWL_ISD_CLASS)){
-      inputStorageDriverClass = parameters.get(HOWL_ISD_CLASS);
+    if (parameters.containsKey(HowlConstants.HOWL_ISD_CLASS)){
+      inputStorageDriverClass = parameters.get(HowlConstants.HOWL_ISD_CLASS);
     }else{
       throw new IOException("No input storage driver classname found, cannot read partition");
     }
@@ -163,14 +158,14 @@ public class InitializeInput {
   static StorerInfo extractStorerInfo(Map<String, String> properties) throws IOException {
     String inputSDClass, outputSDClass;
 
-    if (properties.containsKey(HOWL_ISD_CLASS)){
-      inputSDClass = properties.get(HOWL_ISD_CLASS);
+    if (properties.containsKey(HowlConstants.HOWL_ISD_CLASS)){
+      inputSDClass = properties.get(HowlConstants.HOWL_ISD_CLASS);
     }else{
       throw new IOException("No input storage driver classname found for table, cannot write partition");
     }
 
-    if (properties.containsKey(HOWL_OSD_CLASS)){
-      outputSDClass = properties.get(HOWL_OSD_CLASS);
+    if (properties.containsKey(HowlConstants.HOWL_OSD_CLASS)){
+      outputSDClass = properties.get(HowlConstants.HOWL_OSD_CLASS);
     }else{
       throw new IOException("No output storage driver classname found for table, cannot write partition");
     }

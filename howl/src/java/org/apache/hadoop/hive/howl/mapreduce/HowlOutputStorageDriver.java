@@ -24,8 +24,6 @@ import java.util.Properties;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
-import org.apache.hadoop.hive.howl.common.ErrorType;
-import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.io.Writable;
@@ -120,27 +118,10 @@ public abstract class HowlOutputStorageDriver {
         values.add(partitionValues.get(partitionCol));
       }
 
-      String partitionLocation = makePartName(partitionCols, values);
+      String partitionLocation = FileUtils.makePartName(partitionCols, values);
 
       Path path = new Path(tableLocation, partitionLocation);
       return path.toString();
-    }
-
-    protected String makePartName(List<String> partCols,
-        List<String> vals) throws HowlException {
-      if(partCols.size() != vals.size()) {
-        throw new HowlException(ErrorType.ERROR_INVALID_PARTITION_VALUES,
-            "Table has " + partCols.size() + " partition keys, got "+
-            vals.size());
-      }
-      StringBuilder name = new StringBuilder();
-      for (int i = 0; i < partCols.size(); i++) {
-        if (i > 0) {
-          name.append(Path.SEPARATOR);
-        }
-        name.append(FileUtils.escapePathName(vals.get(i)));
-      }
-      return name.toString();
     }
 
     /** Default implementation assumes FileOutputFormat. Storage drivers wrapping

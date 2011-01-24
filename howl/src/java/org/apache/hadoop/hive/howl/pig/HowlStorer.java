@@ -463,10 +463,10 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     HowlTableInfo tblInfo;
     if(userStr.length == 2) {
       tblInfo = HowlTableInfo.getOutputTableInfo(PigHowlUtil.getHowlServerUri(),
-          userStr[0],userStr[1],partitions);
+          PigHowlUtil.getHowlServerPrincipal(), userStr[0],userStr[1],partitions);
     } else {
       tblInfo = HowlTableInfo.getOutputTableInfo(PigHowlUtil.getHowlServerUri(),
-          null,userStr[0],partitions);
+          PigHowlUtil.getHowlServerPrincipal(), null,userStr[0],partitions);
     }
 
 
@@ -500,13 +500,20 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
       if(config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
         p.setProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF, config.get(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
       }
-
+      if(config.get(HowlOutputFormat.HOWL_KEY_TOKEN_SIGNATURE) != null){
+        p.setProperty(HowlOutputFormat.HOWL_KEY_TOKEN_SIGNATURE,
+            config.get(HowlOutputFormat.HOWL_KEY_TOKEN_SIGNATURE));
+      }
       p.setProperty(COMPUTED_OUTPUT_SCHEMA,ObjectSerializer.serialize(computedSchema));
 
     }else{
       config.set(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO, p.getProperty(HowlOutputFormat.HOWL_KEY_OUTPUT_INFO));
       if(p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF) != null){
         config.set(HowlOutputFormat.HOWL_KEY_HIVE_CONF, p.getProperty(HowlOutputFormat.HOWL_KEY_HIVE_CONF));
+      }
+      if(p.getProperty(HowlOutputFormat.HOWL_KEY_TOKEN_SIGNATURE) != null){
+        config.set(HowlOutputFormat.HOWL_KEY_TOKEN_SIGNATURE,
+            p.getProperty(HowlOutputFormat.HOWL_KEY_TOKEN_SIGNATURE));
       }
     }
   }

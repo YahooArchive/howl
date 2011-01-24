@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
 import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
@@ -72,8 +72,8 @@ public class AlterTableFileFormatHook extends AbstractSemanticAnalyzerHook {
 
     Map<String,String> partSpec = ((DDLWork)rootTasks.get(rootTasks.size()-1).getWork()).getAlterTblDesc().getPartSpec();
     Map<String, String> howlProps = new HashMap<String, String>(2);
-    howlProps.put(InitializeInput.HOWL_ISD_CLASS, inDriver);
-    howlProps.put(InitializeInput.HOWL_OSD_CLASS, outDriver);
+    howlProps.put(HowlConstants.HOWL_ISD_CLASS, inDriver);
+    howlProps.put(HowlConstants.HOWL_OSD_CLASS, outDriver);
 
     try {
       Hive db = context.getHive();

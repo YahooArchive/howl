@@ -11,7 +11,6 @@ import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.hive.howl.common.AuthUtils;
 import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.common.HowlException;
-import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
 import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
 import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.Warehouse;
@@ -161,8 +160,8 @@ final class CreateTableHook  extends AbstractSemanticAnalyzerHook{
       // tblProps will be null if user didnt use tblprops in his CREATE TABLE cmd.
       tblProps = new HashMap<String, String>();
     }
-    tblProps.put(InitializeInput.HOWL_ISD_CLASS, inStorageDriver);
-    tblProps.put(InitializeInput.HOWL_OSD_CLASS, outStorageDriver);
+    tblProps.put(HowlConstants.HOWL_ISD_CLASS, inStorageDriver);
+    tblProps.put(HowlConstants.HOWL_OSD_CLASS, outStorageDriver);
     desc.setTblProps(tblProps);
     context.getConf().set(HowlConstants.HOWL_CREATE_TBL_NAME, tableName);
   }

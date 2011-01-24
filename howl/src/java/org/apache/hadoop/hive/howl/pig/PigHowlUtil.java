@@ -26,19 +26,20 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.data.HowlArrayBag;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.Pair;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
-import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema.Type;
+import org.apache.hadoop.hive.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.pig.LoadPushDown.RequiredField;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.LoadPushDown.RequiredField;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -48,9 +49,6 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.UDFContext;
 
 public class PigHowlUtil {
-
-  public static final String HOWL_TABLE_SCHEMA = "howl.table.schema";
-  public static final String HOWL_METASTORE_URI = "howl.metastore.uri";
 
   static final int PIG_EXCEPTION_CODE = 1115; // http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes
   private static final String DEFAULT_DB = MetaStoreUtils.DEFAULT_DATABASE_NAME;
@@ -81,7 +79,7 @@ public class PigHowlUtil {
   static public String getHowlServerUri() {
     String howlServerUri;
     Properties props = UDFContext.getUDFContext().getClientSystemProps();
-    howlServerUri = props.getProperty(HOWL_METASTORE_URI);
+    howlServerUri = props.getProperty(HowlConstants.HOWL_METASTORE_URI);
     //    if(howlServerUri == null) {
     //      String msg = "Please provide uri to the metadata server using" +
     //      " -Dhowl.metastore.uri system property";
@@ -90,15 +88,24 @@ public class PigHowlUtil {
     return howlServerUri;
   }
 
+  static public String getHowlServerPrincipal() {
+
+    return UDFContext.getUDFContext().getClientSystemProps().getProperty(HowlConstants.HOWL_METASTORE_PRINCIPAL);
+  }
+
   static HiveMetaStoreClient client = null;
 
-  private static HiveMetaStoreClient createHiveMetaClient(String serverUri, Class clazz) throws Exception {
+  private static HiveMetaStoreClient createHiveMetaClient(String serverUri,
+      String serverKerberosPrincipal, Class clazz) throws Exception {
     if (client != null){
       return client;
     }
     HiveConf hiveConf = new HiveConf(clazz);
 
     if (serverUri != null){
+      hiveConf.set("hive.metastore.sasl.enabled", "true");
+      hiveConf.set("hive.metastore.kerberos.principal", serverKerberosPrincipal);
+      hiveConf.set("hive.metastore.local", "false");
       hiveConf.set("hive.metastore.uris", serverUri);
     }
     try {
@@ -117,7 +124,7 @@ public class PigHowlUtil {
 
     Properties props = UDFContext.getUDFContext().getUDFProperties(
         classForUDFCLookup, new String[] {signature});
-    HowlSchema howlTableSchema = (HowlSchema) props.get(HOWL_TABLE_SCHEMA);
+    HowlSchema howlTableSchema = (HowlSchema) props.get(HowlConstants.HOWL_TABLE_SCHEMA);
 
     ArrayList<HowlFieldSchema> fcols = new ArrayList<HowlFieldSchema>();
     for(RequiredField rf: fields) {
@@ -127,10 +134,10 @@ public class PigHowlUtil {
   }
 
   public Table getTable(String location) throws IOException {
-    return getTable(location,getHowlServerUri());
+    return getTable(location,getHowlServerUri(), getHowlServerPrincipal());
   }
 
-  public Table getTable(String location, String howlServerUri) throws IOException{
+  public Table getTable(String location, String howlServerUri, String howlServerPrincipal) throws IOException{
     Pair<String, String> loc_server = new Pair<String,String>(location, howlServerUri);
     Table howlTable = howlTableCache.get(loc_server);
     if(howlTable != null){
@@ -142,7 +149,7 @@ public class PigHowlUtil {
     String tableName = dbTablePair.second;
     Table table = null;
     try {
-      client = createHiveMetaClient(howlServerUri, PigHowlUtil.class);
+      client = createHiveMetaClient(howlServerUri, howlServerPrincipal, PigHowlUtil.class);
       table = client.getTable(dbName, tableName);
     } catch (NoSuchObjectException nsoe){
       throw new PigException("Table not found : " + nsoe.getMessage(), PIG_EXCEPTION_CODE); // prettier error messages to frontend

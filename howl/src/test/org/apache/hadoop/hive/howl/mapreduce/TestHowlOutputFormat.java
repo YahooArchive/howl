@@ -29,6 +29,7 @@ import junit.framework.TestCase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.Database;
@@ -115,15 +116,15 @@ public class TestHowlOutputFormat extends TestCase {
     tbl.setPartitionKeys(fields);
 
     Map<String, String> tableParams = new HashMap<String, String>();
-    tableParams.put(InitializeInput.HOWL_OSD_CLASS, RCFileOutputDriver.class.getName());
-    tableParams.put(InitializeInput.HOWL_ISD_CLASS, "testInputClass");
+    tableParams.put(HowlConstants.HOWL_OSD_CLASS, RCFileOutputDriver.class.getName());
+    tableParams.put(HowlConstants.HOWL_ISD_CLASS, "testInputClass");
     tableParams.put("howl.testarg", "testArgValue");
 
     tbl.setParameters(tableParams);
 
     client.createTable(tbl);
     Path tblPath = new Path(client.getTable(dbName, tblName).getSd().getLocation());
-    assertTrue(tblPath.getFileSystem(hiveConf).mkdirs(new Path(tblPath,"p1")));
+    assertTrue(tblPath.getFileSystem(hiveConf).mkdirs(new Path(tblPath,"colname=p1")));
 
   }
 
@@ -134,7 +135,7 @@ public class TestHowlOutputFormat extends TestCase {
     Map<String, String> partitionValues = new HashMap<String, String>();
     partitionValues.put("colname", "p1");
     //null server url means local mode
-    HowlTableInfo info = HowlTableInfo.getOutputTableInfo(null, dbName, tblName, partitionValues);
+    HowlTableInfo info = HowlTableInfo.getOutputTableInfo(null, null, dbName, tblName, partitionValues);
 
     HowlOutputFormat.setOutput(job, info);
     OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(job);

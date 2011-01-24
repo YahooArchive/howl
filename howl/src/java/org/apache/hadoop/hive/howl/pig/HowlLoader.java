@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.common.HowlUtil;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.Pair;
@@ -128,6 +129,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown {
       HowlInputFormat.setInput(job, HowlTableInfo.getInputTableInfo(
               howlServerUri!=null ? howlServerUri :
                   (howlServerUri = PigHowlUtil.getHowlServerUri()),
+              PigHowlUtil.getHowlServerPrincipal(),
               dbName,
               tableName,
               getPartitionFilterString()));
@@ -162,7 +164,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown {
       // setOutputSchema on OwlInputFormat
       if (HowlUtil.checkJobContextIfRunningFromBackend(job)){
         try {
-          HowlSchema howlTableSchema = (HowlSchema) props.get(PigHowlUtil.HOWL_TABLE_SCHEMA);
+          HowlSchema howlTableSchema = (HowlSchema) props.get(HowlConstants.HOWL_TABLE_SCHEMA);
           outputSchema = howlTableSchema;
         } catch (Exception e) {
           throw new IOException(e);
@@ -175,7 +177,8 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown {
   public String[] getPartitionKeys(String location, Job job)
   throws IOException {
     Table table = phutil.getTable(location,
-        howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());
+        howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri(),
+            PigHowlUtil.getHowlServerPrincipal());
     List<FieldSchema> tablePartitionKeys = table.getPartitionKeys();
     String[] partitionKeys = new String[tablePartitionKeys.size()];
     for(int i = 0; i < tablePartitionKeys.size(); i++) {
@@ -186,7 +189,9 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown {
 
   @Override
   public ResourceSchema getSchema(String location, Job job) throws IOException {
-    Table table = phutil.getTable(location, howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri());;
+    Table table = phutil.getTable(location,
+        howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri(),
+            PigHowlUtil.getHowlServerPrincipal());;
     HowlSchema howlTableSchema = HowlUtil.getTableSchemaWithPtnCols(table);
     try {
       PigHowlUtil.validateHowlTableSchemaFollowsPigRules(howlTableSchema);
@@ -196,7 +201,7 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown {
           + ";[Table schema was "+ howlTableSchema.toString() +"]"
           ,PigHowlUtil.PIG_EXCEPTION_CODE, e);
     }
-    storeInUDFContext(signature, PigHowlUtil.HOWL_TABLE_SCHEMA, howlTableSchema);
+    storeInUDFContext(signature, HowlConstants.HOWL_TABLE_SCHEMA, howlTableSchema);
     outputSchema = howlTableSchema;
     return PigHowlUtil.getResourceSchema(howlTableSchema);
   }

@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.howl.common.ErrorType;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.common.HowlUtil;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
@@ -44,8 +45,10 @@ import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.JobStatus.State;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.security.AccessControlException;
 import org.apache.thrift.TException;
 
 public class HowlOutputCommitter extends OutputCommitter {
@@ -85,6 +88,70 @@ public class HowlOutputCommitter extends OutputCommitter {
     }
 
     @Override
+    public void abortJob(JobContext jobContext, State state) throws IOException {
+      if(baseCommitter != null) {
+        baseCommitter.abortJob(jobContext, state);
+      }
+      OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(jobContext);
+
+      try {
+        HiveMetaStoreClient client = HowlOutputFormat.createHiveClient(
+            jobInfo.getTableInfo().getServerUri(), jobContext.getConfiguration());
+        // cancel the deleg. tokens that were acquired for this job now that
+        // we are done - we should cancel if the tokens were acquired by
+        // HowlOutputFormat and not if they were supplied by Oozie. In the latter
+        // case the HOWL_KEY_TOKEN_SIGNATURE property in the conf will not be set
+        String tokenStrForm = client.getTokenStrForm();
+        if(tokenStrForm != null && jobContext.getConfiguration().get
+            (HowlOutputFormat.HOWL_KEY_TOKEN_SIGNATURE) != null) {
+          client.cancelDelegationToken(tokenStrForm);
+        }
+      } catch(Exception e) {
+        if( e instanceof HowlException ) {
+          throw (HowlException) e;
+        } else {
+          throw new HowlException(ErrorType.ERROR_PUBLISHING_PARTITION, e);
+        }
+      }
+
+      Path src = new Path(jobInfo.getLocation());
+      FileSystem fs = src.getFileSystem(jobContext.getConfiguration());
+      fs.delete(src, true);
+    }
+
+    public static final String SUCCEEDED_FILE_NAME = "_SUCCESS";
+    static final String SUCCESSFUL_JOB_OUTPUT_DIR_MARKER =
+      "mapreduce.fileoutputcommitter.marksuccessfuljobs";
+
+    private static boolean getOutputDirMarking(Configuration conf) {
+      return conf.getBoolean(SUCCESSFUL_JOB_OUTPUT_DIR_MARKER,
+                             false);
+    }
+
+    @Override
+    public void commitJob(JobContext jobContext) throws IOException {
+      if(baseCommitter != null) {
+        baseCommitter.commitJob(jobContext);
+      }
+      // create _SUCCESS FILE if so requested.
+      OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(jobContext);
+      if(getOutputDirMarking(jobContext.getConfiguration())) {
+        Path outputPath = new Path(jobInfo.getLocation());
+        if (outputPath != null) {
+          FileSystem fileSys = outputPath.getFileSystem(jobContext.getConfiguration());
+          // create a file in the folder to mark it
+          if (fileSys.exists(outputPath)) {
+            Path filePath = new Path(outputPath, SUCCEEDED_FILE_NAME);
+            if(!fileSys.exists(filePath)) { // may have been created by baseCommitter.commitJob()
+              fileSys.create(filePath).close();
+            }
+          }
+        }
+      }
+      cleanupJob(jobContext);
+    }
+
+    @Override
     public void cleanupJob(JobContext context) throws IOException {
 
       OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(context);
@@ -115,8 +182,7 @@ public class HowlOutputCommitter extends OutputCommitter {
       HowlTableInfo tableInfo = jobInfo.getTableInfo();
 
       try {
-        client = HowlOutputFormat.createHiveClient(
-            jobInfo.getTableInfo().getServerUri(), conf);
+        client = HowlOutputFormat.createHiveClient(tableInfo.getServerUri(), conf);
 
         StorerInfo storer = InitializeInput.extractStorerInfo(table.getParameters());
 
@@ -135,14 +201,13 @@ public class HowlOutputCommitter extends OutputCommitter {
 
         partition.getSd().setCols(fields);
 
+        Map<String,String> partKVs = tableInfo.getPartitionValues();
         //Get partition value list
-        values = getPartitionValueList(table,
-            jobInfo.getTableInfo().getPartitionValues());
-        partition.setValues(values);
+        partition.setValues(getPartitionValueList(table,partKVs));
 
         Map<String, String> params = new HashMap<String, String>();
-        params.put(InitializeInput.HOWL_ISD_CLASS, storer.getInputSDClass());
-        params.put(InitializeInput.HOWL_OSD_CLASS, storer.getOutputSDClass());
+        params.put(HowlConstants.HOWL_ISD_CLASS, storer.getInputSDClass());
+        params.put(HowlConstants.HOWL_OSD_CLASS, storer.getOutputSDClass());
 
         //Copy table level howl.* keys to the partition
         for(Map.Entry<Object, Object> entry : storer.getProperties().entrySet()) {
@@ -156,10 +221,14 @@ public class HowlOutputCommitter extends OutputCommitter {
         String grpName = tblStat.getGroup();
         FsPermission perms = tblStat.getPermission();
         Path partPath = tblPath;
-        for(String partVal : values){
-          partPath = new Path(partPath,FileUtils.escapePathName(partVal));
+        for(FieldSchema partKey : table.getPartitionKeys()){
+          partPath = constructPartialPartPath(partPath, partKey.getName().toLowerCase(), partKVs);
           fs.setPermission(partPath, perms);
-          fs.setOwner(partPath, null, grpName);
+          try{
+            fs.setOwner(partPath, null, grpName);
+          } catch(AccessControlException ace){
+            // log the messages before ignoring. Currently, logging is not built in Howl.
+          }
         }
 
         //Publish the new partition
@@ -168,6 +237,15 @@ public class HowlOutputCommitter extends OutputCommitter {
 
         if( baseCommitter != null ) {
           baseCommitter.cleanupJob(context);
+        }
+        // cancel the deleg. tokens that were acquired for this job now that
+        // we are done - we should cancel if the tokens were acquired by
+        // HowlOutputFormat and not if they were supplied by Oozie. In the latter
+        // case the HOWL_KEY_TOKEN_SIGNATURE property in the conf will not be set
+        String tokenStrForm = client.getTokenStrForm();
+        if(tokenStrForm != null && context.getConfiguration().get
+            (HowlOutputFormat.HOWL_KEY_TOKEN_SIGNATURE) != null) {
+          client.cancelDelegationToken(tokenStrForm);
         }
       } catch (Exception e) {
 
@@ -194,6 +272,13 @@ public class HowlOutputCommitter extends OutputCommitter {
       }
     }
 
+    private Path constructPartialPartPath(Path partialPath, String partKey, Map<String,String> partKVs){
+
+      StringBuilder sb = new StringBuilder(FileUtils.escapePathName(partKey));
+      sb.append("=");
+      sb.append(FileUtils.escapePathName(partKVs.get(partKey)));
+      return new Path(partialPath, sb.toString());
+    }
 
     /**
      * Update table schema, adding new columns as added for the partition.

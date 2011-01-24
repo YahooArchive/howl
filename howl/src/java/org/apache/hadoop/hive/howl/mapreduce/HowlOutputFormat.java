@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -33,6 +34,7 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.howl.common.ErrorType;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.common.HowlException;
 import org.apache.hadoop.hive.howl.common.HowlUtil;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
@@ -42,6 +44,9 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.thrift.DelegationTokenIdentifier;
+import org.apache.hadoop.hive.thrift.DelegationTokenSelector;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.Job;
@@ -50,12 +55,18 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.security.AccessControlException;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
+import org.apache.hadoop.security.token.TokenSelector;
 import org.apache.thrift.TException;
 
 /** The OutputFormat to use to write data to Howl. The key value is ignored and
  * and should be given as null. The value is the HowlRecord to write.*/
 public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRecord> {
 
+    // IMPORTANT IMPORTANT IMPORTANT!!!!!
     //The keys used to store info into the job Configuration.
     //If any new keys are added, the HowlStorer needs to be updated. The HowlStorer
     //updates the job configuration in the backend to insert these keys to avoid
@@ -64,9 +75,11 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
     public static final String HOWL_KEY_OUTPUT_BASE = "mapreduce.lib.howloutput";
     public static final String HOWL_KEY_OUTPUT_INFO = HOWL_KEY_OUTPUT_BASE + ".info";
     public static final String HOWL_KEY_HIVE_CONF = HOWL_KEY_OUTPUT_BASE + ".hive.conf";
+    public static final String HOWL_KEY_TOKEN_SIGNATURE = HOWL_KEY_OUTPUT_BASE + ".token.sig";
 
     /** The directory under which data is initially written for a non partitioned table */
     protected static final String TEMP_DIR_NAME = "_TEMP";
+    private static Map<String, Token<DelegationTokenIdentifier>> tokenMap = new HashMap<String, Token<DelegationTokenIdentifier>>();
 
     private static final PathFilter hiddenFileFilter = new PathFilter(){
       public boolean accept(Path p){
@@ -87,7 +100,8 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
       HiveMetaStoreClient client = null;
 
       try {
-        Configuration conf = job.getConfiguration();
+
+	Configuration conf = job.getConfiguration();
         client = createHiveClient(outputInfo.getServerUri(), conf);
         Table table = client.getTable(outputInfo.getDatabaseName(), outputInfo.getTableName());
 
@@ -142,6 +156,56 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         FsPermission.setUMask(conf, FsPermission.getDefault().applyUMask(
             tblPath.getFileSystem(conf).getFileStatus(tblPath).getPermission()));
 
+        if(UserGroupInformation.isSecurityEnabled()){
+          UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+          // check if oozie has set up a howl deleg. token - if so use it
+          TokenSelector<? extends TokenIdentifier> tokenSelector = new DelegationTokenSelector();
+          // TODO: will oozie use a "service" called "oozie" - then instead of
+          // new Text() do new Text("oozie") below - if this change is made also
+          // remember to do:
+          //  job.getConfiguration().set(HOWL_KEY_TOKEN_SIGNATURE, "oozie");
+          // Also change code in HowlOutputCommitter.cleanupJob() to cancel the
+          // token only if token.service is not "oozie" - remove the condition of
+          // HOWL_KEY_TOKEN_SIGNATURE != null in that code.
+          Token<? extends TokenIdentifier> token = tokenSelector.selectToken(
+              new Text(), ugi.getTokens());
+          if(token != null) {
+
+            job.getCredentials().addToken(new Text(ugi.getUserName()),token);
+
+          } else {
+
+            // we did not get token set up by oozie, let's get them ourselves here.
+            // we essentially get a token per unique Output HowlTableInfo - this is
+            // done because through Pig, setOutput() method is called multiple times
+            // We want to only get the token once per unique output HowlTableInfo -
+            // we cannot just get one token since in multi-query case (> 1 store in 1 job)
+            // or the case when a single pig script results in > 1 jobs, the single
+            // token will get cancelled by the output committer and the subsequent
+            // stores will fail - by tying the token with the concatenation of
+            // dbname, tablename and partition keyvalues of the output
+            // TableInfo, we can have as many tokens as there are stores and the TokenSelector
+            // will correctly pick the right tokens which the committer will use and
+            // cancel.
+            String tokenSignature = getTokenSignature(outputInfo);
+            if(tokenMap.get(tokenSignature) == null) {
+              // get delegation tokens from howl server and store them into the "job"
+              // These will be used in the HowlOutputCommitter to publish partitions to
+              // howl
+              String tokenStrForm = client.getDelegationTokenWithSignature(ugi.getUserName(),
+                  tokenSignature);
+              Token<DelegationTokenIdentifier> t = new Token<DelegationTokenIdentifier>();
+              t.decodeFromUrlString(tokenStrForm);
+              tokenMap.put(tokenSignature, t);
+            }
+            job.getCredentials().addToken(new Text(ugi.getUserName() + tokenSignature),
+                tokenMap.get(tokenSignature));
+            // this will be used by the outputcommitter to pass on to the metastore client
+            // which in turn will pass on to the TokenSelector so that it can select
+            // the right token.
+            job.getConfiguration().set(HOWL_KEY_TOKEN_SIGNATURE, tokenSignature);
+        }
+       }
       } catch(Exception e) {
         if( e instanceof HowlException ) {
           throw (HowlException) e;
@@ -154,6 +218,30 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
         }
       }
     }
+
+
+    // a signature string to associate with a HowlTableInfo - essentially
+    // a concatenation of dbname, tablename and partition keyvalues.
+    private static String getTokenSignature(HowlTableInfo outputInfo) {
+      StringBuilder result = new StringBuilder("");
+      String dbName = outputInfo.getDatabaseName();
+      if(dbName != null) {
+        result.append(dbName);
+      }
+      String tableName = outputInfo.getTableName();
+      if(tableName != null) {
+        result.append("+" + tableName);
+      }
+      Map<String, String> partValues = outputInfo.getPartitionValues();
+      if(partValues != null) {
+        for(Entry<String, String> entry: partValues.entrySet()) {
+          result.append("+" + entry.getKey() + "=" + entry.getValue());
+        }
+      }
+      return result.toString();
+    }
+
+
 
     /**
      * Handles duplicate publish of partition. Fails if partition already exists.
@@ -261,7 +349,11 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
       FileSystem fs = tblPath.getFileSystem(context.getConfiguration());
       FileStatus tblPathStat = fs.getFileStatus(tblPath);
       fs.setPermission(workFile, tblPathStat.getPermission());
-      fs.setOwner(workFile, null, tblPathStat.getGroup());
+      try{
+        fs.setOwner(workFile, null, tblPathStat.getGroup());
+      } catch(AccessControlException ace){
+        // log the messages before ignoring. Currently, logging is not built in Howl.
+      }
       return rw;
     }
 
@@ -359,8 +451,14 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
       if( url != null ) {
         //User specified a thrift url
+        hiveConf.setBoolean(HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL.varname, true);
+
+        hiveConf.set(HiveConf.ConfVars.METASTORE_KERBEROS_PRINCIPAL.varname, conf.get(HowlConstants.HOWL_METASTORE_PRINCIPAL));
         hiveConf.set("hive.metastore.local", "false");
         hiveConf.set(HiveConf.ConfVars.METASTOREURIS.varname, url);
+        if(conf.get(HOWL_KEY_TOKEN_SIGNATURE) != null) {
+          hiveConf.set("hive.metastore.token.signature", conf.get(HOWL_KEY_TOKEN_SIGNATURE));
+        }
       } else {
         //Thrift url is null, copy the hive conf into the job conf and restore it
         //in the backend context

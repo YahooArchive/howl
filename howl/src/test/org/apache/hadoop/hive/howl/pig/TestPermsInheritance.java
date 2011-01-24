@@ -91,7 +91,7 @@ public class TestPermsInheritance extends TestCase {
     pig.registerQuery("store A into 'testPartTbl' using "+HowlStorer.class.getName()+"('a=part');");
     pig.executeBatch();
 
-    Path partPath = new Path(dfsPath,"part");
+    Path partPath = new Path(dfsPath,"a=part");
     assertEquals(FsPermission.valueOf("drwx-wx--x"),fs.getFileStatus(partPath).getPermission());
     status = fs.listStatus(partPath,hiddenFileFilter);
     assertEquals(status.length, 1);

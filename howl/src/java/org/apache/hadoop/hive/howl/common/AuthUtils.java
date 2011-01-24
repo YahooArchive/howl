@@ -63,7 +63,7 @@ public class AuthUtils {
 
     final FsPermission dirPerms = stat.getPermission();
 
-    final String user = ugi.getUserName();
+    final String user = ugi.getShortUserName();
     final String grp = stat.getGroup();
     if(user.equals(stat.getOwner())){
       if(dirPerms.getUserAction().implies(action)){

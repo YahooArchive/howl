@@ -2,7 +2,7 @@ package org.apache.hadoop.hive.howl.cli.SemanticAnalysis;
 
 import java.util.Map;
 
-import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
@@ -25,8 +25,8 @@ public class AddPartitionHook extends AbstractSemanticAnalyzerHook{
       throw new SemanticException(he);
     }
 
-    inDriver = tblProps.get(InitializeInput.HOWL_ISD_CLASS);
-    outDriver = tblProps.get(InitializeInput.HOWL_OSD_CLASS);
+    inDriver = tblProps.get(HowlConstants.HOWL_ISD_CLASS);
+    outDriver = tblProps.get(HowlConstants.HOWL_OSD_CLASS);
 
     if(inDriver == null  || outDriver == null){
       throw new SemanticException("Operation not supported. Partitions can be added only in a table created through Howl. It seems table "+tblName+" was not created through Howl.");

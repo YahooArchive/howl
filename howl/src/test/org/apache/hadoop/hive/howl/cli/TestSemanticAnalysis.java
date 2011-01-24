@@ -8,10 +8,11 @@ import java.util.Map;
 import junit.framework.TestCase;
 
 import org.apache.hadoop.hive.cli.CliSessionState;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.howl.cli.SemanticAnalysis.HowlSemanticAnalyzer;
-import org.apache.hadoop.hive.howl.mapreduce.InitializeInput;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver;
 import org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
@@ -26,7 +27,6 @@ import org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
 import org.apache.hadoop.hive.ql.processors.CommandProcessorResponse;
-import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.thrift.TException;
 
@@ -68,8 +68,8 @@ public class TestSemanticAnalysis extends TestCase{
     assertEquals(TextInputFormat.class.getName(),tbl.getSd().getInputFormat());
     assertEquals(HiveIgnoreKeyTextOutputFormat.class.getName(),tbl.getSd().getOutputFormat());
     Map<String, String> tblParams = tbl.getParameters();
-    assertNull(tblParams.get(InitializeInput.HOWL_ISD_CLASS));
-    assertNull(tblParams.get(InitializeInput.HOWL_OSD_CLASS));
+    assertNull(tblParams.get(HowlConstants.HOWL_ISD_CLASS));
+    assertNull(tblParams.get(HowlConstants.HOWL_OSD_CLASS));
 
     List<String> partVals = new ArrayList<String>(1);
     partVals.add("2010-10-10");
@@ -79,8 +79,8 @@ public class TestSemanticAnalysis extends TestCase{
     assertEquals(RCFileOutputFormat.class.getName(),part.getSd().getOutputFormat());
 
     Map<String,String> partParams = part.getParameters();
-    assertEquals(RCFileInputDriver.class.getName(), partParams.get(InitializeInput.HOWL_ISD_CLASS));
-    assertEquals(RCFileOutputDriver.class.getName(), partParams.get(InitializeInput.HOWL_OSD_CLASS));
+    assertEquals(RCFileInputDriver.class.getName(), partParams.get(HowlConstants.HOWL_ISD_CLASS));
+    assertEquals(RCFileOutputDriver.class.getName(), partParams.get(HowlConstants.HOWL_OSD_CLASS));
 
     howlDriver.run("drop table junit_sem_analysis");
   }

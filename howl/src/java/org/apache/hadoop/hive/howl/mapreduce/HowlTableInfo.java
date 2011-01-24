@@ -23,6 +23,12 @@ import java.util.Map;
 
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 
+/**
+ *
+ * HowlTableInfo - class to communicate table information to {@link HowlInputFormat}
+ * and {@link HowlOutputFormat}
+ *
+ */
 public class HowlTableInfo implements Serializable {
 
 
@@ -37,6 +43,12 @@ public class HowlTableInfo implements Serializable {
 
   /** The Metadata server uri */
   private final String serverUri;
+
+  /** If the howl server is configured to work with hadoop security, this
+   * variable will hold the principal name of the server - this will be used
+   * in the authentication to the howl server using kerberos
+   */
+  private final String serverKerberosPrincipal;
 
   /** The db and table names */
   private final String dbName;
@@ -58,29 +70,43 @@ public class HowlTableInfo implements Serializable {
    * Initializes a new HowlTableInfo instance to be used with {@link HowlInputFormat}
    * for reading data from a table.
    * @param serverUri the Metadata server uri
+   * @param serverKerberosPrincipal If the howl server is configured to
+   * work with hadoop security, the kerberos principal name of the server - else null
+   * The principal name should be of the form:
+   * <servicename>/_HOST@<realm> like "howl/_HOST@myrealm.com"
+   * The special string _HOST will be replaced automatically with the correct host name
    * @param dbName the db name
    * @param tableName the table name
    */
-  public static HowlTableInfo getInputTableInfo(String serverUri, String dbName,
+  public static HowlTableInfo getInputTableInfo(String serverUri,
+      String serverKerberosPrincipal,
+      String dbName,
           String tableName) {
-    return new HowlTableInfo(serverUri, dbName, tableName, (String) null);
+    return new HowlTableInfo(serverUri, serverKerberosPrincipal, dbName, tableName, (String) null);
   }
 
   /**
    * Initializes a new HowlTableInfo instance to be used with {@link HowlInputFormat}
    * for reading data from a table.
    * @param serverUri the Metadata server uri
+   * @param serverKerberosPrincipal If the howl server is configured to
+   * work with hadoop security, the kerberos principal name of the server - else null
+   * The principal name should be of the form:
+   * <servicename>/_HOST@<realm> like "howl/_HOST@myrealm.com"
+   * The special string _HOST will be replaced automatically with the correct host name
    * @param dbName the db name
    * @param tableName the table name
    * @param filter the partition filter
    */
-  public static HowlTableInfo getInputTableInfo(String serverUri, String dbName,
+  public static HowlTableInfo getInputTableInfo(String serverUri, String serverKerberosPrincipal, String dbName,
           String tableName, String filter) {
-    return new HowlTableInfo(serverUri, dbName, tableName, filter);
+    return new HowlTableInfo(serverUri, serverKerberosPrincipal, dbName, tableName, filter);
   }
 
-  private HowlTableInfo(String serverUri, String dbName, String tableName, String filter) {
+  private HowlTableInfo(String serverUri, String serverKerberosPrincipal,
+      String dbName, String tableName, String filter) {
       this.serverUri = serverUri;
+      this.serverKerberosPrincipal = serverKerberosPrincipal;
       this.dbName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : dbName;
       this.tableName = tableName;
       this.partitionPredicates = null;
@@ -92,6 +118,11 @@ public class HowlTableInfo implements Serializable {
    * Initializes a new HowlTableInfo instance to be used with {@link HowlOutputFormat}
    * for writing data from a table.
    * @param serverUri the Metadata server uri
+   * @param serverKerberosPrincipal If the howl server is configured to
+   * work with hadoop security, the kerberos principal name of the server - else null
+   * The principal name should be of the form:
+   * <servicename>/_HOST@<realm> like "howl/_HOST@myrealm.com"
+   * The special string _HOST will be replaced automatically with the correct host name
    * @param dbName the db name
    * @param tableName the table name
    * @param partitionValues The partition values to publish to, can be null or empty Map to
@@ -99,12 +130,15 @@ public class HowlTableInfo implements Serializable {
    * contain keys for all partition columns with corresponding values.
    */
   public static HowlTableInfo getOutputTableInfo(String serverUri,
-          String dbName, String tableName, Map<String, String> partitionValues){
-      return new HowlTableInfo(serverUri, dbName, tableName, partitionValues);
+          String serverKerberosPrincipal, String dbName, String tableName, Map<String, String> partitionValues){
+      return new HowlTableInfo(serverUri, serverKerberosPrincipal, dbName,
+          tableName, partitionValues);
   }
 
-  private HowlTableInfo(String serverUri, String dbName, String tableName, Map<String, String> partitionValues){
+  private HowlTableInfo(String serverUri, String serverKerberosPrincipal,
+      String dbName, String tableName, Map<String, String> partitionValues){
     this.serverUri = serverUri;
+    this.serverKerberosPrincipal = serverKerberosPrincipal;
     this.dbName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : dbName;
     this.tableName = tableName;
     this.partitionPredicates = null;
@@ -186,6 +220,28 @@ public class HowlTableInfo implements Serializable {
    */
   public String getFilter() {
     return filter;
+  }
+
+  /**
+   * @return the serverKerberosPrincipal
+   */
+  public String getServerKerberosPrincipal() {
+    return serverKerberosPrincipal;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = 17;
+    result = 31*result + (serverUri == null ? 0 : serverUri.hashCode());
+    result = 31*result + (serverKerberosPrincipal == null ? 0 : serverKerberosPrincipal.hashCode());
+    result = 31*result + (dbName == null? 0 : dbName.hashCode());
+    result = 31*result + tableName.hashCode();
+    result = 31*result + (filter == null? 0 : filter.hashCode());
+    result = 31*result + (partitionPredicates == null ? 0 : partitionPredicates.hashCode());
+    result = 31*result + tableInfoType.ordinal();
+    result = 31*result + (partitionValues == null ? 0 : partitionValues.hashCode());
+    return result;
+
   }
 }
 

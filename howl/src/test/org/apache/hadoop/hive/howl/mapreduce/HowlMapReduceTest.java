@@ -33,7 +33,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.cli.CliSessionState;
+import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.howl.common.HowlConstants;
 import org.apache.hadoop.hive.howl.data.DefaultHowlRecord;
 import org.apache.hadoop.hive.howl.data.HowlRecord;
 import org.apache.hadoop.hive.howl.data.schema.HowlFieldSchema;
@@ -49,7 +51,6 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
-import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -170,8 +171,8 @@ public abstract class HowlMapReduceTest extends TestCase {
     sd.setOutputFormat(outputFormat);
 
     Map<String, String> tableParams = new HashMap<String, String>();
-    tableParams.put(InitializeInput.HOWL_ISD_CLASS, inputSD);
-    tableParams.put(InitializeInput.HOWL_OSD_CLASS, outputSD);
+    tableParams.put(HowlConstants.HOWL_ISD_CLASS, inputSD);
+    tableParams.put(HowlConstants.HOWL_OSD_CLASS, outputSD);
     tbl.setParameters(tableParams);
 
     client.createTable(tbl);
@@ -258,7 +259,7 @@ public abstract class HowlMapReduceTest extends TestCase {
 
     job.setOutputFormatClass(HowlOutputFormat.class);
 
-    HowlTableInfo outputInfo = HowlTableInfo.getOutputTableInfo(thriftUri, dbName, tableName, partitionValues);
+    HowlTableInfo outputInfo = HowlTableInfo.getOutputTableInfo(thriftUri, null, dbName, tableName, partitionValues);
     HowlOutputFormat.setOutput(job, outputInfo);
 
     job.setMapOutputKeyClass(BytesWritable.class);
@@ -293,7 +294,7 @@ public abstract class HowlMapReduceTest extends TestCase {
     job.setOutputFormatClass(TextOutputFormat.class);
 
     HowlTableInfo inputInfo = HowlTableInfo.getInputTableInfo(
-          thriftUri, dbName, tableName, filter);
+          thriftUri, null, dbName, tableName, filter);
     HowlInputFormat.setInput(job, inputInfo);
 
     job.setMapOutputKeyClass(BytesWritable.class);
@@ -325,7 +326,7 @@ public abstract class HowlMapReduceTest extends TestCase {
     job.setInputFormatClass(HowlInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
 
-    HowlTableInfo inputInfo = HowlTableInfo.getInputTableInfo(thriftUri, dbName, tableName);
+    HowlTableInfo inputInfo = HowlTableInfo.getInputTableInfo(thriftUri, null, dbName, tableName);
     HowlInputFormat.setInput(job, inputInfo);
 
     return HowlInputFormat.getTableSchema(job);
