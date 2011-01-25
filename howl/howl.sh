@@ -8,6 +8,10 @@ HADOOP_CLASSPATH=$HADOOP_CLASSPATH:${HOWL_JAR_LOC}:../lib/commons-cli-2.0-SNAPSH
 
 export HADOOP_CLASSPATH=$HADOOP_CLASSPATH
 
+for f in `ls ../build/dist/lib/*.jar`; do 
+  HADOOP_CLASSPATH=$HADOOP_CLASSPATH:$f 
+done
+
 HADOOP_OPTS="$HADOOP_OPTS -Dhive.metastore.uris=thrift://localhost:9083 " 
 
 export HADOOP_OPTS=$HADOOP_OPTS
