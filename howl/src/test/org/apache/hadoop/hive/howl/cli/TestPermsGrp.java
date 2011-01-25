@@ -62,7 +62,7 @@ public class TestPermsGrp extends TestCase {
 
     t = new Thread(new RunMS());
     t.start();
-    Thread.sleep(40000);
+    Thread.sleep(20000);
 
     isServerRunning = true;
 

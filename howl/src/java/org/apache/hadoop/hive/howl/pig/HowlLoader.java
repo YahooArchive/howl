@@ -36,13 +36,13 @@ import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.Expression;
+import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
-import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
@@ -128,8 +128,8 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown {
 
       HowlInputFormat.setInput(job, HowlTableInfo.getInputTableInfo(
               howlServerUri!=null ? howlServerUri :
-                  (howlServerUri = PigHowlUtil.getHowlServerUri()),
-              PigHowlUtil.getHowlServerPrincipal(),
+                  (howlServerUri = PigHowlUtil.getHowlServerUri(job)),
+              PigHowlUtil.getHowlServerPrincipal(job),
               dbName,
               tableName,
               getPartitionFilterString()));
@@ -177,8 +177,8 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown {
   public String[] getPartitionKeys(String location, Job job)
   throws IOException {
     Table table = phutil.getTable(location,
-        howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri(),
-            PigHowlUtil.getHowlServerPrincipal());
+        howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri(job),
+            PigHowlUtil.getHowlServerPrincipal(job));
     List<FieldSchema> tablePartitionKeys = table.getPartitionKeys();
     String[] partitionKeys = new String[tablePartitionKeys.size()];
     for(int i = 0; i < tablePartitionKeys.size(); i++) {
@@ -190,8 +190,8 @@ public class HowlLoader extends LoadFunc implements LoadMetadata, LoadPushDown {
   @Override
   public ResourceSchema getSchema(String location, Job job) throws IOException {
     Table table = phutil.getTable(location,
-        howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri(),
-            PigHowlUtil.getHowlServerPrincipal());;
+        howlServerUri!=null?howlServerUri:PigHowlUtil.getHowlServerUri(job),
+            PigHowlUtil.getHowlServerPrincipal(job));
     HowlSchema howlTableSchema = HowlUtil.getTableSchemaWithPtnCols(table);
     try {
       PigHowlUtil.validateHowlTableSchemaFollowsPigRules(howlTableSchema);

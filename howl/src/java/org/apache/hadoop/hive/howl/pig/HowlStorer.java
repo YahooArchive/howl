@@ -462,11 +462,11 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
     String[] userStr = location.split("\\.");
     HowlTableInfo tblInfo;
     if(userStr.length == 2) {
-      tblInfo = HowlTableInfo.getOutputTableInfo(PigHowlUtil.getHowlServerUri(),
-          PigHowlUtil.getHowlServerPrincipal(), userStr[0],userStr[1],partitions);
+      tblInfo = HowlTableInfo.getOutputTableInfo(PigHowlUtil.getHowlServerUri(job),
+          PigHowlUtil.getHowlServerPrincipal(job), userStr[0],userStr[1],partitions);
     } else {
-      tblInfo = HowlTableInfo.getOutputTableInfo(PigHowlUtil.getHowlServerUri(),
-          PigHowlUtil.getHowlServerPrincipal(), null,userStr[0],partitions);
+      tblInfo = HowlTableInfo.getOutputTableInfo(PigHowlUtil.getHowlServerUri(job),
+          PigHowlUtil.getHowlServerPrincipal(job), null,userStr[0],partitions);
     }
 
 

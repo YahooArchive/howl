@@ -37,6 +37,7 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.LoadPushDown.RequiredField;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
@@ -76,21 +77,14 @@ public class PigHowlUtil {
     }
   }
 
-  static public String getHowlServerUri() {
-    String howlServerUri;
-    Properties props = UDFContext.getUDFContext().getClientSystemProps();
-    howlServerUri = props.getProperty(HowlConstants.HOWL_METASTORE_URI);
-    //    if(howlServerUri == null) {
-    //      String msg = "Please provide uri to the metadata server using" +
-    //      " -Dhowl.metastore.uri system property";
-    //      throw new PigException(msg, HowlExceptionCode);
-    //    }
-    return howlServerUri;
+  static public String getHowlServerUri(Job job) {
+
+    return job.getConfiguration().get(HowlConstants.HOWL_METASTORE_URI);
   }
 
-  static public String getHowlServerPrincipal() {
+  static public String getHowlServerPrincipal(Job job) {
 
-    return UDFContext.getUDFContext().getClientSystemProps().getProperty(HowlConstants.HOWL_METASTORE_PRINCIPAL);
+    return job.getConfiguration().get(HowlConstants.HOWL_METASTORE_PRINCIPAL);
   }
 
   static HiveMetaStoreClient client = null;
@@ -103,15 +97,15 @@ public class PigHowlUtil {
     HiveConf hiveConf = new HiveConf(clazz);
 
     if (serverUri != null){
-      hiveConf.set("hive.metastore.sasl.enabled", "true");
-      hiveConf.set("hive.metastore.kerberos.principal", serverKerberosPrincipal);
+      hiveConf.setBoolVar(HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL, true);
+      hiveConf.setVar(HiveConf.ConfVars.METASTORE_KERBEROS_PRINCIPAL, serverKerberosPrincipal);
       hiveConf.set("hive.metastore.local", "false");
-      hiveConf.set("hive.metastore.uris", serverUri);
+      hiveConf.setVar(HiveConf.ConfVars.METASTOREURIS, serverUri.trim());
     }
     try {
       client = new HiveMetaStoreClient(hiveConf,null);
     } catch (Exception e){
-      throw new Exception("Could not instantiate a HiveMetaStoreClient connecting to server uri:["+serverUri+"]");
+      throw new Exception("Could not instantiate a HiveMetaStoreClient connecting to server uri:["+serverUri+"]",e);
     }
     return client;
   }
@@ -131,10 +125,6 @@ public class PigHowlUtil {
       fcols.add(howlTableSchema.getFields().get(rf.getIndex()));
     }
     return new HowlSchema(fcols);
-  }
-
-  public Table getTable(String location) throws IOException {
-    return getTable(location,getHowlServerUri(), getHowlServerPrincipal());
   }
 
   public Table getTable(String location, String howlServerUri, String howlServerPrincipal) throws IOException{
