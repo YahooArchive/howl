@@ -11,6 +11,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.security.AccessControlException;
@@ -63,7 +65,8 @@ public class AuthUtils {
 
     final FsPermission dirPerms = stat.getPermission();
 
-    final String user = ugi.getShortUserName();
+    final String user = HiveConf.getBoolVar(conf, ConfVars.METASTORE_USE_THRIFT_SASL) ?
+                          ugi.getShortUserName() : ugi.getUserName();
     final String grp = stat.getGroup();
     if(user.equals(stat.getOwner())){
       if(dirPerms.getUserAction().implies(action)){
