@@ -137,14 +137,12 @@ public class HowlOutputCommitter extends OutputCommitter {
       OutputJobInfo jobInfo = HowlOutputFormat.getJobInfo(jobContext);
       if(getOutputDirMarking(jobContext.getConfiguration())) {
         Path outputPath = new Path(jobInfo.getLocation());
-        if (outputPath != null) {
-          FileSystem fileSys = outputPath.getFileSystem(jobContext.getConfiguration());
-          // create a file in the folder to mark it
-          if (fileSys.exists(outputPath)) {
-            Path filePath = new Path(outputPath, SUCCEEDED_FILE_NAME);
-            if(!fileSys.exists(filePath)) { // may have been created by baseCommitter.commitJob()
-              fileSys.create(filePath).close();
-            }
+        FileSystem fileSys = outputPath.getFileSystem(jobContext.getConfiguration());
+        // create a file in the folder to mark it
+        if (fileSys.exists(outputPath)) {
+          Path filePath = new Path(outputPath, SUCCEEDED_FILE_NAME);
+          if(!fileSys.exists(filePath)) { // may have been created by baseCommitter.commitJob()
+            fileSys.create(filePath).close();
           }
         }
       }
