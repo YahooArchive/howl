@@ -55,4 +55,24 @@ public class TestHowlSchema extends TestCase {
     assertTrue(schema.getFieldNames().contains("age"));
     assertEquals(2, schema.getFields().size());
   }
+
+  public void testCannotInstantiateSchemaWithRepeatedFieldNames() throws HowlException {
+      List<HowlFieldSchema> fieldSchemaList = new ArrayList<HowlFieldSchema>();
+
+      fieldSchemaList.add(new HowlFieldSchema("memberID", HowlFieldSchema.Type.INT, "as a number"));
+      fieldSchemaList.add(new HowlFieldSchema("location", HowlFieldSchema.Type.STRING, "there's Waldo"));
+
+      // No duplicate names.  This should be ok
+      HowlSchema schema = new HowlSchema(fieldSchemaList);
+
+      fieldSchemaList.add(new HowlFieldSchema("memberID", HowlFieldSchema.Type.STRING, "as a String"));
+
+      // Now a duplicated field name.  Should fail
+      try {
+        HowlSchema schema2 = new HowlSchema(fieldSchemaList);
+        fail("Able to add duplicate field name");
+      } catch (IllegalArgumentException iae) {
+        assertTrue(iae.getMessage().contains("Field named memberID already exists"));
+      }
+  }
 }

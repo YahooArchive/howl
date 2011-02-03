@@ -41,7 +41,8 @@ public class HowlSchema implements Serializable{
     /**
      *
      * @param fieldSchemas is now owned by HowlSchema. Any subsequent modifications
-     * on fieldSchemas won't get reflected in HowlSchema.
+     * on fieldSchemas won't get reflected in HowlSchema.  Each fieldSchema's name in the list must be unique.  Otherwise
+     * throws IllegalArgumentException.
      */
     public HowlSchema(final List<HowlFieldSchema> fieldSchemas){
         this.fieldSchemas = new ArrayList<HowlFieldSchema>(fieldSchemas);
@@ -49,12 +50,21 @@ public class HowlSchema implements Serializable{
         fieldPositionMap = new HashMap<String,Integer>();
         fieldNames = new ArrayList<String>();
         for (HowlFieldSchema field : fieldSchemas){
-            fieldPositionMap.put(field.getName(), idx);
-            fieldNames.add(field.getName());
+            String fieldName = field.getName();
+            fieldPositionMap.put(fieldName, idx);
+
+            if(fieldNames.contains(fieldName))
+                throw new IllegalArgumentException("Field named " + fieldName + " already exists");
+
+            fieldNames.add(fieldName);
             idx++;
         }
     }
 
+    /**
+     * Add a new field schema to the schema
+     * @param hfs  New field schema.  Name must not already be an existing field schema or will throw HowlException
+     */
     public void append(final HowlFieldSchema hfs) throws HowlException{
 
       if(hfs == null || fieldSchemas == null){
