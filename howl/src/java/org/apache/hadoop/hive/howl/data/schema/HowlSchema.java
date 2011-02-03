@@ -60,9 +60,9 @@ public class HowlSchema implements Serializable{
       if(hfs == null || fieldSchemas == null){
         throw new HowlException("Attempt to append null HowlFieldSchema in HowlSchema.");
       }
-      //TODO Addition of existing field should not be allowed in Schema.
-      //Need to enforce that. For that to happen, field schema needs to implement Comparable.
-      // Also, HowlSchema needs to implement Comparable.
+
+      if(fieldNames.contains(hfs.fieldName))
+        throw new HowlException("Attempt to append HowlFieldSchema with already existing name: " + hfs.fieldName + ".");
 
       this.fieldSchemas.add(hfs);
       String fieldName = hfs.getName();
