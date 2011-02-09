@@ -26,7 +26,7 @@
 <!-- ==================================================================== -->
 <section>
 	<title>Set Up</title>
-<p>The Howl command line interface (CLI) can be invoked as <code>howl</code> and is located at <code>/home/y/bin/howl</code> on the gateway machines. </p>
+  <p>The Howl command line interface (CLI) can be invoked as <code>howl</code> from within the <code>bin</code> directory of the Howl distribution.</p>
 
 
 <p><strong>Authentication</strong></p>
