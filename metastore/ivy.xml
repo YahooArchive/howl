@@ -25,6 +25,7 @@
           <exclude org="org.apache.geronimo.specs" module="geronimo-jta_1.1_spec"/>
         </dependency>
         <dependency org="commons-pool" name="commons-pool" rev="${commons-pool.version}"/>
+<!--
         <dependency org="org.datanucleus" name="datanucleus-connectionpool" rev="${datanucleus-connectionpool.version}">
           <exclude module="proxool" />
           <exclude module="c3p0" />
@@ -58,6 +59,7 @@
           <exclude org="org.apache.ant" module="ant"/>
           <exclude org="oracle" module="ojdbc14_g"/>
         </dependency>
+-->
         <dependency org="javax.jdo" name="jdo2-api" rev="${jdo-api.version}">
           <exclude org="javax.transaction" module="jta"/>
           <exclude org="org.apache.ant" module="ant"/>
