@@ -57,8 +57,8 @@ public class TestHowlStorerMulti extends TestCase {
     if ((partitionedBy != null)&&(!partitionedBy.trim().isEmpty())){
       createTable = createTable + "partitioned by ("+partitionedBy+") ";
     }
-    createTable = createTable + "stored as RCFILE tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver'," +
-    "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver') ";
+    createTable = createTable + "stored as RCFILE tblproperties('howl.isd'='org.apache.howl.rcfile.RCFileInputDriver'," +
+    "'howl.osd'='org.apache.howl.rcfile.RCFileOutputDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table. ["+createTable+"], return code from hive driver : ["+retCode+"]");
@@ -103,7 +103,7 @@ public class TestHowlStorerMulti extends TestCase {
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
     server.registerQuery("A = load '"+basicFileFullName+"' as (a:int, b:chararray);");
-    server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
+    server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.howl.pig.HowlStorer();");
 
     server.executeBatch();
 
@@ -124,9 +124,9 @@ public class TestHowlStorerMulti extends TestCase {
     server.registerQuery("A = load '"+basicFileFullName+"' as (a:int, b:chararray);");
 
     server.registerQuery("B2 = filter A by a < 2;");
-    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
+    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.howl.pig.HowlStorer('bkt=0');");
     server.registerQuery("C2 = filter A by a >= 2;");
-    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
+    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.howl.pig.HowlStorer('bkt=1');");
 
     server.executeBatch();
 
@@ -148,12 +148,12 @@ public class TestHowlStorerMulti extends TestCase {
     UDFContext.getUDFContext().setClientSystemProps();
     server.setBatchOn();
     server.registerQuery("A = load '"+basicFileFullName+"' as (a:int, b:chararray);");
-    server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
+    server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.howl.pig.HowlStorer();");
 
     server.registerQuery("B2 = filter A by a < 2;");
-    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
+    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.howl.pig.HowlStorer('bkt=0');");
     server.registerQuery("C2 = filter A by a >= 2;");
-    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
+    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.howl.pig.HowlStorer('bkt=1');");
 
     server.executeBatch();
 

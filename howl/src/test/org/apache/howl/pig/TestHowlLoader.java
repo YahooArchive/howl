@@ -70,8 +70,8 @@ public class TestHowlLoader extends TestCase {
     if ((partitionedBy != null)&&(!partitionedBy.trim().isEmpty())){
       createTable = createTable + "partitioned by ("+partitionedBy+") ";
     }
-    createTable = createTable + "stored as RCFILE tblproperties('howl.isd'='org.apache.hadoop.hive.howl.rcfile.RCFileInputDriver'," +
-        "'howl.osd'='org.apache.hadoop.hive.howl.rcfile.RCFileOutputDriver') ";
+    createTable = createTable + "stored as RCFILE tblproperties('howl.isd'='org.apache.howl.rcfile.RCFileInputDriver'," +
+        "'howl.osd'='org.apache.howl.rcfile.RCFileOutputDriver') ";
     int retCode = driver.run(createTable).getResponseCode();
     if(retCode != 0) {
       throw new IOException("Failed to create table. ["+createTable+"], return code from hive driver : ["+retCode+"]");
@@ -140,17 +140,17 @@ public class TestHowlLoader extends TestCase {
     server.setBatchOn();
     server.registerQuery("A = load '"+fullFileNameBasic+"' as (a:int, b:chararray);");
 
-    server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
+    server.registerQuery("store A into '"+BASIC_TABLE+"' using org.apache.howl.pig.HowlStorer();");
     server.registerQuery("B = foreach A generate a,b;");
     server.registerQuery("B2 = filter B by a < 2;");
-    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=0');");
+    server.registerQuery("store B2 into '"+PARTITIONED_TABLE+"' using org.apache.howl.pig.HowlStorer('bkt=0');");
 
     server.registerQuery("C = foreach A generate a,b;");
     server.registerQuery("C2 = filter C by a >= 2;");
-    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer('bkt=1');");
+    server.registerQuery("store C2 into '"+PARTITIONED_TABLE+"' using org.apache.howl.pig.HowlStorer('bkt=1');");
 
     server.registerQuery("D = load '"+fullFileNameComplex+"' as (name:chararray, studentid:int, contact:tuple(phno:chararray,email:chararray), currently_registered_courses:bag{innertup:tuple(course:chararray)}, current_grades:map[ ] , phnos :bag{innertup:tuple(phno:chararray,type:chararray)});");
-    server.registerQuery("store D into '"+COMPLEX_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlStorer();");
+    server.registerQuery("store D into '"+COMPLEX_TABLE+"' using org.apache.howl.pig.HowlStorer();");
     server.executeBatch();
 
   }
@@ -185,7 +185,7 @@ public class TestHowlLoader extends TestCase {
     PigServer server = new PigServer(ExecType.LOCAL, props);
 
     // test that schema was loaded correctly
-    server.registerQuery("X = load '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+    server.registerQuery("X = load '"+BASIC_TABLE+"' using org.apache.howl.pig.HowlLoader();");
     Schema dumpedXSchema = server.dumpSchema("X");
     List<FieldSchema> Xfields = dumpedXSchema.getFields();
     assertEquals(2,Xfields.size());
@@ -199,7 +199,7 @@ public class TestHowlLoader extends TestCase {
   public void testReadDataBasic() throws IOException {
     PigServer server = new PigServer(ExecType.LOCAL, props);
 
-    server.registerQuery("X = load '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+    server.registerQuery("X = load '"+BASIC_TABLE+"' using org.apache.howl.pig.HowlLoader();");
     Iterator<Tuple> XIter = server.openIterator("X");
     int numTuplesRead = 0;
     while( XIter.hasNext() ){
@@ -219,7 +219,7 @@ public class TestHowlLoader extends TestCase {
     PigServer server = new PigServer(ExecType.LOCAL, props);
 
     // test that schema was loaded correctly
-    server.registerQuery("K = load '"+COMPLEX_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+    server.registerQuery("K = load '"+COMPLEX_TABLE+"' using org.apache.howl.pig.HowlLoader();");
     Schema dumpedKSchema = server.dumpSchema("K");
     List<FieldSchema> Kfields = dumpedKSchema.getFields();
     assertEquals(6,Kfields.size());
@@ -279,7 +279,7 @@ public class TestHowlLoader extends TestCase {
     driver.getResults(valuesReadFromHiveDriver);
     assertEquals(basicInputData.size(),valuesReadFromHiveDriver.size());
 
-    server.registerQuery("W = load '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+    server.registerQuery("W = load '"+PARTITIONED_TABLE+"' using org.apache.howl.pig.HowlLoader();");
     Schema dumpedWSchema = server.dumpSchema("W");
     List<FieldSchema> Wfields = dumpedWSchema.getFields();
     assertEquals(3,Wfields.size());
@@ -307,7 +307,7 @@ public class TestHowlLoader extends TestCase {
     }
     assertEquals(valuesReadFromHiveDriver.size(),valuesRead.size());
 
-    server.registerQuery("P1 = load '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+    server.registerQuery("P1 = load '"+PARTITIONED_TABLE+"' using org.apache.howl.pig.HowlLoader();");
     server.registerQuery("P1filter = filter P1 by bkt == '0';");
     Iterator<Tuple> P1Iter = server.openIterator("P1filter");
     int count1 = 0;
@@ -320,7 +320,7 @@ public class TestHowlLoader extends TestCase {
     }
     assertEquals(3, count1);
 
-    server.registerQuery("P2 = load '"+PARTITIONED_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+    server.registerQuery("P2 = load '"+PARTITIONED_TABLE+"' using org.apache.howl.pig.HowlLoader();");
     server.registerQuery("P2filter = filter P2 by bkt == '1';");
     Iterator<Tuple> P2Iter = server.openIterator("P2filter");
     int count2 = 0;
@@ -340,7 +340,7 @@ public class TestHowlLoader extends TestCase {
 
     // projections are handled by using generate, not "as" on the Load
 
-    server.registerQuery("Y1 = load '"+BASIC_TABLE+"' using org.apache.hadoop.hive.howl.pig.HowlLoader();");
+    server.registerQuery("Y1 = load '"+BASIC_TABLE+"' using org.apache.howl.pig.HowlLoader();");
     server.registerQuery("Y2 = foreach Y1 generate a;");
     server.registerQuery("Y3 = foreach Y1 generate b,a;");
     Schema dumpedY2Schema = server.dumpSchema("Y2");
