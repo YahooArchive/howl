@@ -149,7 +149,12 @@ if [ "$HADOOP_HOME" == "" ]; then
   exit 4;
 fi
 
-HADOOP=$HADOOP_HOME/bin/hadoop
+if [ -f ${HADOOP_OVERRIDE} ]; then
+  HADOOP=$HADOOP_OVERRIDE
+else
+  HADOOP=$HADOOP_HOME/bin/hadoop
+fi
+
 if [ ! -f ${HADOOP} ]; then
   echo "Cannot find hadoop installation: \$HADOOP_HOME must be set or hadoop must be in the path";
   exit 4;
