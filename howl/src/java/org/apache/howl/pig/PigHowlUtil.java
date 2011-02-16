@@ -26,21 +26,21 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
-import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
-import org.apache.hadoop.hive.metastore.api.Table;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.howl.common.HowlConstants;
 import org.apache.howl.data.HowlArrayBag;
 import org.apache.howl.data.HowlRecord;
 import org.apache.howl.data.Pair;
 import org.apache.howl.data.schema.HowlFieldSchema;
-import org.apache.howl.data.schema.HowlSchema;
 import org.apache.howl.data.schema.HowlFieldSchema.Type;
+import org.apache.howl.data.schema.HowlSchema;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
+import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.pig.LoadPushDown.RequiredField;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.LoadPushDown.RequiredField;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -97,8 +97,10 @@ public class PigHowlUtil {
     HiveConf hiveConf = new HiveConf(clazz);
 
     if (serverUri != null){
+/*
       hiveConf.setBoolVar(HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL, true);
       hiveConf.setVar(HiveConf.ConfVars.METASTORE_KERBEROS_PRINCIPAL, serverKerberosPrincipal);
+*/
       hiveConf.set("hive.metastore.local", "false");
       hiveConf.setVar(HiveConf.ConfVars.METASTOREURIS, serverUri.trim());
     }
