@@ -486,7 +486,7 @@ public class HowlStorer extends StoreFunc implements StoreMetadata {
       } catch(HowlException he) {
           // pass the message to the user - essentially something about the table
           // information passed to HowlOutputFormat was not right
-          throw new PigException(he.getMessage(), PigHowlUtil.PIG_EXCEPTION_CODE);
+          throw new PigException(he.getMessage(), PigHowlUtil.PIG_EXCEPTION_CODE, he);
       }
       howlTblSchema = HowlOutputFormat.getTableSchema(job);
       try{
