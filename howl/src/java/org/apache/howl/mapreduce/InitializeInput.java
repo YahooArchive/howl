@@ -143,7 +143,12 @@ public class InitializeInput {
     if (parameters.containsKey(HowlConstants.HOWL_ISD_CLASS)){
       inputStorageDriverClass = parameters.get(HowlConstants.HOWL_ISD_CLASS);
     }else{
-      throw new IOException("No input storage driver classname found, cannot read partition");
+      // attempt to default to RCFile if the storage descriptor says it's an RCFile
+      if ((sd.getInputFormat() != null) && (sd.getInputFormat().equals(HowlConstants.HIVE_RCFILE_IF_CLASS))){
+        inputStorageDriverClass = HowlConstants.HOWL_RCFILE_ISD_CLASS;
+      }else{
+        throw new IOException("No input storage driver classname found, cannot read partition");
+      }
     }
     for (String key : parameters.keySet()){
       if (key.startsWith(HOWL_KEY_PREFIX)){
@@ -155,19 +160,29 @@ public class InitializeInput {
 
 
 
-  static StorerInfo extractStorerInfo(Map<String, String> properties) throws IOException {
+  static StorerInfo extractStorerInfo(StorageDescriptor sd, Map<String, String> properties) throws IOException {
     String inputSDClass, outputSDClass;
 
     if (properties.containsKey(HowlConstants.HOWL_ISD_CLASS)){
       inputSDClass = properties.get(HowlConstants.HOWL_ISD_CLASS);
     }else{
-      throw new IOException("No input storage driver classname found for table, cannot write partition");
+      // attempt to default to RCFile if the storage descriptor says it's an RCFile
+      if ((sd.getInputFormat() != null) && (sd.getInputFormat().equals(HowlConstants.HIVE_RCFILE_IF_CLASS))){
+        inputSDClass = HowlConstants.HOWL_RCFILE_ISD_CLASS;
+      }else{
+        throw new IOException("No input storage driver classname found for table, cannot write partition");
+      }
     }
 
     if (properties.containsKey(HowlConstants.HOWL_OSD_CLASS)){
       outputSDClass = properties.get(HowlConstants.HOWL_OSD_CLASS);
     }else{
-      throw new IOException("No output storage driver classname found for table, cannot write partition");
+      // attempt to default to RCFile if the storage descriptor says it's an RCFile
+      if ((sd.getOutputFormat() != null) && (sd.getOutputFormat().equals(HowlConstants.HIVE_RCFILE_OF_CLASS))){
+        outputSDClass = HowlConstants.HOWL_RCFILE_OSD_CLASS;
+      }else{
+        throw new IOException("No output storage driver classname found for table, cannot write partition");
+      }
     }
 
     Properties howlProperties = new Properties();

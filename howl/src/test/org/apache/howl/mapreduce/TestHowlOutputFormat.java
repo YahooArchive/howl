@@ -159,7 +159,7 @@ public class TestHowlOutputFormat extends TestCase {
     Partition part = client.getPartition(dbName, tblName, Arrays.asList("p1"));
     assertNotNull(part);
 
-    StorerInfo storer = InitializeInput.extractStorerInfo(part.getParameters());
+    StorerInfo storer = InitializeInput.extractStorerInfo(part.getSd(),part.getParameters());
     assertEquals(storer.getInputSDClass(), "testInputClass");
     assertEquals(storer.getProperties().get("howl.testarg"), "testArgValue");
     assertTrue(part.getSd().getLocation().indexOf("p1") != -1);

@@ -184,7 +184,7 @@ public class HowlOutputCommitter extends OutputCommitter {
       try {
         client = HowlOutputFormat.createHiveClient(tableInfo.getServerUri(), conf);
 
-        StorerInfo storer = InitializeInput.extractStorerInfo(table.getParameters());
+        StorerInfo storer = InitializeInput.extractStorerInfo(table.getSd(),table.getParameters());
 
         Partition partition = new Partition();
         partition.setDbName(tableInfo.getDatabaseName());

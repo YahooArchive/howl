@@ -122,7 +122,7 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
         StorageDescriptor tblSD = table.getSd();
         HowlSchema tableSchema = HowlUtil.extractSchemaFromStorageDescriptor(tblSD);
-        StorerInfo storerInfo = InitializeInput.extractStorerInfo(table.getParameters());
+        StorerInfo storerInfo = InitializeInput.extractStorerInfo(tblSD,table.getParameters());
 
         List<String> partitionCols = new ArrayList<String>();
         for(FieldSchema schema : table.getPartitionKeys()) {

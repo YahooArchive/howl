@@ -8,6 +8,11 @@ public final class HowlConstants {
   /** The key for the output storage driver class name */
   public static final String HOWL_OSD_CLASS = "howl.osd";
 
+  public static final String HIVE_RCFILE_IF_CLASS = "org.apache.hadoop.hive.ql.io.RCFileInputFormat";
+  public static final String HIVE_RCFILE_OF_CLASS = "org.apache.hadoop.hive.ql.io.RCFileOutputFormat";
+  public static final String HOWL_RCFILE_ISD_CLASS = "org.apache.howl.rcfile.RCFileInputDriver";
+  public static final String HOWL_RCFILE_OSD_CLASS = "org.apache.howl.rcfile.RCFileOutputDriver";
+
   private HowlConstants() { // restrict instantiation
   }
 
