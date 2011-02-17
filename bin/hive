@@ -149,10 +149,11 @@ if [ "$HADOOP_HOME" == "" ]; then
   exit 4;
 fi
 
-if [ -f ${HADOOP_OVERRIDE} ]; then
-  HADOOP=$HADOOP_OVERRIDE
-else
-  HADOOP=$HADOOP_HOME/bin/hadoop
+HADOOP=$HADOOP_HOME/bin/hadoop
+if [ "x$HADOOP_OVERRIDE" != "x" ]; then
+  if [ -f ${HADOOP_OVERRIDE} ]; then
+    HADOOP=$HADOOP_OVERRIDE
+  fi
 fi
 
 if [ ! -f ${HADOOP} ]; then

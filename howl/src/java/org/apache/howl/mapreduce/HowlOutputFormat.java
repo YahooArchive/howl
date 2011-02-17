@@ -451,9 +451,11 @@ public class HowlOutputFormat extends OutputFormat<WritableComparable<?>, HowlRe
 
       if( url != null ) {
         //User specified a thrift url
+/*
         hiveConf.setBoolean(HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL.varname, true);
 
         hiveConf.set(HiveConf.ConfVars.METASTORE_KERBEROS_PRINCIPAL.varname, conf.get(HowlConstants.HOWL_METASTORE_PRINCIPAL));
+*/
         hiveConf.set("hive.metastore.local", "false");
         hiveConf.set(HiveConf.ConfVars.METASTOREURIS.varname, url);
         if(conf.get(HOWL_KEY_TOKEN_SIGNATURE) != null) {

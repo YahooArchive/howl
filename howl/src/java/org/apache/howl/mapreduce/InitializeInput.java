@@ -26,15 +26,17 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.howl.common.HowlConstants;
+import org.apache.howl.common.ErrorType;
+import org.apache.howl.common.HowlException;
+import org.apache.howl.common.HowlUtil;
+import org.apache.howl.data.schema.HowlSchema;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.howl.common.HowlConstants;
-import org.apache.howl.common.HowlUtil;
-import org.apache.howl.data.schema.HowlSchema;
 
 /**
  * The Class which handles querying the metadata server using the MetaStoreClient. The list of
@@ -46,13 +48,15 @@ public class InitializeInput {
 
   /** The prefix for keys used for storage driver arguments */
   private static final String HOWL_KEY_PREFIX = "howl.";
+  private static final HiveConf hiveConf = new HiveConf(HowlInputFormat.class);
 
   private static HiveMetaStoreClient createHiveMetaClient(Configuration conf, HowlTableInfo inputInfo) throws Exception {
-    HiveConf hiveConf = new HiveConf(HowlInputFormat.class);
     if (inputInfo.getServerUri() != null){
+/*
       hiveConf.setBoolean(HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL.varname, true);
       hiveConf.set(HiveConf.ConfVars.METASTORE_KERBEROS_PRINCIPAL.varname,
           inputInfo.getServerKerberosPrincipal());
+*/
       hiveConf.set("hive.metastore.local", "false");
       hiveConf.set(HiveConf.ConfVars.METASTOREURIS.varname, inputInfo.getServerUri());
     }
@@ -86,6 +90,18 @@ public class InitializeInput {
         List<Partition> parts = client.listPartitionsByFilter(
             inputInfo.getDatabaseName(), inputInfo.getTableName(),
             inputInfo.getFilter(), (short) -1);
+
+        // Default to 100,000 partitions if hive.metastore.maxpartition is not defined
+        int maxPart = hiveConf.getInt("hive.metastore.maxpartition", 100000);
+        /*
+        Properties props = hiveConf.getAllProperties();
+        for (Object k : props.keySet()) {
+            System.out.println("hiveConf: " + k + "=" + props.getProperty((String)k));
+        }
+        */
+        if (parts != null && parts.size() > maxPart) {
+          throw new HowlException(ErrorType.ERROR_EXCEED_MAXPART, "total number of partitions is " + parts.size());
+        }
 
         // populate partition info
         for (Partition ptn : parts){

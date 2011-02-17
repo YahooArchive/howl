@@ -24,6 +24,7 @@ public enum ErrorType {
 
     /* Howl Input Format related errors 1000 - 1999 */
     ERROR_DB_INIT                       (1000, "Error initializing database session"),
+    ERROR_EXCEED_MAXPART                (1001, "Query result exceeded maximum number of partitions allowed"),
 
 
     /* Howl Output Format related errors 2000 - 2999 */
