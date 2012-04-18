@@ -26,13 +26,13 @@
 <!-- ==================================================================== -->
 <section>
 	<title>Set Up</title>
-<p>The Howl command line interface (CLI) can be invoked as <code>howl</code> and is located at <code>/home/y/bin/howl</code> on the gateway machines. </p>
+  <p>The Howl command line interface (CLI) can be invoked as <code>howl</code> from within the <code>bin</code> directory of the Howl distribution.</p>
 
 
 <p><strong>Authentication</strong></p>
 <table>
 	<tr>
-	<td><p>If a failure results in a message like "2010-11-03 16:17:28,225 WARN hive.metastore ... - Unable to connect metastore with URI thrift://..." in /tmp/&lt;username&gt;/hive.log, then make sure you have run "kinit &lt;username&gt;@DS.CORP.YAHOO.COM" to get a kerberos ticket and to be able to authenticate to the Howl server. </p></td>
+	<td><p>If a failure results in a message like "2010-11-03 16:17:28,225 WARN hive.metastore ... - Unable to connect metastore with URI thrift://..." in /tmp/&lt;username&gt;/hive.log, then make sure you have run "kinit &lt;username&gt;@&lt;YOUR KERBEROS KEY DISTRIBUTOR&gt;" to get a kerberos ticket and to be able to authenticate to the Howl server. </p></td>
 	</tr>
 </table>
 <p>If other errors occur while using the Howl CLI, more detailed messages (if any) are written to /tmp/&lt;username&gt;/hive.log. </p>
